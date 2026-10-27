@@ -1,6 +1,6 @@
 import { t, translateMessage, validationOptions } from "@/lib/i18n";
 
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { lstat, mkdir, readFile, readdir, unlink } from "@toonflow/file";
 import { dirname, join } from "node:path";
 import { createContext, SourceTextModule } from "node:vm";
@@ -12,6 +12,12 @@ import conf from "@/utils/conf";
 import { convertAudio } from "@/utils/media/audioProcessor";
 import { createWorkspaceFfmpeg } from "@/utils/ffmpeg";
 import { lockWorkspaceFiles, writeWorkspaceFile } from "@/utils/workspace/files";
+import { listedModelsSchema as discoveredModelsSchema, modelConnectionSchema, providerModelsUrl } from "@/utils/ai/models";
+import { assertImageProtocols, generateProtocolImage, getImageProtocols } from "@/utils/media/imageProtocols";
+
+export { modelConnectionSchema } from "@/utils/ai/models";
+export const listedModelsSchema = z.array(discoveredModelsSchema.element.extend({ imageProtocolId: z.string().max(96).optional() })).max(2000)
+  .refine(models => new Set(models.map(model => model.id)).size === models.length, "模型 ID 不能重复");
 
 type Expression = Extract<ReturnType<typeof parseExpression>, { type: "ParenthesizedExpression" }>["expression"];
 type ObjectExpression = Extract<Expression, { type: "ObjectExpression" }>;
@@ -198,6 +204,15 @@ function parseProvider(source: string) {
   const version = value("version");
   const readme = value("readme");
   const modelsUrl = value("modelsUrl");
+  const modelConnection = value("modelConnection") === undefined ? undefined : modelConnectionSchema.parse(value("modelConnection"));
+  const listedModels = value("listedModels") === undefined ? undefined : listedModelsSchema.parse(value("listedModels"));
+  const imageProtocolId = z.string().max(96).optional().parse(value("imageProtocolId"));
+  const adapterSource = value("adapterSource");
+  if (adapterSource !== undefined && (typeof adapterSource !== "string" || !adapterSource.trim() || Buffer.byteLength(adapterSource, "utf8") > 1024 * 1024)) invalid("适配文件必须为不超过 1 MB 的供应商代码");
+  if (adapterSource !== undefined && !modelConnection) invalid("适配文件只能关联到已配置连接的供应商");
+  if (modelConnection && [...entries.keys()].some(name => ["generateImage", "generateVideo", "generateAudio", "processMedia"].includes(name))) {
+    invalid("模型连接配置不能包含生成适配代码，请通过供应商文件导入");
+  }
   if (!providerIdSchema.safeParse(id).success) invalid("供应商 ID 必须为小驼峰文件名");
   if (typeof label !== "string" || !label.trim() || label.length > 200) invalid("供应商名称无效");
   if (icon !== undefined && typeof icon !== "string") invalid("供应商图标必须为字符串");
@@ -209,22 +224,49 @@ function parseProvider(source: string) {
   }).safeParse(modelsUrl).success) invalid("模型列表地址须为不含凭据或片段的 HTTP URL");
   const models = mediaModelsSchema.safeParse(value("models") ?? [], validationOptions());
   if (!models.success) invalid(models.error.issues.map(issue => translateMessage(issue.message)).join("; "));
+  if (modelConnection && models.data.length) invalid("模型连接只保存 listedModels，生成模型请通过供应商文件配置");
   const rules = providerRulesSchema.safeParse(value("rules") ?? []);
   if (!rules.success) invalid("供应商 rules 必须为表单配置对象数组");
-  return { object, modelProperty: entries.get("models"), id: id as string, label, icon, version: version?.trim(), readme, modelsUrl: modelsUrl as string | undefined, rules: rules.data, models: models.data,
-    supportsPrice: entries.has("getPrice") || id === tfRouter.id, supportsBalance: entries.has("getBalance") || id === tfRouter.id };
+  const generationTypes = ["image", "video", "audio"].filter(type => {
+    const property = entries.get(`generate${type[0]!.toUpperCase()}${type.slice(1)}`);
+    return (property?.type === "ObjectMethod" && property.kind === "method") || (property?.type === "ObjectProperty" && ["FunctionExpression", "ArrowFunctionExpression"].includes(unwrap(property.value as Expression).type));
+  });
+  return { object, modelProperty: entries.get("models"), id: id as string, label, icon, version: version?.trim(), readme, modelsUrl: modelsUrl as string | undefined, modelConnection, listedModels, adapterSource: adapterSource as string | undefined, generationTypes, rules: rules.data, models: models.data,
+    imageProtocolId, supportsPrice: entries.has("getPrice") || id === tfRouter.id, supportsBalance: entries.has("getBalance") || id === tfRouter.id };
 }
 
 function metadata(fileName: string, source: string) {
-  const { id, label, icon, version, readme, modelsUrl, rules, models, supportsPrice, supportsBalance } = parseProvider(source);
+  const current = parseProvider(source);
+  const { id, label, modelsUrl, modelConnection, listedModels, imageProtocolId } = current;
   if (fileName !== `${id}.ts`) invalid("供应商 ID 与文件名不一致");
+  const adapter = current.adapterSource === undefined ? undefined : parseProvider(current.adapterSource);
+  if (adapter?.modelConnection) invalid("请选择包含生成逻辑的供应商文件，不能导入另一个连接配置");
+  const adapterModels = adapter?.models.filter(model => adapter.generationTypes.includes(model.type));
+  if (adapter && !adapterModels?.length) invalid("适配文件未声明可执行的图片、视频或音频模型");
+  const selectedIds = new Set(listedModels?.map(model => model.id));
+  const models = adapterModels?.filter(model => selectedIds.has(model.id)) ?? [...current.models];
+  const protocols = getImageProtocols();
+  // ACT: 适配文件优先；其余模型仅在用户明确选择生图协议时启用，不按模型名推断能力。
+  if (modelConnection) for (const model of listedModels ?? []) {
+    if (models.some(item => item.id === model.id)) continue;
+    const protocol = protocols.find(item => item.id === (model.imageProtocolId ?? imageProtocolId));
+    if (protocol) models.push({ ...model, type: "image", imageProtocolId: protocol.id,
+      imageSizes: protocol.imageSizes, imageRatios: protocol.imageRatios,
+      mode: protocol.editPath ? ["text", "singleImage", "multiReference"] : ["text"] });
+  }
+  const definition = adapter ?? current;
+  const rules = modelConnection ? definition.rules.filter(rule => !["apiUrl", "apiKey", "protocol"].includes(String(rule.field))) : definition.rules;
   // ACT: 兼容旧 TF-Router 文件，缺少列表地址时使用内置定义。
-  return { fileName, id, label, icon, version, readme, modelsUrl: modelsUrl ?? (id === tfRouter.id ? tfRouter.modelsUrl : undefined), rules, models,
-    supportsPrice, supportsBalance, revision: createHash("sha256").update(source).digest("hex"), loadError: "" };
+  return { fileName, id, label, icon: definition.icon, version: definition.version, readme: definition.readme, modelsUrl: modelsUrl ?? (id === tfRouter.id ? tfRouter.modelsUrl : undefined), rules, models,
+    modelConnection, listedModels, imageProtocolId, adapter: adapter ? { id: adapter.id, label: adapter.label, models: adapterModels! } : undefined,
+    generationTypes: [...new Set([...definition.generationTypes, ...models.map(model => model.type)])], supportsPrice: definition.supportsPrice, supportsBalance: definition.supportsBalance, revision: createHash("sha256").update(source).digest("hex"), loadError: "" };
 }
 
 export function validateMediaProviderSource(source: string) {
-  const { id } = parseProvider(source);
+  const { id, modelConnection, imageProtocolId, listedModels } = parseProvider(source);
+  if (modelConnection) {
+    assertImageProtocols([imageProtocolId, ...(listedModels?.map(model => model.imageProtocolId) ?? [])]);
+  }
   return metadata(`${id}.ts`, source);
 }
 
@@ -292,6 +334,42 @@ export async function addMediaProvider(source: string) {
   return result;
 }
 
+export async function configureMediaProvider(options: {
+  label: string;
+  modelConnection: z.infer<typeof modelConnectionSchema>;
+  listedModels: z.infer<typeof listedModelsSchema>;
+  fileName?: string;
+  revision?: string;
+  adapterSource?: string;
+  imageProtocolId?: string;
+}) {
+  assertImageProtocols([options.imageProtocolId, ...options.listedModels.map(model => model.imageProtocolId)]);
+  const id = options.fileName?.slice(0, -3) ?? `customMedia${randomUUID().replaceAll("-", "")}`;
+  const modelConnection = modelConnectionSchema.parse(options.modelConnection);
+  const createSource = (adapterSource?: string) => `export default ${JSON.stringify({
+    id, label: options.label, modelConnection, imageProtocolId: options.imageProtocolId,
+    modelsUrl: providerModelsUrl(modelConnection).href,
+    listedModels: listedModelsSchema.parse(options.listedModels),
+    // ACT: 连接与原始适配源码保存为一个原子快照，避免更新模型列表时丢失适配代码。
+    models: [], adapterSource,
+  }, null, 2)};\n`;
+  if (!options.fileName) return addMediaProvider(createSource(options.adapterSource));
+  if (!mediaProviderFileSchema.safeParse(options.fileName).success) invalid("供应商文件名无效");
+  const path = await directory();
+  if (!path) invalid("供应商文件不存在", 404);
+  const release = lockWorkspaceFiles([join(path, options.fileName)]);
+  try {
+    const current = await readProvider(path, options.fileName);
+    if (current.revision !== options.revision) invalid("供应商文件已被修改，请刷新页面后再编辑", 409);
+    const previous = parseProvider(current.source);
+    if (!previous.modelConnection) invalid("请在原供应商编辑器中修改适配文件");
+    const source = createSource(options.adapterSource ?? previous.adapterSource);
+    const result = metadata(options.fileName, source);
+    await writeWorkspaceFile(join(path, options.fileName), source);
+    return result;
+  } finally { release(); }
+}
+
 export async function saveMediaProvider(fileName: string, models: z.infer<typeof mediaModelsSchema>, revision: string, expectedApiKey?: string) {
   if (!mediaProviderFileSchema.safeParse(fileName).success) invalid("供应商文件名无效");
   const checked = mediaModelsSchema.safeParse(models, validationOptions());
@@ -325,6 +403,7 @@ export function getMediaProviderApiKey(id: string) {
 export async function refreshMediaProviderModels(fileName: string, revision?: string, modelType?: ModelType, expectedApiKey?: string) {
   if (!mediaProviderFileSchema.safeParse(fileName).success) invalid("供应商文件名无效");
   const provider = await getMediaProvider(fileName.slice(0, -3));
+  if (provider.modelConnection) invalid("请在供应商编辑窗口中获取并勾选模型");
   if (revision !== undefined && revision !== provider.revision) invalid("供应商文件已被修改，请刷新页面后再获取", 409);
   if (!provider.modelsUrl) invalid("供应商未配置 modelsUrl");
   const apiKey = getMediaProviderApiKey(provider.id);
@@ -384,14 +463,16 @@ export async function deleteMediaProvider(fileName: string, revision: string) {
 
 export async function loadMediaProviderSource(source: string, config: Record<string, unknown> = {}, signal?: AbortSignal, fetchRequest = fetch, cwd?: string) {
   signal?.throwIfAborted();
-  const { id } = parseProvider(source);
+  const parsed = parseProvider(source);
+  const { id, modelConnection } = parsed;
+  const info = metadata(`${id}.ts`, source);
   // ACT: VM 只隔离可信供应商的全局上下文；不可信代码需要独立进程等更强隔离。
   const context = createContext({
     Buffer, URL, URLSearchParams, TextEncoder, TextDecoder, Blob,
     AbortController, AbortSignal, setTimeout, clearTimeout,
   }, { codeGeneration: { strings: false, wasm: false } });
   const rejectImport = () => { throw new Error("供应商不能导入模块，请使用 this.tool 中的宿主工具"); };
-  const module = new SourceTextModule(providerTranspiler.transformSync(source), {
+  const module = new SourceTextModule(providerTranspiler.transformSync(parsed.adapterSource ?? source), {
     context,
     identifier: `${id}.ts`,
     importModuleDynamically: rejectImport,
@@ -401,14 +482,35 @@ export async function loadMediaProviderSource(source: string, config: Record<str
   signal?.throwIfAborted();
   const definition = (module.namespace as { default: Provider }).default;
   // ACT: 已安装 TF-Router 仅补齐缺省查询能力，保留用户适配代码与模型列表。
-  if (id === tfRouter.id) {
+  if (definition.id === tfRouter.id) {
     definition.getPrice ??= tfRouter.getPrice;
     definition.getBalance ??= tfRouter.getBalance;
   }
+  const protocolModels = new Map(info.models.filter(model => typeof model.imageProtocolId === "string").map(model => [model.id, model.imageProtocolId as string]));
+  if (protocolModels.size) {
+    const generateImage = definition.generateImage;
+    const processMedia = definition.processMedia;
+    const getPrice = definition.getPrice;
+    const protocols = getImageProtocols();
+    definition.generateImage = async function(request) {
+      const protocolId = protocolModels.get(request.model);
+      if (!protocolId && generateImage) return generateImage.call(this, request);
+      const protocol = protocols.find(item => item.id === protocolId);
+      if (!protocol) throw new Error("模型未配置可用的生图协议，请检查媒体模型设置");
+      return generateProtocolImage.call(this, protocol, request);
+    };
+    if (processMedia) definition.processMedia = function(request) {
+      return protocolModels.has(request.model) ? Promise.resolve(request) : processMedia.call(this, request);
+    };
+    if (getPrice) definition.getPrice = function(request) {
+      return protocolModels.has(request.model) ? Promise.resolve(null) : getPrice.call(this, request);
+    };
+  }
   const rules = Array.isArray(definition.rules) ? definition.rules : [];
-  const providerConfig = { ...Object.fromEntries(rules.map(rule => [rule.field, rule.value])), ...structuredClone(config) };
+  const providerConfig = { ...Object.fromEntries(rules.map(rule => [rule.field, rule.value])), ...structuredClone(config), ...modelConnection };
   const provider = {
     ...definition,
+    ...(modelConnection ? { id, label: info.label, models: info.models as Provider["models"] } : {}),
     // 查询上下文使用原始注入 fetch，避免继承某次生成请求的取消信号。
     queryFetch: fetchRequest,
     sourceRevision: createHash("sha256").update(source).digest("hex"),

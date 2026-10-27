@@ -37,7 +37,7 @@ export async function listMediaModels(): Promise<MediaModel[]> {
     const builtIn = (mediaProviders as readonly Provider[]).find(item => item.id === provider.id)?.models.find(item => item.id === model.id);
     return [{
       providerId: provider.id, providerLabel: provider.label, modelId: model.id, label: model.label, type: model.type,
-      supportsPrice: "supportsPrice" in provider && provider.supportsPrice === true,
+      supportsPrice: !model.imageProtocolId && "supportsPrice" in provider && provider.supportsPrice === true,
       rules: model.rules,
       mode: model.mode, durationResolutionMap: model.durationResolutionMap, audio: model.audio,
       ...(model.type === "audio" ? { voices: model.voices } : {}),

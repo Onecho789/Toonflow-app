@@ -19,11 +19,11 @@
         <div class="providerFooter">
           <div class="providerMeta">
             <el-tag v-if="item.version" size="small" type="info" effect="plain">v{{ item.version }}</el-tag>
-            <el-text size="small" type="info">{{ item.models.length }} 个模型</el-text>
+            <el-text size="small" type="info">{{ (item.listedModels ?? item.models).length }} 个模型{{ item.modelConnection ? ` · ${item.models.length} 个可用于生成` : '' }}</el-text>
           </div>
           <el-space class="itemActions" wrap>
             <el-button v-if="item.modelsUrl" text :icon="IconDownload" :loading="fetchingFile === item.fileName" :disabled="!!fetchingFile || !!deletingFile || !!item.loadError || !item.revision" @click="fetchModels(item)">获取模型</el-button>
-            <el-button text :icon="IconEdit" :disabled="!!fetchingFile || !!deletingFile || !!item.loadError" @click="editProvider(item)">编辑模型</el-button>
+            <el-button text :icon="IconEdit" :disabled="!!fetchingFile || !!deletingFile || !!item.loadError" @click="editProvider(item)">{{ item.modelConnection ? '编辑' : '编辑模型' }}</el-button>
             <el-popconfirm title="确定删除此供应商及其模型？" confirmButtonText="删除" cancelButtonText="取消" @confirm="deleteProvider(item)">
               <template #reference><el-button text type="danger" :icon="IconTrash" :loading="deletingFile === item.fileName" :disabled="!!fetchingFile || !!deletingFile || !item.revision">删除</el-button></template>
             </el-popconfirm>
@@ -120,6 +120,7 @@ function editProvider(provider: MediaProvider) {
 }
 
 async function fetchModels(provider: MediaProvider) {
+  if (provider.modelConnection) { editProvider(provider); return; }
   if (fetchingFile.value || deletingFile.value || !provider.modelsUrl || !provider.revision || provider.loadError) return;
   fetchingFile.value = provider.fileName;
   try {

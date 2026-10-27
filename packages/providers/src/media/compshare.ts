@@ -69,7 +69,7 @@ type VideoRequest = {
 };
 
 type Context = {
-  config: { apiKey?: string; minimaxApiKey?: string };
+  config: { apiUrl?: string; apiKey?: string; minimaxApiKey?: string };
   signal?: AbortSignal;
   tool: {
     fetch: typeof fetch;
@@ -83,6 +83,10 @@ type Context = {
 const API_BASE = "https://api.modelverse.cn";
 /** MiniMax H3 视频工作台（优云智算）的接口地址。 */
 const H3_BASE = "https://cp.compshare.cn";
+function getBaseUrl(context: Context, fallback: string) {
+  // ACT: 该适配文件的路径已包含版本前缀，连接地址末尾的 /v1 或 /v1beta 在此统一移除。
+  return context.config.apiUrl?.trim().replace(/\/+$/, "").replace(/\/v1(?:beta)?$/i, "") || fallback;
+}
 /** MiniMax H3 任务轮询间隔（文档建议 3 秒一次）。 */
 const H3_POLL_INTERVAL = 3000;
 /** MiniMax H3 任务总等待上限（毫秒）。 */
@@ -759,7 +763,7 @@ async function generateGeminiImage(context: Context, request: ImageRequest, apiK
   if (Object.keys(imageConfig).length > 0) {
     generationConfig.imageConfig = imageConfig;
   }
-  const payload = await requestJson(context, API_BASE + "/v1beta/models/" + request.model + ":generateContent", {
+  const payload = await requestJson(context, getBaseUrl(context, API_BASE) + "/v1beta/models/" + request.model + ":generateContent", {
     method: "POST",
     headers: { "x-goog-api-key": apiKey, "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -825,7 +829,7 @@ async function generateGptImage(context: Context, request: ImageRequest, apiKey:
     for (const field of fields) {
       body.appendField(field[0], field[1]);
     }
-    const response = await context.tool.fetch(API_BASE + "/v1/images/edits", {
+    const response = await context.tool.fetch(getBaseUrl(context, API_BASE) + "/v1/images/edits", {
       method: "POST",
       headers: {
         Authorization: "Bearer " + apiKey,
@@ -848,7 +852,7 @@ async function generateGptImage(context: Context, request: ImageRequest, apiKey:
     }
     bodyObject.quality = quality;
     bodyObject.output_format = outputFormat;
-    payload = await requestJson(context, API_BASE + "/v1/images/generations", {
+    payload = await requestJson(context, getBaseUrl(context, API_BASE) + "/v1/images/generations", {
       method: "POST",
       headers: authHeaders(apiKey),
       body: JSON.stringify(bodyObject),
@@ -1141,7 +1145,7 @@ async function generateOpenAiImage(context: Context, request: ImageRequest, apiK
     bodyObject.response_format = "url";
     bodyObject.watermark = false;
   }
-  const payload = await requestJson(context, API_BASE + "/v1/images/generations", {
+  const payload = await requestJson(context, getBaseUrl(context, API_BASE) + "/v1/images/generations", {
     method: "POST",
     headers: authHeaders(apiKey),
     body: JSON.stringify(bodyObject),
@@ -1177,7 +1181,7 @@ async function generateQwen3Image(context: Context, request: ImageRequest, apiKe
     bodyObject.images = images.map((image) => toImageUrl(image, "image/png"));
   }
   bodyObject.watermark = false;
-  const payload = await requestJson(context, API_BASE + "/v1/images/generations", {
+  const payload = await requestJson(context, getBaseUrl(context, API_BASE) + "/v1/images/generations", {
     method: "POST",
     headers: authHeaders(apiKey),
     body: JSON.stringify(bodyObject),
@@ -1455,7 +1459,7 @@ type TaskHandle = {
 
 /** 提交通用异步任务（图片任务与视频任务共用）。 */
 async function submitTask(context: Context, body: unknown, apiKey: string): Promise<TaskHandle> {
-  const payload = await requestJson(context, API_BASE + "/v1/tasks/submit", {
+  const payload = await requestJson(context, getBaseUrl(context, API_BASE) + "/v1/tasks/submit", {
     method: "POST",
     headers: authHeaders(apiKey),
     body: JSON.stringify(body),
@@ -1479,7 +1483,7 @@ async function waitForTask(context: Context, handle: TaskHandle, totalTimeout: n
     if (Date.now() >= deadline) {
       throw new Error("等待生成结果超时，可以稍后重新发起");
     }
-    const statusPayload = await requestJson(context, API_BASE + "/v1/tasks/status?task_id=" + encodeURIComponent(handle.taskId), {
+    const statusPayload = await requestJson(context, getBaseUrl(context, API_BASE) + "/v1/tasks/status?task_id=" + encodeURIComponent(handle.taskId), {
       method: "GET",
       headers: authHeaders(handle.apiKey),
       signal: createSignal(context, STATUS_TIMEOUT),
@@ -1645,7 +1649,7 @@ async function generateH3Video(context: Context, request: VideoRequest, apiKey: 
     body.aigc_watermark = true;
   }
 
-  const submitPayload = await requestJson(context, H3_BASE + "/minimax/v2/video_generation", {
+  const submitPayload = await requestJson(context, getBaseUrl(context, H3_BASE) + "/minimax/v2/video_generation", {
     method: "POST",
     headers: authHeaders(apiKey),
     body: JSON.stringify(body),
@@ -1677,7 +1681,7 @@ async function generateH3Video(context: Context, request: VideoRequest, apiKey: 
     if (context.signal?.aborted) {
       throw new Error("已取消等待视频生成结果，远端任务可能仍在运行");
     }
-    const statusPayload = await requestJson(context, H3_BASE + "/minimax/v2/query/video_generation/" + encodeURIComponent(taskId), {
+    const statusPayload = await requestJson(context, getBaseUrl(context, H3_BASE) + "/minimax/v2/query/video_generation/" + encodeURIComponent(taskId), {
       method: "GET",
       headers: authHeaders(apiKey),
       signal: createSignal(context, STATUS_TIMEOUT),

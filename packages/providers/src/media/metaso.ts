@@ -8,9 +8,9 @@ const rules = [
   },
   {
     type: "input",
-    field: "baseUrl" as const,
+    field: "apiUrl" as const,
     title: "请求地址",
-    value: "https://metaso.cn/api/minimax",
+    value: "",
     props: { placeholder: "https://metaso.cn/api/minimax" },
   },
 ] as const;
@@ -104,7 +104,8 @@ export default {
   async generateVideo(request: ReferencedVideoRequest): Promise<MediaAsset[]> {
     const apiKey = this.config.apiKey?.trim();
     if (!apiKey) throw new Error("请填写 API Key");
-    const baseUrl = (this.config.baseUrl?.trim() || "https://metaso.cn/api/minimax").replace(/\/$/, "");
+    const legacyUrl = (this.config as { baseUrl?: string }).baseUrl;
+    const baseUrl = (this.config.apiUrl?.trim() || legacyUrl?.trim() || "https://metaso.cn/api/minimax").replace(/\/+$/, "");
 
     const images = (request.images ?? []).map(mediaUrl);
     const videos = (request.videos ?? []).map(mediaUrl);

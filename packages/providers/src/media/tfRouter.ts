@@ -32,7 +32,8 @@ async function fetchJson(context: ProviderContext, path: string, body?: unknown,
       : "";
   if (!apiKey) throw new Error("请填写 TF-router API Key");
   signal?.throwIfAborted();
-  const response = await context.tool.fetch(`${apiUrl}/${path}`, {
+  const baseUrl = typeof context.config.apiUrl === "string" && context.config.apiUrl.trim() ? context.config.apiUrl.trim().replace(/\/+$/, "") : apiUrl;
+  const response = await context.tool.fetch(`${baseUrl}/${path}`, {
     method: body === undefined ? "GET" : "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify(body),

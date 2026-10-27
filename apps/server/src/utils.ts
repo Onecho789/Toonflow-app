@@ -6,6 +6,7 @@ import * as providerDebug from "@/utils/media/debug";
 import * as mediaGeneration from "@/utils/media/generation";
 import * as mediaTasks from "@/utils/media/tasks";
 import * as mediaProvider from "@/utils/media/provider";
+import * as imageProtocols from "@/utils/media/imageProtocols";
 import * as mediaBilling from "@/utils/media/billing";
 import * as ffmpeg from "@/utils/ffmpeg";
 import * as pluginInstall from "@/utils/plugins/install";
@@ -42,6 +43,7 @@ export default {
   mediaGeneration,
   mediaTasks,
   mediaProvider,
+  imageProtocols,
   mediaBilling,
   ffmpeg,
   pluginInstall,

@@ -173,7 +173,7 @@ const bootstrap = await Bun.build({
   } }],
 });
 if (!bootstrap.success) throw new AggregateError(bootstrap.logs, "构建 OHOS 服务引导失败");
-for (const directory of ["web", "nodes", "tools", "ext", "providers", "skills"]) {
+for (const directory of ["web", "nodes", "tools", "ext", "skills"]) {
   await cp(join(projectRoot, "build", directory), join(payload, directory), { recursive: true });
 }
 await cp(join(projectRoot, "build/server/node_modules"), join(payload, "node_modules"), { recursive: true });

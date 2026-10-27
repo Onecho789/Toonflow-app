@@ -63,8 +63,8 @@ function videoPrompt(request: ReferencedVideoRequest, mode: VideoMode) {
   });
 }
 
-function getBaseUrl(isOverseas: string | undefined) {
-  return isOverseas === "2" ? "https://api.apimart.ai/v1" : "https://api.apib.ai/v1";
+function getBaseUrl(config: { apiUrl?: string; isOverseas?: string }) {
+  return config.apiUrl?.trim().replace(/\/+$/, "") || (config.isOverseas === "2" ? "https://api.apimart.ai/v1" : "https://api.apib.ai/v1");
 }
 
 function wait(signal: AbortSignal, ms: number) {
@@ -260,7 +260,7 @@ export default {
   async generateImage(request: ImageRequest): Promise<MediaAsset[]> {
     const apiKey = this.config.apiKey?.trim();
     if (!apiKey) throw new Error("请填写 API Key");
-    const baseUrl = getBaseUrl(this.config.isOverseas);
+    const baseUrl = getBaseUrl(this.config);
     const lowerName = request.model.toLowerCase();
     // ACT: 单次生成最多等待 10 分钟。
     const signal = AbortSignal.any([AbortSignal.timeout(10 * 60_000), ...(this.signal ? [this.signal] : [])]);
@@ -305,7 +305,7 @@ export default {
   async generateVideo(request: ReferencedVideoRequest): Promise<MediaAsset[]> {
     const apiKey = this.config.apiKey?.trim();
     if (!apiKey) throw new Error("请填写 API Key");
-    const baseUrl = getBaseUrl(this.config.isOverseas);
+    const baseUrl = getBaseUrl(this.config);
     const lowerName = request.model.toLowerCase();
     const mode = request.mode ?? (request.firstFrame || request.lastFrame ? "startFrameOptional"
       : request.videos?.length || request.audios?.length ? [] : request.images?.length ? "singleImage" : "text");
@@ -398,7 +398,7 @@ export default {
   async updateVendor(): Promise<string> {
     const apiKey = this.config.apiKey?.trim();
     if (!apiKey) throw new Error("请填写 API Key");
-    const baseUrl = getBaseUrl(this.config.isOverseas);
+    const baseUrl = getBaseUrl(this.config);
     const response = await this.tool.fetch(`${baseUrl}/vendor/downloadVendor`, {
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       signal: this.signal,

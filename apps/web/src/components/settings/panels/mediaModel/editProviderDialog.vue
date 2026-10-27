@@ -2,15 +2,16 @@
   <el-dialog
     v-model="visible"
     :title="`编辑媒体供应商：${provider?.label ?? ''}`"
-    width="min(800px, calc(100vw - 32px))"
+    :width="provider?.modelConnection ? 'min(550px, 94vw)' : 'min(800px, calc(100vw - 32px))'"
     alignCenter
     appendToBody
     destroyOnClose
     :closeOnClickModal="false"
-    :closeOnPressEscape="!saving"
-    :showClose="!saving"
+    :closeOnPressEscape="!dialogSaving"
+    :showClose="!dialogSaving"
     @closed="formApi = undefined">
-    <div class="providerEditor">
+    <customProviderForm v-if="provider?.modelConnection" ref="connectionForm" :provider="provider" @saved="emit('saved', $event)" @completed="visible = false" />
+    <div v-else class="providerEditor">
       <messageMarkdown v-if="provider?.readme" class="providerReadme" :content="provider.readme" />
       <form-create v-model="formValues" v-model:api="formApi" :rule="formRules" :option="formOptions" />
       <div class="modelHeader">
@@ -42,8 +43,9 @@
     </div>
     <el-alert v-if="formError" class="formError" :title="formError" type="error" :closable="false" showIcon />
     <template #footer>
-      <el-button :disabled="saving" @click="visible = false">取消</el-button>
-      <el-button type="primary" :icon="IconDeviceFloppy" :loading="saving" :disabled="!formApi" @click="saveModels">保存</el-button>
+      <el-button v-if="provider?.modelConnection" class="importButton" text :disabled="dialogBusy" @click="connectionForm?.openAdapter()">{{ provider.adapter ? '更换供应商文件' : '导入供应商文件' }}</el-button>
+      <el-button :disabled="dialogSaving" @click="visible = false">取消</el-button>
+      <el-button type="primary" :icon="IconDeviceFloppy" :loading="dialogSaving" :disabled="dialogBusy || (provider?.modelConnection ? !connectionForm?.canSubmit : !formApi)" @click="provider?.modelConnection ? connectionForm?.submit() : saveModels()">保存</el-button>
     </template>
     <component
       :is="modelEditorDialog"
@@ -66,6 +68,7 @@ import messageMarkdown from "@/components/messageMarkdown.vue";
 import type { MediaProvider, MediaProviderModel } from "./types";
 import { settings, saveSettings } from "@/stores/settings";
 import { invalidateNodeModels } from "@toonflow/nodes-scaffold/nodeAi";
+import customProviderForm from "./customProviderForm.vue";
 
 const { provider } = defineProps<{ provider?: MediaProvider }>();
 const modelEditorDialog = shallowRef<Component>();
@@ -75,6 +78,9 @@ const models = ref<MediaProviderModel[]>([]);
 const modelEditorVisible = ref(false);
 const editingModelIndex = ref<number>();
 const saving = ref(false);
+const connectionForm = ref<InstanceType<typeof customProviderForm>>();
+const dialogBusy = computed(() => saving.value || !!connectionForm.value?.busy);
+const dialogSaving = computed(() => saving.value || !!connectionForm.value?.saving);
 const formApi = shallowRef<Api>();
 const formRules = shallowRef<ReturnType<typeof formCreate.copyRules>>([]);
 const formValues = ref<Record<string, unknown>>({});
@@ -178,6 +184,7 @@ async function saveModels() {
 </script>
 
 <style lang="scss" scoped>
+.importButton { float: left; }
 .providerEditor {
   max-height: 65dvh;
   padding: 8px 4px;

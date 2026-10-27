@@ -19,6 +19,7 @@ export default router.put("/", validateFields({ settings: z.record(z.string(), z
   desktopUpdateCustomUrl: z.string().max(2048).refine(value => !value || u.desktop.isValidUpdateUrl(value),
     "自定义更新源必须是不含账号、查询参数或锚点的 HTTP(S) 地址").optional(),
   mcp: z.object({ enabled: z.boolean().optional(), token: z.string().optional(), port: z.number().int().min(1).max(65535).optional() }).optional(),
+  imageProtocols: u.imageProtocols.imageProtocolsSchema.optional(),
 })).refine(value => value.desktopUpdateSource !== "custom" || !!value.desktopUpdateCustomUrl, {
   path: ["desktopUpdateCustomUrl"], message: "选择自定义更新源前，请先填写有效地址",
 }) }), async (req, res) => {
@@ -29,6 +30,13 @@ export default router.put("/", validateFields({ settings: z.record(z.string(), z
     u.removeLegacySettings(settings);
     u.cleanNodeMenuSettings(settings);
     const previousSettings = u.conf.get("settings", {});
+    const protocolIds = new Set(u.imageProtocols.getImageProtocols(settings).map(protocol => protocol.id));
+    const deletedIds = new Set(u.imageProtocols.getImageProtocols(previousSettings).filter(protocol => !protocolIds.has(protocol.id)).map(protocol => protocol.id));
+    if (deletedIds.size) for (const provider of await u.mediaProvider.listMediaProviders()) {
+      if (!("modelConnection" in provider) || !provider.modelConnection) continue;
+      const references = [provider.imageProtocolId, ...(provider.listedModels?.map(model => model.imageProtocolId) ?? [])];
+      if (references.some(id => id && deletedIds.has(id))) throw Object.assign(new Error(`供应商“${provider.label}”仍引用该生图协议，请先修改供应商配置`), { status: 409 });
+    }
     const network = settings.network !== undefined || previousSettings.network !== undefined
       ? await u.network.prepareNetwork(settings.network) : undefined;
     if (network) u.network.configureNetwork(network, undefined, () => u.conf.set("settings", settings));

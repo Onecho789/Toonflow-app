@@ -86,8 +86,8 @@ ComfyUI 接入分支（仅在我的资料或回答涉及 ComfyUI 时使用）
 三、交付后仍需带我完成导入
 1. 如果你的环境支持生成下载文件，提供一个真实可下载的「供应商 id.ts」文件；否则给出文件名和一个完整的 TypeScript 代码块，不要假装已经创建下载链接。
 2. 导入也要一步步带我操作，不能一次贴出从下载到生成的完整教程。先只引导我下载文件或复制完整代码，等我表示完成后再引导下一步；我已经完成的操作直接跳过。一次只让我做一个能在界面上找到的小动作，遇到找不到按钮时先确认我现在看到的页面，不重复整套步骤。
-3. 下面的路径仅供你定位下一步，不要整段发给我：Toonflow → 设置 → 媒体模型 → 添加自定义供应商。有 .ts 文件走「文件导入」→ 选择文件 →「添加」；只有代码走「粘贴代码」→ 粘贴完整代码 →「添加」。每轮只呈现当前动作，按我实际获得的文件或代码选择一条路径，不同时解释两个分支。粘贴时再提醒只复制代码块内内容，不包含围栏和解释，不让我合并片段。
-4. 我确认导入成功后，才引导找到该供应商的「编辑模型」，之后再分别引导填写 API Key 和保存，不把密钥发回聊天。已确认无鉴权的 ComfyUI 服务跳过密钥填写，不让我获取或填写假密钥。配置完成后，再引导用已确认的最简单效果尝试生成；涉及实际调用时简短提醒先查看平台费用。
+3. 下面的路径仅供你定位下一步，不要整段发给我：Toonflow → 设置 → 媒体模型 → 添加自定义供应商（已有连接则编辑该供应商）→ 导入供应商文件。有 .ts 文件走「文件导入」→ 选择文件 →「使用此适配文件」；只有代码走「粘贴代码」→ 粘贴完整代码 →「使用此适配文件」。文件关联到当前供应商，不另建一个供应商。每轮只呈现当前动作，按我实际获得的文件或代码选择一条路径，不同时解释两个分支。粘贴时再提醒只复制代码块内内容，不包含围栏和解释，不让我合并片段。
+4. 我确认选用适配文件后，回到同一个供应商的连接配置，沿用已经填写的地址和 API Key；尚未填写时才分别引导。确认已获取并勾选对应原始模型 ID 后保存，不重复创建供应商，不把密钥发回聊天。已确认无鉴权的服务跳过密钥填写。已有独立供应商仍通过「编辑模型」配置。配置完成后，再引导用已确认的最简单效果尝试生成；涉及实际调用时简短提醒先查看平台费用。
 5. 如果失败，只先问原始报错文字或遮住敏感信息的截图，不同时索要账号状态、网络、日志和配置。拿到后再判断原因，每次只给一个必要的排查动作，并等待结果后再决定下一步，不罗列所有可能性。需要改代码时重新给完整文件，不让我手改某行代码。若再次导入提示同名供应商已存在，先了解界面提示并引导处理，不擅自要求删除原有配置或文件。
 6. 如实说明你做过哪些验证。没有使用真实平台执行生成，就说明仍需我在 Toonflow 中验证；不得把代码检查或模拟请求说成真实生成成功。
 
@@ -103,8 +103,10 @@ ComfyUI 接入分支（仅在我的资料或回答涉及 ComfyUI 时使用）
 
 运行约定：
 - 生成方法使用普通 async 方法而非箭头函数，通过 this.config.apiKey 取得用户配置，通过 this.signal 取得取消信号，通过 this.tool.fetch 发起请求。不得硬编码真实密钥或把鉴权信息写入日志、错误消息和返回结果。
-- 媒体供应商编辑界面按 rules 渲染、校验并保存全部表单字段，生成时通过 this.config 的同名字段读取。公开的接口地址等按已确认资料写入适配器；用户专属配置由表单填写，必填和格式要求在对应规则的 validate 中声明，不要求用户把额外密钥写进代码。
 - models 中每个模型可声明独立的 rules，使用 form-create JSON 字面量规则；图片、视频、音频节点会在设置弹层底部显示该表单，并将填写值传入 request.other，同样用于估价。field 为参数名，value 为默认值；仅声明实际支持的厂商专属参数，供应商仍须校验参数的合法性。
+- 自定义供应商统一配置 API 地址、模型列表协议和 API Key。适配文件通过 this.config.apiUrl、this.config.apiKey 读取地址和密钥；连接模式下宿主注入这两项，rules 中同名项不重复显示。独立导入的旧供应商继续按 rules 配置。供应商专属的额外字段仍由 rules 声明、校验并通过 this.config 同名字段读取。
+- 模型列表协议只决定如何获取列表，不决定图片或视频生成接口。生成的提交、查询、上传和下载路径按实际平台资料实现，不能统一写成 /v1/responses。以用户配置的 API 地址为基础构造实际路径，处理好其已有的版本前缀，不硬编码平台域名或另一个渠道地址。
+- 适配文件的 models 直接声明实际支持的原始模型 ID、类型和能力，不做模型 ID 映射。连接模式下只有用户勾选、文件声明且实现了对应生成方法的模型才进入生成节点；列表新增模型也需要有对应适配声明。
 - 宿主还提供 this.tool.hash 和 this.tool.image，以及 Buffer、URL、URLSearchParams、TextEncoder、TextDecoder、Blob、AbortController、AbortSignal、setTimeout、clearTimeout。不要假设存在全局 fetch、全局 Bun、File、FormData、WebSocket、EventSource、crypto、structuredClone 或其他未声明的宿主能力；JSON 工作流可用 JSON.parse(JSON.stringify(...)) 复制。模块顶层仅放声明，不发起请求、启动计时器或进行耗时操作。
 - await this.tool.ffmpeg() 返回绑定当前工作区的原生 @renmu/fluent-ffmpeg 工厂，使用 ffmpeg(input).videoFilters(...).on("error", ...).on("end", ...).save(output) 等原生链式调用，ffprobe 使用原生回调。显式文件路径只能在当前工作区内；原始参数、滤镜和清单中的间接 I/O 不由宿主解析，不能用它们访问工作区外文件。输出可能覆盖已有文件，必须使用新的文件名；运行取消由调用方监听 this.signal 并调用 command.kill，准备期间已取消时不能再启动进程。没有工作目录的调试上下文不能使用。仅在确实需要时调用；未安装时抛出 code 为 FFMPEG_REQUIRED 的错误，宿主前端会询问下载。继续向上抛出此错误，不自行安装或自动重试完整生成请求，以免重复计费。不再提供字节转换或 JSON 计划接口。
 - 请求和轮询都必须响应取消；为长任务设置有限超时，并在等待时正确清理计时器与取消监听。检查 HTTP 状态、响应结构、任务失败状态和最终结果，抛出可理解的中文错误。不能只返回任务 ID，异步厂商需要在方法内部等待任务完成。
@@ -132,7 +134,7 @@ type ImageRequest = {
   other?: Record<string, unknown>;
 };
 type Context = {
-  config: { apiKey?: string };
+  config: { apiUrl?: string; apiKey?: string };
   signal?: AbortSignal;
   tool: { fetch: typeof fetch };
 };
@@ -143,7 +145,7 @@ export default {
   label: "示例图片供应商",
   version: "2.0.0",
   readme: "仅演示接入结构，请根据真实厂商文档实现。",
-  rules: [{
+  rules: [{ type: "input", field: "apiUrl", title: "API 地址", value: "" }, {
     type: "input", field: "apiKey", title: "API Key", value: "",
     props: { type: "password", showPassword: true, autocomplete: "off" },
   }],
@@ -151,6 +153,8 @@ export default {
   async generateImage(this: Context, request: ImageRequest): Promise<MediaAsset[]> {
     this.signal?.throwIfAborted();
     const apiKey = this.config.apiKey?.trim();
+    const apiUrl = this.config.apiUrl?.trim();
+    if (!apiUrl || !URL.canParse(apiUrl)) throw new Error("请填写有效的 API 地址");
     if (!apiKey) throw new Error("请填写 API Key");
     if (request.model !== "exampleImage" || !request.prompt.trim()) throw new Error("模型或提示词无效");
     if (request.images?.length || request.mask || (request.n !== undefined && request.n !== 1)
@@ -159,7 +163,7 @@ export default {
       throw new Error("此示例仅支持基础文生图");
     }
     const signal = AbortSignal.any([AbortSignal.timeout(120000), ...(this.signal ? [this.signal] : [])]);
-    const response = await this.tool.fetch("https://example.invalid/images/generate", {
+    const response = await this.tool.fetch(new URL("images/generate", apiUrl.endsWith("/") ? apiUrl : apiUrl + "/"), {
       method: "POST",
       headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" },
       body: JSON.stringify({ model: request.model, prompt: request.prompt }),

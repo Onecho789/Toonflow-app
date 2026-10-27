@@ -162,7 +162,8 @@ export function saveSettings(update?: (current: Record<string, unknown>) => Reco
       invalidateNodeModels("media");
       window.dispatchEvent(new CustomEvent("toonflow:plugin-installed", { detail: { type: "provider", name: data.data.mediaProvider.id } }));
     }
-    if (patch && Object.hasOwn(patch, "mediaProviderConfigs")) {
+    if (patch && (Object.hasOwn(patch, "mediaProviderConfigs") || Object.hasOwn(patch, "imageProtocols"))) {
+      invalidateNodeModels("media");
       window.dispatchEvent(new Event("toonflow:provider-config-changed"));
     }
     if (data.data?.modelRefreshErrors?.length) ElMessage.warning(`API Key 已保存，但部分模型列表获取失败：${data.data.modelRefreshErrors.join("；")}`);
