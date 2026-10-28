@@ -91,9 +91,9 @@
 | Web 页面文案、通知标题、网页标题、首页与引导页品牌名、关于页标题 | 包名 `@toonflow/*`、`toonflowCanvas` 等文件标记字段、`x-toonflow-*` 请求头、`TOONFLOW_*` 环境变量、`toonflowData` 数据卷（改了会让已保存的项目打不开或要动整个工作区） |
 | 服务端与 MCP 的报错文案、Agent 系统提示词（自称“小麦同学，麦麦工坊的 AI 创作搭档”） | 插件 `author: "Toonflow"` 与 `pluginMarket/index.vue` 中对它的判断（内置插件识别依赖这个值） |
 | 桌面端菜单与窗口标题、启动窗口标题、移动端设备名 | 旧版供应商检测提示里的“旧版 Toonflow”“Toonflow 2.0”、技能中对上游 v1.1.8 的来源说明、上游仓库链接 |
-| `packages/skills` 技能文案、媒体供应商 AI 提示词 | `User-Agent: Toonflow/2.0`、MCP 的 `realm="Toonflow"`、`URL:Toonflow Protocol` 等协议标识 |
-| i18n：`messageSources.json` 与 21 份 `locales/*.json` 的键和译文 | 桌面安装器（`installer.nsi`）、Windows 原生程序（`native/*.cs`）、鸿蒙与安卓原生代码、`electrobun.config.ts` 应用名 |
-| 根 `package.json` 的 description | README、关于页的作者、仓库地址、交流群与商务合作二维码 |
+| `packages/skills` 技能文案、媒体供应商 AI 提示词 | `User-Agent: Toonflow/2.0`、MCP 的 `realm="Toonflow"` 等协议标识 |
+| i18n：`messageSources.json` 与 21 份 `locales/*.json` 的键和译文 | 鸿蒙与安卓原生代码（安装器、原生程序和桌面标识见第二版） |
+| 根 `package.json` 的 description | README（关于页的清理见第二版） |
 
 ### 冲突时的处理
 
@@ -109,6 +109,28 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 
 - 改名后新增了 6 个字典键（`麦麦工坊`、`小麦同学`、`退出麦麦工坊`、`麦麦工坊 Android`、`麦麦工坊 Logo`、`麦麦工坊 Skill`），原文是英文时不会被抽取，改成中文后才进字典，追加在各字典末尾。改完执行 `bun run --cwd packages/i18n extract`，抽取结果的键集合应与字典一致（顺序不同不要紧）。
 - 不要为了消除冲突去改包名或 `toonflowXxx` 标识。
+
+### 第二版：Logo、安装器、桌面标识、关于页
+
+- 状态：第二版，接着第一版做
+- Logo：`packages/assets/` 下的 `logo.svg`、`logo.ico` 和 `logo.iconset/*.png` 全部换成麦麦工坊的徽章。PNG 和 ICO 用彩色原图按尺寸缩放。`logo.svg` 是同一徽章描出来的黑色单色剪影，因为网页里的用法（暗色反色、`mask-image`、加载页按绝对 `M` 轮廓拆分描边动画）都要求单色。上游改 Logo 时一律保留我们的版本。
+- 安装器和原生程序的提示文字：`installer/installer.nsi`、`installer/checkWebView2.cs`、`native/protocolLauncher.cs`、`native/startupLauncher.cs`、`native/updateHelper.cs`、`scripts/macDmg.ts` 里显示的 Toonflow 改成“麦麦工坊”。User-Agent 改为 `MaiMaiStudio`，协议显示名改为 `URL:MaiMai Studio Protocol`。
+- 桌面标识（改了以后，装过上游 Toonflow 的电脑上会被当成另一个应用，不会互相覆盖或更新）：
+
+| 项 | 原值 | 新值 |
+| --- | --- | --- |
+| `electrobun.config.ts` 的 `app.name` | `toonflow` | `MaiMaiStudio`（Mac 包名 `MaiMaiStudio.app`） |
+| `app.identifier`，以及 `windowsUpdater.ts`、`updateHelper.cs` 的校验 | `local.toonflow.desktop` | `local.maimaistudio.desktop` |
+| URL 协议（`urlSchemes`、注册表 `Software\Classes\…`、`protocol.ts`、`protocolLauncher.cs`、插件安装链接文案与 i18n） | `toonflow://` | `maimai://` |
+| 安装目录标记文件、注册表字段 | `toonflow.ini`、`toonflowInstallDirectory` | `maimai.ini`、`maimaiInstallDirectory` |
+| 互斥锁、计划任务名 | `ToonflowProtocol-`、`ToonflowUpdate-`、`ToonflowArchiveTool-`、`ToonflowUpdate_` | `MaiMai…` 同名前缀 |
+| 安装包与 APK 文件名（`packageWindows.ts`、`release.ts`、`.github/workflows/*.yml`、`docs/development.md`） | `toonflow-<版本>-…` | `MaiMaiStudio-<版本>-…` |
+
+- 这一版没改：网页与移动端内部的 `toonflow://save`、`toonflow://restart` 桥接，MCP 的 `toonflow://skills/` 资源 URI，`toonflow:confirm-quit` 等内部事件名，临时文件前缀（`toonflowWebView2-`、`toonflowUpdate-`、`toonflowDmg`），安卓包名 `com.toonflow.mobile`，鸿蒙代码，`release.baseUrl` 默认仓库，README 里的 `toonflow.app` 路径。
+- 关于页（`settings/panels/about.vue`）删掉了 GitHub 仓库卡片、TF-Router 卡片、微信交流群二维码、赞助商面板（含“成为赞助商”二维码），`lib/tf.ts` 随之删掉 `getSponsorList` 和 `TfSponsor`。版本更新卡片保留。
+- 工作区帮助菜单（`pages/workspace/index.vue`）只留“使用教程”，删掉“汇报 BUG”“加入交流群”“商务合作”和二维码弹窗。
+- i18n：从 21 份译文和 `messageSources.json` 删掉了上面这些功能专用的 22 个键，并把安装链接文案里的 `toonflow://` 改成 `maimai://`。
+- 冲突时：上游改了关于页或帮助菜单里被删掉的部分，直接丢弃上游那一块。上游改了安装器或原生程序，先采用上游内容，再按上表把标识和显示名换回我们的值。
 
 ---
 

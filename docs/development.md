@@ -24,10 +24,10 @@
 <details>
 <summary><strong>通过网页唤起桌面安装插件</strong></summary>
 
-安装桌面客户端后，网页可通过 `toonflow://install` 请求安装插件。应用会先展示类型、文件名和下载地址，用户确认后再下载与安装。
+安装桌面客户端后，网页可通过 `maimai://install` 请求安装插件。应用会先展示类型、文件名和下载地址，用户确认后再下载与安装。
 
 ```ts
-const link = new URL("toonflow://install");
+const link = new URL("maimai://install");
 link.searchParams.set("type", "node");
 link.searchParams.set("url", "https://example.com/plugins/exampleNode.umd.js");
 window.location.href = link.href;
@@ -140,7 +140,7 @@ bun run build:desktop
 bun run package:desktop
 ```
 
-安装包输出到 `build/desktop/artifacts/toonflow-<版本>-Setup.exe`。
+安装包输出到 `build/desktop/artifacts/MaiMaiStudio-<版本>-Setup.exe`。
 
 **macOS**
 
@@ -166,7 +166,7 @@ bun run package:desktop
 本机默认生成未做 Developer ID 签名与公证的测试包；GitHub Actions 的 ARM 包会按下方配置自动签名并公证，Intel 仍不重签。对于自己构建且确认来源的测试应用，若被隔离属性拦截，可仅移除该应用的隔离属性，路径按实际位置调整：
 
 ```sh
-xattr -dr com.apple.quarantine "/Applications/toonflow.app"
+xattr -dr com.apple.quarantine "/Applications/MaiMaiStudio.app"
 ```
 
 **类型检查与 SDK**
@@ -212,7 +212,7 @@ git push --no-follow-tags origin refs/tags/v2.0.0:refs/tags/v2.0.0
 
 | 平台 | 安装包 | 更新文件 |
 | --- | --- | --- |
-| Windows x64 | `toonflow-<版本号>-Setup.exe` | `stable-win-x64-*` |
+| Windows x64 | `MaiMaiStudio-<版本号>-Setup.exe` | `stable-win-x64-*` |
 | macOS Intel | DMG | `stable-macos-x64-*` |
 | macOS Apple Silicon | DMG | `stable-macos-arm64-*` |
 

@@ -1250,49 +1250,6 @@
   "上次更新未成功": [
     "apps/web/src/components/settings/panels/about.vue"
   ],
-  "GitHub 仓库：HBAI-Ltd/Toonflow-app": [
-    "apps/web/src/components/settings/panels/about.vue"
-  ],
-  "GitHub 仓库": [
-    "apps/web/src/components/settings/panels/about.vue"
-  ],
-  "官方中转平台 TF-Router": [
-    "apps/web/src/components/settings/panels/about.vue"
-  ],
-  "微信交流群": [
-    "apps/web/src/components/settings/panels/about.vue"
-  ],
-  "微信扫码加入交流群": [
-    "apps/web/src/components/settings/panels/about.vue"
-  ],
-  "展示二维码": [
-    "apps/web/src/components/settings/panels/about.vue"
-  ],
-  "麦麦工坊交流群二维码": [
-    "apps/web/src/components/settings/panels/about.vue"
-  ],
-  "麦麦工坊是为爱发电的开源项目。欢迎文明交流、友善反馈；回复可能需要一些时间，请避免责问或命令式沟通，感谢你的理解与尊重。": [
-    "apps/web/src/components/settings/panels/about.vue",
-    "apps/web/src/pages/workspace/index.vue"
-  ],
-  "赞助商": [
-    "apps/web/src/components/settings/panels/about.vue"
-  ],
-  "排名不分先后": [
-    "apps/web/src/components/settings/panels/about.vue"
-  ],
-  "微信扫码洽谈商务合作": [
-    "apps/web/src/components/settings/panels/about.vue"
-  ],
-  "成为赞助商": [
-    "apps/web/src/components/settings/panels/about.vue"
-  ],
-  "麦麦工坊商务合作二维码": [
-    "apps/web/src/components/settings/panels/about.vue"
-  ],
-  "查看 {0} 详情": [
-    "apps/web/src/components/settings/panels/about.vue"
-  ],
   "正在解压并校验更新包": [
     "apps/web/src/components/settings/panels/about.vue"
   ],
@@ -4821,12 +4778,6 @@
   "项目下载地址无效": [
     "apps/web/src/lib/tf.ts"
   ],
-  "加载赞助商失败": [
-    "apps/web/src/lib/tf.ts"
-  ],
-  "赞助商响应格式不正确": [
-    "apps/web/src/lib/tf.ts"
-  ],
   "订单号不能为空": [
     "apps/web/src/lib/tf.ts"
   ],
@@ -5343,24 +5294,6 @@
     "apps/web/src/pages/workspace/index.vue"
   ],
   "使用教程": [
-    "apps/web/src/pages/workspace/index.vue"
-  ],
-  "麦麦工坊需求/BUG反馈表": [
-    "apps/web/src/pages/workspace/index.vue"
-  ],
-  "汇报 BUG": [
-    "apps/web/src/pages/workspace/index.vue"
-  ],
-  "加入交流群": [
-    "apps/web/src/pages/workspace/index.vue"
-  ],
-  "商务合作": [
-    "apps/web/src/pages/workspace/index.vue"
-  ],
-  "{0}二维码": [
-    "apps/web/src/pages/workspace/index.vue"
-  ],
-  "此联系方式仅用于商务合作接洽，不提供问题答疑。使用问题欢迎在交流群交流，需求与 BUG 可通过反馈表提交。感谢理解。": [
     "apps/web/src/pages/workspace/index.vue"
   ],
   "工作区已关闭": [
@@ -9346,7 +9279,7 @@
   "安装链接不能包含换行或控制字符": [
     "apps/desktop/src/protocol.ts"
   ],
-  "安装链接格式不正确，应为：toonflow://install?type=node&url=编码后的下载地址。请检查或重新获取完整链接。": [
+  "安装链接格式不正确，应为：maimai://install?type=node&url=编码后的下载地址。请检查或重新获取完整链接。": [
     "apps/desktop/src/protocol.ts"
   ],
   "安装链接不能包含账号、密码、端口或 # 片段": [
