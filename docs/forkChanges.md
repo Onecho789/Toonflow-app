@@ -6,6 +6,7 @@
 
 ## 同步上游流程
 
+0. 先停掉正在运行的 `bun run dev` 等开发服务。stash 或切换版本时，`--watch` 会用旧代码重启服务，可能改写 `data/` 下的数据，例如重新安装已移除的内置供应商。
 1. `git fetch upstream`，用 `git diff --name-only HEAD upstream/master` 对照下方各条目的“改动了上游文件”表，预判冲突。
 2. 合并后逐个处理冲突，按表中“冲突时的处理”操作；表中没有的文件，以上游为准。
 3. `apps/server/src/router.ts` 不手工合并：取任一版本后在 `apps/server` 执行 `bun run routes` 重新生成。
@@ -16,7 +17,7 @@
 
 | 上游行为 | 本 fork 的处理 | 来源 |
 | --- | --- | --- |
-| 启动时自动安装内置媒体供应商（`providersRoot`、`autoInstallProviders`） | 不恢复。上游若修改这段逻辑，整段丢弃 | 媒体供应商简化接入 |
+| 启动时自动安装内置媒体供应商（`providersRoot`、`autoInstallProviders`） | 不恢复。上游若修改这段逻辑，整段丢弃。合并后执行 `git grep -n "providersRoot\|autoInstallProviders" -- apps compat`，应无结果 | 媒体供应商简化接入 |
 | 各端构建打包 `packages/providers/src` → `providers` 目录 | 不打包。上游若在构建脚本的目录列表中新增或保留 `providers`，合并时删掉 | 媒体供应商简化接入 |
 | 安装器重置 `data/providers/initialized` | 不重置 | 媒体供应商简化接入 |
 
@@ -79,4 +80,10 @@
 
 | 日期 | 上游提交 | 说明 |
 | --- | --- | --- |
-| 2026-10-27 | `af6e884` | 合并 16 个提交，11 个文件冲突，按上表处理。上游自此要求 Bun 1.4.3（低版本下 undici 启动报错） |
+| 2026-10-27 | `af6e884` | 合并 16 个提交，11 个文件冲突，按上表处理。上游自此要求 Bun 1.4.3（低版本下 undici 启动报错）。同步时 dev server 开着，stash 期间旧代码重启，把 4 个内置供应商装回了 `data/providers/`，2026-10-28 已删除，此后增加了第 0 步 |
+
+## 本地数据处理
+
+`data/` 被 Git 忽略，同步代码不会改动其中的文件；但旧代码运行一次就可能写入数据，且新代码不会自动清理。
+
+**内置供应商被重新装回**：设置 → 媒体模型中出现 `tfRouter.ts`、`apiMart.ts`、`metaso.ts`、`compshare.ts` 时，在界面上逐个删除，删除接口会同时清理 `settings.mediaProviderConfigs` 中的配置。然后删掉 `data/providers/initialized`。不要用删除整个 `data/providers/` 的方式处理，那会把自定义的 `customMedia*.ts` 一起删掉。
