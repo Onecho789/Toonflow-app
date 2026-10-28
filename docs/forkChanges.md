@@ -78,6 +78,40 @@
 
 ---
 
+## 品牌改名：麦麦工坊
+
+- 提交：见本节对应提交（2026-10-28），分支 `codex/simplifyMediaModels`
+- 状态：第一版，只改界面显示文字
+- 目的：产品名 Toonflow → 麦麦工坊（英文 MaiMai Studio，繁体 麥麥工坊），助手名 Toonflow 助手 / Toonflow Agent → 小麦同学（英文 Xiaomai）
+
+### 改名范围
+
+| 改了 | 没改（刻意保留） |
+| --- | --- |
+| Web 页面文案、通知标题、网页标题、首页与引导页品牌名、关于页标题 | 包名 `@toonflow/*`、`toonflowCanvas` 等文件标记字段、`x-toonflow-*` 请求头、`TOONFLOW_*` 环境变量、`toonflowData` 数据卷（改了会让已保存的项目打不开或要动整个工作区） |
+| 服务端与 MCP 的报错文案、Agent 系统提示词（自称“小麦同学，麦麦工坊的 AI 创作搭档”） | 插件 `author: "Toonflow"` 与 `pluginMarket/index.vue` 中对它的判断（内置插件识别依赖这个值） |
+| 桌面端菜单与窗口标题、启动窗口标题、移动端设备名 | 旧版供应商检测提示里的“旧版 Toonflow”“Toonflow 2.0”、技能中对上游 v1.1.8 的来源说明、上游仓库链接 |
+| `packages/skills` 技能文案、媒体供应商 AI 提示词 | `User-Agent: Toonflow/2.0`、MCP 的 `realm="Toonflow"`、`URL:Toonflow Protocol` 等协议标识 |
+| i18n：`messageSources.json` 与 21 份 `locales/*.json` 的键和译文 | 桌面安装器（`installer.nsi`）、Windows 原生程序（`native/*.cs`）、鸿蒙与安卓原生代码、`electrobun.config.ts` 应用名 |
+| 根 `package.json` 的 description | README、关于页的作者、仓库地址、交流群与商务合作二维码 |
+
+### 冲突时的处理
+
+上游几乎每次都会改到带 “Toonflow” 的文案，所以这一项冲突最多。
+
+- 冲突行里上游改的是文案内容：采用上游的新内容，再把其中显示用的 “Toonflow” 换成“麦麦工坊”（中文与“麦麦工坊”之间不留空格）。
+- i18n 字典：键是中文原文，必须和源码一致。上游新增或修改含 Toonflow 的文案后，源码、`zhCn.json`、`messageSources.json` 和其余 20 份译文的键要一起改。外文译文把 Toonflow 换成 MaiMai Studio，问候语中的助手换成 Xiaomai，繁体用“麥麥工坊”“小麥同學”。
+- 合并后检查是否有漏网的显示文字（以下命令应只剩“没改”一栏中的条目）：
+
+```sh
+git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/src apps/mobile/src packages/mcp packages/nodeShared packages/nodeScaffold packages/tools packages/skills packages/startup/src packages/i18n/src/locales/zhCn.json
+```
+
+- 改名后新增了 6 个字典键（`麦麦工坊`、`小麦同学`、`退出麦麦工坊`、`麦麦工坊 Android`、`麦麦工坊 Logo`、`麦麦工坊 Skill`），原文是英文时不会被抽取，改成中文后才进字典，追加在各字典末尾。改完执行 `bun run --cwd packages/i18n extract`，抽取结果的键集合应与字典一致（顺序不同不要紧）。
+- 不要为了消除冲突去改包名或 `toonflowXxx` 标识。
+
+---
+
 ## 同步记录
 
 | 日期 | 上游提交 | 说明 |
