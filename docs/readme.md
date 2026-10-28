@@ -40,12 +40,19 @@
 - [多语言回归记录](../packages/i18n/regression.md)：已完成的检查与已知范围。
 - [MCP 接入说明](../packages/mcp/README.md)：外部客户端连接与工具能力。
 
+## 本 Fork 文档
+
+- [Fork 改动记录](./forkChanges.md)：相对上游的每次改动，同步上游时按其中的冲突处理方式合并。
+- [媒体供应商简化接入](./mediaProviderConnection.md)：填表单接入自定义媒体供应商与生图协议（开发中）。
+
 ## 目录约定
 
 ```text
 docs/
   readme.md          文档入口
   development.md     开发与扩展指南
+  forkChanges.md     Fork 改动记录（合并上游必读）
+  mediaProviderConnection.md  媒体供应商简化接入
   readme/            各语言项目介绍
   images/            标识、认证与社区图片
     screenshots/     产品截图
