@@ -1,42 +1,45 @@
 <template>
-  <div v-if="loaded" class="providerList">
-    <div class="itemList">
-      <el-card v-for="item in sortedProviders" :key="item.fileName" class="providerItem" shadow="never">
-        <div class="providerHeader">
-          <div v-if="item.icon || item.id.toLowerCase() === 'tfrouter'" class="providerMark" aria-hidden="true">
-            <img class="providerLogo" :class="{ monochrome: item.id.toLowerCase() === 'tfrouter' }" :src="item.icon || logoUrl" alt="" />
-          </div>
-          <div class="providerInfo">
-            <div class="providerHeading">
-              <el-text class="providerName" tag="strong">{{ item.label }}</el-text>
-              <el-tag v-if="item.id.toLowerCase() === 'tfrouter'" size="small">官方</el-tag>
+  <div class="mediaModelPanel">
+    <el-segmented v-model="activeTab" class="panelTabs" :options="panelTabs" block ariaLabel="媒体模型设置" />
+    <imageProtocolPanel v-if="activeTab === 'protocol'" :visible="visible" />
+    <div v-else-if="loaded" class="providerList">
+      <div class="itemList">
+        <el-card v-for="item in sortedProviders" :key="item.fileName" class="providerItem" shadow="never">
+          <div class="providerHeader">
+            <div v-if="item.icon || item.id.toLowerCase() === 'tfrouter'" class="providerMark" aria-hidden="true">
+              <img class="providerLogo" :class="{ monochrome: item.id.toLowerCase() === 'tfrouter' }" :src="item.icon || logoUrl" alt="" />
             </div>
-            <el-text class="providerId" size="small" type="info" :title="item.fileName">{{ item.fileName }}</el-text>
+            <div class="providerInfo">
+              <div class="providerHeading">
+                <el-text class="providerName" tag="strong">{{ item.label }}</el-text>
+                <el-tag v-if="item.id.toLowerCase() === 'tfrouter'" size="small">官方</el-tag>
+              </div>
+              <el-text class="providerId" size="small" type="info" :title="item.fileName">{{ item.fileName }}</el-text>
+            </div>
           </div>
-        </div>
-        <el-alert v-if="item.loadError" :title="item.loadError" type="error" :closable="false" showIcon />
-        <tfAccount v-if="item.id.toLowerCase() === 'tfrouter'" :apiKey="getProviderApiKey(item.id)" :visible="visible" :saveApiKey="(key) => saveProviderApiKey(item.id, key)" />
-        <div class="providerFooter">
-          <div class="providerMeta">
-            <el-tag v-if="item.version" size="small" type="info" effect="plain">v{{ item.version }}</el-tag>
-            <el-text size="small" type="info">{{ (item.listedModels ?? item.models).length }} 个模型{{ item.modelConnection ? ` · ${item.models.length} 个可用于生成` : '' }}</el-text>
+          <el-alert v-if="item.loadError" :title="item.loadError" type="error" :closable="false" showIcon />
+          <tfAccount v-if="item.id.toLowerCase() === 'tfrouter'" :apiKey="getProviderApiKey(item.id)" :visible="visible" :saveApiKey="(key) => saveProviderApiKey(item.id, key)" />
+          <div class="providerFooter">
+            <div class="providerMeta">
+              <el-tag v-if="item.version" size="small" type="info" effect="plain">v{{ item.version }}</el-tag>
+              <el-text size="small" type="info">{{ (item.listedModels ?? item.models).length }} 个模型{{ item.modelConnection ? ` · ${item.models.length} 个可用于生成` : '' }}</el-text>
+            </div>
+            <el-space class="itemActions" wrap>
+              <el-button v-if="item.modelsUrl" text :icon="IconDownload" :loading="fetchingFile === item.fileName" :disabled="!!fetchingFile || !!deletingFile || !!item.loadError || !item.revision" @click="fetchModels(item)">获取模型</el-button>
+              <el-button text :icon="IconEdit" :disabled="!!fetchingFile || !!deletingFile || !!item.loadError" @click="editProvider(item)">{{ item.modelConnection ? '编辑' : '编辑模型' }}</el-button>
+              <el-popconfirm title="确定删除此供应商及其模型？" confirmButtonText="删除" cancelButtonText="取消" @confirm="deleteProvider(item)">
+                <template #reference><el-button text type="danger" :icon="IconTrash" :loading="deletingFile === item.fileName" :disabled="!!fetchingFile || !!deletingFile || !item.revision">删除</el-button></template>
+              </el-popconfirm>
+            </el-space>
           </div>
-          <el-space class="itemActions" wrap>
-            <el-button v-if="item.modelsUrl" text :icon="IconDownload" :loading="fetchingFile === item.fileName" :disabled="!!fetchingFile || !!deletingFile || !!item.loadError || !item.revision" @click="fetchModels(item)">获取模型</el-button>
-            <el-button text :icon="IconEdit" :disabled="!!fetchingFile || !!deletingFile || !!item.loadError" @click="editProvider(item)">{{ item.modelConnection ? '编辑' : '编辑模型' }}</el-button>
-            <el-popconfirm title="确定删除此供应商及其模型？" confirmButtonText="删除" cancelButtonText="取消" @confirm="deleteProvider(item)">
-              <template #reference><el-button text type="danger" :icon="IconTrash" :loading="deletingFile === item.fileName" :disabled="!!fetchingFile || !!deletingFile || !item.revision">删除</el-button></template>
-            </el-popconfirm>
-          </el-space>
-        </div>
-      </el-card>
+        </el-card>
+      </div>
+      <div class="providerActions">
+        <el-button class="addButton" :icon="IconPlus" @click="openAdd">添加自定义供应商</el-button>
+      </div>
+      <component :is="mediaProviderDialog" v-model="providerDialogVisible" @added="saveProviderItem" />
+      <component :is="editProviderDialog" v-model="editorVisible" :provider="editingProvider" @saved="saveProviderItem" />
     </div>
-    <div class="providerActions">
-      <el-button class="addButton" :icon="IconPlus" @click="openAdd('builtin')">添加供应商</el-button>
-      <el-button class="addButton" :icon="IconSettings" @click="openAdd('custom')">添加自定义供应商</el-button>
-    </div>
-    <component :is="mediaProviderDialog" v-model="providerDialogVisible" :mode="addMode" @added="saveProviderItem" />
-    <component :is="editProviderDialog" v-model="editorVisible" :provider="editingProvider" @saved="saveProviderItem" />
   </div>
 </template>
 
@@ -45,14 +48,17 @@ import { translate } from "@toonflow/i18n/vue";
 import axios from "axios";
 import { computed, defineAsyncComponent, onMounted, onBeforeUnmount, ref, shallowRef, type Component } from "vue";
 import { ElMessage } from "element-plus";
-import { IconPlus, IconSettings, IconEdit, IconTrash, IconDownload } from "@tabler/icons-vue";
+import { IconPlus, IconEdit, IconTrash, IconDownload } from "@tabler/icons-vue";
 import logoUrl from "@toonflow/assets/logo.svg";
 import type { MediaProvider } from "./types";
 import { settings, saveSettings } from "@/stores/settings";
 import { invalidateNodeModels } from "@toonflow/nodes-scaffold/nodeAi";
 import tfAccount from "../../tfAccount.vue";
+import imageProtocolPanel from "../imageProtocol/index.vue";
 
 const { visible = true } = defineProps<{ visible?: boolean }>();
+const panelTabs = [{ label: "供应商", value: "provider" }, { label: "生图协议", value: "protocol" }];
+const activeTab = ref<"provider" | "protocol">("provider");
 const mediaProviderDialog = shallowRef<Component>();
 const editProviderDialog = shallowRef<Component>();
 const providers = ref<MediaProvider[]>([]);
@@ -60,7 +66,6 @@ const sortedProviders = computed(() => [...providers.value].sort((a, b) => Numbe
 const loaded = ref(false);
 const providerDialogVisible = ref(false);
 const editorVisible = ref(false);
-const addMode = ref<"builtin" | "custom">("builtin");
 const editingProvider = ref<MediaProvider>();
 const deletingFile = ref("");
 const fetchingFile = ref("");
@@ -106,9 +111,8 @@ async function loadProviders() {
   }
 }
 
-function openAdd(mode: "builtin" | "custom") {
+function openAdd() {
   mediaProviderDialog.value ??= defineAsyncComponent(() => import("./addCustomProviderDialog.vue"));
-  addMode.value = mode;
   providerDialogVisible.value = true;
 }
 
@@ -168,3 +172,9 @@ function saveProviderItem(provider: MediaProvider) {
 </script>
 
 <style lang="scss" scoped src="../../providerList.scss"></style>
+<style lang="scss" scoped>
+.mediaModelPanel {
+  .panelTabs { margin-bottom: 16px; }
+  .providerList .providerActions { grid-template-columns: minmax(0, 1fr); }
+}
+</style>

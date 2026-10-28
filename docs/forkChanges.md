@@ -17,6 +17,7 @@
 
 | 上游行为 | 本 fork 的处理 | 来源 |
 | --- | --- | --- |
+| 媒体模型页的“添加供应商”（内置 4 家）入口 | 不恢复。`addCustomProviderDialog.vue` 只保留自定义模式，上游给内置模式加的功能全部丢弃 | 只留自定义供应商 |
 | 启动时自动安装内置媒体供应商（`providersRoot`、`autoInstallProviders`） | 不恢复。上游若修改这段逻辑，整段丢弃。合并后执行 `git grep -n "providersRoot\|autoInstallProviders" -- apps/server/src/app.ts`，应无结果（`utils/conf/index.ts` 里同名的 `autoInstallProviders` 是文本供应商的首次初始化，与此无关） | 媒体供应商简化接入 |
 | 各端构建打包 `packages/providers/src` → `providers` 目录 | 不打包。上游若在构建脚本的目录列表中新增或保留 `providers`，合并时删掉 | 媒体供应商简化接入 |
 | 安装器重置 `data/providers/initialized` | 不重置 | 媒体供应商简化接入 |
@@ -35,6 +36,7 @@
 上游没有这些文件，合并不会冲突；上游若新增同名文件，需人工比对。
 
 - `apps/server/src/routes/imageProtocols/list.ts`
+- `apps/server/src/routes/imageProtocols/test.ts`
 - `apps/server/src/routes/providers/media/configure.ts`
 - `apps/server/src/routes/providers/media/discover.ts`
 - `apps/server/src/utils/media/imageProtocols.ts`
@@ -48,19 +50,19 @@
 
 | 文件 | 我们改了什么 | 冲突时的处理 |
 | --- | --- | --- |
-| `apps/server/src/utils/media/provider.ts` | `parseProvider` 解析 `modelConnection`、`listedModels`、`imageProtocolId`、`adapterSource`、`generationTypes`；`metadata` 按适配文件与生图协议合成 `models`；新增 `configureMediaProvider`；`loadMediaProviderSource` 接管走协议模型的 `generateImage`，并注入 `apiUrl`、`apiKey` | 两边都保留。上游对 schema、rules 的改动照收，我们的逻辑叠加在上面 |
+| `apps/server/src/utils/media/provider.ts` | `parseProvider` 解析 `modelConnection`、`listedModels`、`imageProtocolId`、`adapterSource`、`generationTypes`；`metadata` 按适配文件与生图协议合成 `models`；新增 `configureMediaProvider`；导出 `mediaErrorMessage`（协议测试接口复用）；`loadMediaProviderSource` 接管走协议模型的 `generateImage`，并注入 `apiUrl`、`apiKey` | 两边都保留。上游对 schema、rules 的改动照收，我们的逻辑叠加在上面 |
 | `apps/server/src/utils/ai/models.ts` | 导出 `modelConnectionSchema`、`listedModelsSchema`、`providerModelsUrl`；`fetchProviderModels` 支持 Gemini 和 Anthropic 分页、外部取消信号、2000 上限 | 保留我们的逻辑；上游只改提示文案时，采用上游文案 |
 | `apps/server/src/utils/media/generation.ts` | `supportsPrice` 增加 `!model.imageProtocolId` 判断 | 保留这个判断，上游新增的字段（如 `rules`）照收 |
 | `apps/server/src/routes/settings/save.ts` | schema 增加 `imageProtocols`；保存前检查被删协议是否仍被供应商引用，有则返回 409 | 采用上游的保存结构（目前是 `saveQueue` 串行），把引用检查放在 `previousSettings` 之后、写入之前 |
 | `apps/server/src/utils.ts` | 导出 `imageProtocols` | 两边都保留 |
 | `apps/server/src/app.ts` | 删除 `providersRoot` 参数、`autoInstallProviders`，以及自动安装供应商的整段逻辑 | 不恢复自动安装；上游新增的 import（如 `readdir`）按需保留，无用的 `readFile`、`createHash` 删掉 |
 | `apps/server/src/index.ts`、`apps/desktop/src/index.ts`、`apps/mobile/src/server.ts` | 删除 `providersRoot` 传参 | 同上 |
-| `apps/web/src/components/settings/panels/mediaModel/addCustomProviderDialog.vue` | custom 模式改用 `customProviderForm`，原导入代码与 AI 生成界面移到 `providerAdapterDialog.vue` | 模板保留我们的版本。上游对原导入界面的修改要同步到 `providerAdapterDialog.vue`，例如 `isMobile` → `actualPlatform.isMobile` |
+| `apps/web/src/components/settings/panels/mediaModel/addCustomProviderDialog.vue` | 整个文件改为只包一层 `customProviderForm`：删掉内置供应商（builtin）模式和 `mode` 参数；原导入代码与 AI 生成界面移到 `providerAdapterDialog.vue` | 保留我们的版本，上游对内置模式的修改全部丢弃。上游对原导入界面的修改要同步到 `providerAdapterDialog.vue`，例如 `isMobile` → `actualPlatform.isMobile` |
 | `apps/web/src/components/settings/panels/mediaModel/editProviderDialog.vue` | 连接式供应商改用 `customProviderForm` 编辑 | 两边都保留 |
-| `apps/web/src/components/settings/panels/mediaModel/index.vue` | 列表显示可生成的模型数；连接式供应商的“获取模型”改为打开编辑 | 两边都保留 |
+| `apps/web/src/components/settings/panels/mediaModel/index.vue` | 删掉“添加供应商”（内置）按钮，只留“添加自定义供应商”；顶部加“供应商 / 生图协议”切换，生图协议面板嵌在这里；列表显示可生成的模型数；连接式供应商的“获取模型”改为打开编辑 | 两边都保留。整个模板外包了一层 `mediaModelPanel`，上游改列表时注意缩进 |
 | `apps/web/src/components/settings/panels/mediaModel/types.ts` | `MediaProvider` 增加连接相关字段，新增 `MediaListedModel` | 两边都保留 |
 | `apps/web/src/components/settings/panels/mediaModel/providerPrompt.ts` | “运行约定”中加入连接模式说明（注入 `apiUrl`/`apiKey`、模型列表协议不决定生成接口、不做模型 ID 映射），替换原“编辑界面按 rules 渲染”一条 | 保留上游新增的条目，我们的三条放在其后 |
-| `apps/web/src/components/settings/index.vue` | 新增“生图协议”设置面板 | 两边都保留 |
+| `apps/web/src/components/settings/index.vue` | 无改动（生图协议已并入媒体模型页，不再单独占一个菜单） | 直接采用上游 |
 | `apps/web/src/stores/settings.ts` | 保存 `imageProtocols` 时刷新媒体模型 | 两边都保留 |
 | `apps/web/src/types/components.d.ts` | 自动生成，新增 `CustomProviderForm` | 两边的条目都保留，按字母顺序排列 |
 | `packages/providers/package.json` | exports 增加 `./imageProtocols` | 两边都保留 |

@@ -25,7 +25,7 @@
               <component
                 :is="activePanel.component"
                 v-bind="
-                  ['pluginMarket', 'languageModel', 'mediaModel', 'imageProtocol', 'personalization', 'deviceLink'].includes(activePanel.id) ? { visible } : {}
+                  ['pluginMarket', 'languageModel', 'mediaModel', 'personalization', 'deviceLink'].includes(activePanel.id) ? { visible } : {}
                 " />
             </keep-alive>
           </transition>
@@ -43,7 +43,6 @@ import {
   IconPalette,
   IconSettings,
   IconPhotoVideo,
-  IconPhotoCog,
   IconBuildingStore,
   IconInfoCircle,
   IconCode,
@@ -66,7 +65,6 @@ const settingsPanels = [
     component: defineAsyncComponent(() => import("./panels/languageModel/index.vue")),
   },
   { id: "mediaModel", label: "媒体模型", icon: IconPhotoVideo, component: defineAsyncComponent(() => import("./panels/mediaModel/index.vue")) },
-  { id: "imageProtocol", label: "生图协议", icon: IconPhotoCog, component: defineAsyncComponent(() => import("./panels/imageProtocol/index.vue")) },
   {
     id: "pluginMarket",
     label: "插件市场",

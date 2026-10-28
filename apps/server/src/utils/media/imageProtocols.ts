@@ -83,7 +83,9 @@ function requestUrl(apiUrl: string, path: string, variables: Record<string, unkn
   return url;
 }
 
-export async function generateProtocolImage(this: ProviderContext, protocol: ImageProtocol, request: ImageRequest): Promise<MediaAsset[]> {
+type ProtocolContext = Pick<ProviderContext, "config" | "signal"> & { tool: Pick<ProviderTools, "fetch" | "errorMessage"> };
+
+export async function generateProtocolImage(this: ProtocolContext, protocol: ImageProtocol, request: ImageRequest): Promise<MediaAsset[]> {
   const editing = !!request.images?.length;
   if (editing && !protocol.editPath) throw new Error("当前生图协议未配置参考图接口，请先在设置中配置");
   if (request.mask) throw new Error("当前通用生图协议不支持蒙版，请使用供应商适配文件");
@@ -137,7 +139,10 @@ export async function generateProtocolImage(this: ProviderContext, protocol: Ima
   const response = await this.tool.fetch(requestUrl(String(this.config.apiUrl), editing ? protocol.editPath : protocol.generationPath, variables), {
     method: "POST", headers, body, signal: this.signal, redirect: "error",
   });
-  if (!response.ok) throw new Error(`图片生成失败（HTTP ${response.status}）`);
+  if (!response.ok) {
+    const detail = this.tool.errorMessage(await response.text().catch(() => ""));
+    throw new Error(`图片生成失败（HTTP ${response.status}）${detail ? `：${detail}` : ""}`);
+  }
   const result: unknown = await response.json();
   const assets: MediaAsset[] = [];
   for (const item of readValues(result, protocol.response.itemsPath)) {

@@ -39,6 +39,10 @@
         <div class="editorContent">
           <el-alert v-if="editingProviderLabels.length" class="usageNotice" type="warning" :closable="false" showIcon :title="`保存后会影响：${editingProviderLabels.join('、')}`" />
           <el-form labelPosition="top" :disabled="saving" @submit.prevent="saveProtocol">
+            <el-form-item v-if="!editingId" label="起始模板">
+              <el-segmented :modelValue="templateId" :options="templateOptions" block ariaLabel="起始模板" @update:modelValue="applyTemplate(String($event))" />
+              <p class="fieldHint">按接口类型选一个起点，再修改路径和字段即可。</p>
+            </el-form-item>
             <el-form-item label="协议名称" required>
               <el-input v-model="draft.label" :maxlength="100" placeholder="例如：OpenAI 兼容生图" aria-label="协议名称" />
             </el-form-item>
@@ -119,6 +123,30 @@
                   <p class="fieldHint">格式：尺寸档位 → 比例 → 接口像素值，例如 { "1K": { "1:1": "1024x1024", "*": "auto" } }。* 为其他比例的默认值；空字符串不发送 size；未配置映射时直接发送尺寸选项。</p>
                 </el-form-item>
               </el-collapse-item>
+              <el-collapse-item title="测试生图" name="test">
+                <p class="fieldHint">用当前草稿（无需先保存）调用一次文生图，地址和 API Key 取自所选供应商。会产生一次真实调用费用。</p>
+                <div class="fieldRow">
+                  <el-form-item label="供应商">
+                    <el-select v-model="testProviderId" :disabled="testing" placeholder="选择填表接入的供应商" aria-label="测试供应商" @update:modelValue="testModel = ''">
+                      <el-option v-for="item in testProviders" :key="item.id" :label="item.label" :value="item.id" />
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="模型">
+                    <el-select v-model="testModel" :disabled="testing || !testProviderId" filterable allowCreate placeholder="选择或输入模型 ID" aria-label="测试模型">
+                      <el-option v-for="item in testModels" :key="item.id" :label="item.id" :value="item.id" />
+                    </el-select>
+                  </el-form-item>
+                </div>
+                <el-form-item label="提示词">
+                  <el-input v-model="testPrompt" :disabled="testing" maxlength="4000" aria-label="测试提示词" />
+                </el-form-item>
+                <el-button :loading="testing" :disabled="!testProviderId || !testModel.trim() || !testPrompt.trim()" @click="testProtocol">{{ testing ? '生成中' : '生成一张' }}</el-button>
+                <el-button v-if="testing" text @click="testRequest?.abort()">停止</el-button>
+                <el-alert v-if="testError" class="testResult" :title="testError" type="error" :closable="false" showIcon />
+                <div v-if="testImages.length" class="testResult">
+                  <img v-for="(src, index) in testImages" :key="index" class="testImage" :src="src" :alt="`测试结果 ${index + 1}`" />
+                </div>
+              </el-collapse-item>
             </el-collapse>
           </el-form>
           <el-alert v-if="formError" class="formError" :title="formError" type="error" :closable="false" showIcon />
@@ -139,6 +167,7 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import { IconCopy, IconEdit, IconPlus, IconTrash } from "@tabler/icons-vue";
 import { defaultImageProtocols, type ImageProtocol } from "@toonflow/providers/imageProtocols";
 import { saveSettings } from "@/stores/settings";
+import type { MediaProvider } from "../mediaModel/types";
 
 type ProtocolUsage = { protocolId: string; providerId: string; providerLabel: string; modelId?: string };
 type ProtocolList = { protocols: ImageProtocol[]; usages: ProtocolUsage[] };
@@ -162,11 +191,23 @@ const sizeMapText = ref("");
 const expandedSections = ref<string[]>([]);
 const formError = ref("");
 const editingProviderLabels = computed(() => getProviderLabels(editingId.value));
+const templateOptions = defaultImageProtocols.map(item => ({ label: item.label, value: item.id }));
+const templateId = ref(defaultImageProtocols[0]!.id);
+const testProviders = ref<MediaProvider[]>([]);
+const testProviderId = ref("");
+const testModels = computed(() => testProviders.value.find(item => item.id === testProviderId.value)?.listedModels ?? []);
+const testModel = ref("");
+const testPrompt = ref("一只坐在窗台上的橘猫，水彩风格");
+const testing = ref(false);
+const testError = ref("");
+const testImages = ref<string[]>([]);
+let testRequest: AbortController | undefined;
 let editingSnapshot = "";
 let loadRequest = 0;
 
 watch(() => visible, value => { if (value) void loadProtocols(); }, { immediate: true });
-onBeforeUnmount(() => { loadRequest++; });
+watch(editorVisible, value => { if (!value) testRequest?.abort(); });
+onBeforeUnmount(() => { loadRequest++; testRequest?.abort(); });
 
 function createDraft() {
   return { ...structuredClone(defaultImageProtocols[0]!), id: `image${crypto.randomUUID().replaceAll("-", "")}`, label: "" };
@@ -216,9 +257,62 @@ function openEditor(protocol?: ImageProtocol, copy = false) {
   imageSizesText.value = draft.value.imageSizes.join(", ");
   imageRatiosText.value = draft.value.imageRatios.join(", ");
   sizeMapText.value = JSON.stringify(draft.value.sizeMap, null, 2);
+  templateId.value = defaultImageProtocols[0]!.id;
+  testError.value = "";
+  testImages.value = [];
+  void loadTestProviders();
   expandedSections.value = [];
   formError.value = "";
   editorVisible.value = true;
+}
+
+function applyTemplate(id: string) {
+  const template = defaultImageProtocols.find(item => item.id === id);
+  if (!template) return;
+  templateId.value = id;
+  // ACT: 切换模板只替换接口配置，保留已填写的协议名称与 ID。
+  draft.value = { ...structuredClone(template), id: draft.value.id, label: draft.value.label };
+  generationBodyText.value = JSON.stringify(template.generationBody, null, 2);
+  editBodyText.value = JSON.stringify(template.editBody, null, 2);
+  imageSizesText.value = template.imageSizes.join(", ");
+  imageRatiosText.value = template.imageRatios.join(", ");
+  sizeMapText.value = JSON.stringify(template.sizeMap, null, 2);
+}
+
+async function loadTestProviders() {
+  try {
+    const { data } = await axios.get<{ data: MediaProvider[] }>("/api/providers/media/list");
+    testProviders.value = data.data.filter(item => item.modelConnection && !item.loadError);
+    if (!testProviders.value.some(item => item.id === testProviderId.value)) {
+      const used = usages.value.find(item => item.protocolId === editingId.value);
+      testProviderId.value = used?.providerId ?? testProviders.value[0]?.id ?? "";
+      testModel.value = used?.modelId ?? "";
+    }
+  } catch { testProviders.value = []; }
+}
+
+async function testProtocol() {
+  if (testing.value) return;
+  testError.value = "";
+  testImages.value = [];
+  let protocol: ImageProtocol;
+  try { protocol = parseDraft(); }
+  catch (error) { testError.value = errorMessage(error); return; }
+  const request = new AbortController();
+  testRequest = request;
+  testing.value = true;
+  try {
+    const { data } = await axios.post<{ code: number; data: { type: string; url?: string; data?: string; mimeType?: string }[]; message?: string }>("/api/imageProtocols/test", {
+      protocol, providerId: testProviderId.value, model: testModel.value.trim(), prompt: testPrompt.value.trim(),
+    }, { headers: { "x-toonflow-workspace": "1" }, signal: request.signal, timeout: 5 * 60_000 });
+    if (data.code !== 200 || !Array.isArray(data.data)) throw new Error(data.message || "测试失败");
+    testImages.value = data.data.map(item => item.type === "url" ? item.url! : `data:${item.mimeType};base64,${item.data}`);
+  } catch (error) {
+    if (!request.signal.aborted) testError.value = errorMessage(error);
+  } finally {
+    if (testRequest === request) testRequest = undefined;
+    testing.value = false;
+  }
 }
 
 function parseObject(text: string, label: string): ImageProtocol["generationBody"] {
@@ -408,6 +502,20 @@ async function deleteProtocol(protocol: ImageProtocol) {
   }
 
   .formError { margin-top: 16px; }
+
+  .testResult {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+
+    .testImage {
+      max-width: 240px;
+      max-height: 240px;
+      border-radius: var(--el-border-radius-base);
+      object-fit: contain;
+    }
+  }
 
   @media (max-width: 600px) {
     .fieldRow { grid-template-columns: minmax(0, 1fr); gap: 0; }

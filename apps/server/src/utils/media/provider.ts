@@ -39,7 +39,7 @@ function invalid(message: string, status = 400): never {
   throw Object.assign(new Error(message), { status });
 }
 
-function mediaErrorMessage(value: unknown, config: Record<string, unknown>, depth = 0): string {
+export function mediaErrorMessage(value: unknown, config: Record<string, unknown>, depth = 0): string {
   if (depth > 6 || value == null) return "";
   let message = "";
   if (typeof value === "string") {

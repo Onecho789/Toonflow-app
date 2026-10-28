@@ -23,7 +23,7 @@
           <el-option v-for="item in imageProtocols" :key="item.id" :label="item.label" :value="item.id" />
           <el-option v-if="imageProtocolId && !imageProtocols.some(item => item.id === imageProtocolId)" :label="`协议已移除：${imageProtocolId}`" :value="imageProtocolId" disabled />
         </el-select>
-        <el-text type="info" size="small">只给需要生图的模型选择协议。协议可在设置的“生图协议”中管理。</el-text>
+        <el-text type="info" size="small">只给需要生图的模型选择协议。协议在“媒体模型 → 生图协议”中管理。</el-text>
       </el-form-item>
       <div class="modelHeader">
         <el-text tag="strong">选择要使用的模型</el-text>
@@ -123,8 +123,8 @@ watch(() => props.provider, provider => {
 
 watch([apiUrl, protocol], () => {
   activeRequest?.abort();
-  models.value = adapter.value?.models.map(({ id, label }) => ({ id, label })) ?? [];
-  selectedIds.value = [];
+  // ACT: 改地址或协议时保留已勾选模型及其协议，未勾选的候选需重新获取。
+  models.value = [...new Map([...(adapter.value?.models.map(({ id, label }) => ({ id, label })) ?? []), ...models.value.filter(model => selectedIds.value.includes(model.id))].map(model => [model.id, model])).values()];
   formError.value = "";
 }, { flush: "sync" });
 watch(apiKey, () => activeRequest?.abort(), { flush: "sync" });
