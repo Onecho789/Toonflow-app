@@ -80,7 +80,7 @@
 
 ## 品牌改名：麦麦工坊
 
-- 提交：见本节对应提交（2026-10-28），分支 `codex/simplifyMediaModels`
+- 提交：`332abb3`（2026-10-28），分支 `codex/simplifyMediaModels`
 - 状态：第一版，只改界面显示文字
 - 目的：产品名 Toonflow → 麦麦工坊（英文 MaiMai Studio，繁体 麥麥工坊），助手名 Toonflow 助手 / Toonflow Agent → 小麦同学（英文 Xiaomai）
 
