@@ -28,6 +28,7 @@ const artifactDir = resolve(projectDir, desktopConfig.build.artifactFolder);
 const prefix = `stable-${platform}-${process.arch}`;
 const manifestName = `${prefix}-update.json`;
 const manifestUrl = `${desktopConfig.release.baseUrl.replace(/\/+$/, "")}/${manifestName}`;
+if (!desktopConfig.release.baseUrl && !values.initial) throw new Error("尚未配置更新地址（electrobun.config.ts 的 release.baseUrl），只能使用 --initial 构建首次版本。");
 if (existsSync(releaseDir)) throw new Error(`版本已保留，请使用新版本号：${releaseDir}`);
 
 let previousResponse: Response | undefined;

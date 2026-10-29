@@ -1,4 +1,3 @@
-import { createHash, randomBytes } from "node:crypto";
 import conf from "@/utils/conf";
 import { t } from "@/lib/i18n";
 import type { CloudUser } from "@/types/desktop";
@@ -6,10 +5,8 @@ import type { CloudUser } from "@/types/desktop";
 export type CloudSession = { user: CloudUser; accessToken: string; refreshToken: string; expiresAt: number };
 type Tokens = { accessToken: string; refreshToken: string; expiresIn: number };
 
-// ACT: 正式域名确定前默认连接本机开发服务；部署后改为正式地址，或用 MAIMAI_CLOUD_URL 覆盖。
-export const cloudUrl = (process.env.MAIMAI_CLOUD_URL || "http://127.0.0.1:8100").replace(/\/+$/, "");
-// ACT: 只保留最近一次登录请求，进程重启或重复点击登录后旧回调作废。
-let pendingLogin: { state: string; verifier: string; expiresAt: number } | undefined;
+// ACT: 正式域名确定前默认连接测试服务器（IP 证书）；本机联调用 MAIMAI_CLOUD_URL 覆盖。
+export const cloudUrl = (process.env.MAIMAI_CLOUD_URL || "https://159.75.178.145:8100").replace(/\/+$/, "");
 let refreshing: Promise<CloudSession | undefined> | undefined;
 
 async function request<T>(path: string, options: { body?: unknown; token?: string } = {}): Promise<T> {
@@ -54,43 +51,57 @@ function currentSession() {
   return refreshing;
 }
 
-export function startLogin() {
-  const verifier = randomBytes(32).toString("base64url");
-  const state = randomBytes(16).toString("base64url");
-  pendingLogin = { state, verifier, expiresAt: Date.now() + 10 * 60_000 };
-  const url = new URL("/login", cloudUrl);
-  url.search = new URLSearchParams({ client: "desktop", state, codeChallenge: createHash("sha256").update(verifier).digest("base64url") }).toString();
-  return url.href;
-}
-
-export async function finishLogin(code: string, state: string) {
-  const pending = pendingLogin;
-  if (!pending || pending.state !== state || pending.expiresAt < Date.now()) {
-    throw Object.assign(new Error("登录请求已失效，请在麦麦工坊中重新点击登录"), { status: 400 });
-  }
-  pendingLogin = undefined;
-  const result = await request<Tokens & { user: CloudUser }>("token", { body: { code, codeVerifier: pending.verifier } });
+function saveSession(result: Tokens & { user: CloudUser }) {
   conf.set("cloudSession", { user: result.user, accessToken: result.accessToken, refreshToken: result.refreshToken, expiresAt: Date.now() + result.expiresIn * 1000 });
   return result.user;
 }
 
-export async function getAccount() {
+export async function login(email: string, password: string) {
+  return saveSession(await request<Tokens & { user: CloudUser }>("login", { body: { email, password } }));
+}
+
+export async function register(email: string, code: string, password: string) {
+  return saveSession(await request<Tokens & { user: CloudUser }>("register", { body: { email, code, password } }));
+}
+
+export async function sendCode(email: string) {
+  await request("code", { body: { email } });
+}
+
+export async function changePassword(oldPassword: string, newPassword: string) {
   const session = await currentSession();
-  if (!session) return null;
+  if (!session) throw Object.assign(new Error("请先登录麦麦云"), { status: 401 });
+  await request("password", { body: { oldPassword, newPassword }, token: session.accessToken });
+  const user = { ...session.user, mustChangePassword: false };
+  replaceSession(session, { ...session, user });
+  return user;
+}
+
+export async function getAccount() {
+  const stored = conf.get("cloudSession");
+  if (!stored) return null;
+  let session = stored;
   try {
+    const current = await currentSession();
+    if (!current) return null;
+    session = current;
     const user = await request<CloudUser>("me", { token: session.accessToken });
     replaceSession(session, { ...session, user });
     return user;
   } catch (error) {
-    if ((error as { status?: number }).status !== 401) throw error;
-    replaceSession(session);
-    return null;
+    const status = (error as { status?: number }).status;
+    if (status === 401) {
+      replaceSession(session);
+      return null;
+    }
+    // ACT: 云端不可达（网络错误或 5xx）时沿用本地保存的账号离线进入；需要云端的功能各自报错。
+    if (status === 502) return stored.user;
+    throw error;
   }
 }
 
 export async function logout() {
   const session = conf.get("cloudSession");
-  pendingLogin = undefined;
   conf.delete("cloudSession");
   // ACT: 本地先退出；云端不可达时只记录错误，云端会话最长 30 天后自然过期。
   if (session) await request("logout", { body: { refreshToken: session.refreshToken } }).catch(error => console.error("麦麦云退出失败：", error));

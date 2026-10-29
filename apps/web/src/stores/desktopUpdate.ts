@@ -4,11 +4,9 @@ import type { updateSnapshot } from "@toonflow/server/desktop";
 import { settings } from "@/stores/settings";
 import { actualPlatform } from "@/lib/platform";
 
-export const desktopAutoUpdate = computed(() => settings.value.desktopAutoUpdate !== false);
 export const desktopUpdateCustomUrl = computed(() => typeof settings.value.desktopUpdateCustomUrl === "string" ? settings.value.desktopUpdateCustomUrl : "");
-export const desktopUpdateSource = computed(() => settings.value.desktopUpdateSource === "custom" && desktopUpdateCustomUrl.value ? "custom"
-  : settings.value.desktopUpdateSource === "github" ? "github" : "official");
-export const desktopUpdateKey = computed(() => desktopUpdateSource.value === "custom" ? `custom:${desktopUpdateCustomUrl.value}` : desktopUpdateSource.value);
+// ACT: 自有更新服务器上线前只有开发者选项里的自定义地址一个更新源，地址变化即视为切换更新源。
+export const desktopUpdateKey = desktopUpdateCustomUrl;
 export const desktopUpdateSnapshot = shallowRef<updateSnapshot | null>(null);
 export const desktopUpdateAction = ref<"read" | "check" | "download" | "apply" | null>(null);
 export const desktopUpdateChecking = computed(() => desktopUpdateAction.value === "check");
@@ -86,40 +84,6 @@ async function observeUpdate(snapshot: updateSnapshot, source: string, signal: A
 
 export function stopDesktopUpdateObservation() {
   updateController?.abort();
-}
-
-export function registerDesktopAutoUpdate() {
-  const intervalMs = 15 * 60 * 1000;
-  const activityEvents = ["pointerdown", "keydown", "wheel"];
-  let lastActivityAt = -Infinity;
-  function markActivity(event: Event) {
-    if (event.isTrusted && !document.hidden) lastActivityAt = Date.now();
-  }
-  for (const event of activityEvents) window.addEventListener(event, markActivity, { passive: true, capture: true });
-  void startDesktopUpdate().catch(() => {});
-  const interval = window.setInterval(() => {
-    const snapshot = desktopUpdateSnapshot.value;
-    // ACT: 只在最近十五分钟有真实操作时检查；空闲不取消已经开始的下载。
-    if (!desktopAutoUpdate.value || document.hidden || Date.now() - lastActivityAt >= intervalMs || pendingUpdate
-      || snapshot?.channel === "dev" || snapshot?.updating || snapshot?.updateReady || snapshot?.installFailure) return;
-    void startDesktopUpdate().catch(() => {});
-  }, intervalMs);
-  return () => {
-    window.clearInterval(interval);
-    for (const event of activityEvents) window.removeEventListener(event, markActivity, true);
-  };
-}
-
-export async function startDesktopUpdate() {
-  const source = desktopUpdateKey.value;
-  let snapshot = await runDesktopUpdate("read");
-  if (!desktopAutoUpdate.value || desktopUpdateKey.value !== source || snapshot.channel === "dev"
-    || snapshot.updating || snapshot.updateReady || snapshot.installFailure) return snapshot;
-  snapshot = await runDesktopUpdate("check");
-  if (!desktopAutoUpdate.value || desktopUpdateKey.value !== source || snapshot.channel === "dev" || snapshot.error
-    || snapshot.updating || snapshot.installFailure || !snapshot.canUpdate || !snapshot.updateAvailable || snapshot.updateReady) return snapshot;
-  // ACT: 关闭开关仅阻止尚未开始的自动步骤，已开始的下载继续完成；安装仍由用户确认。
-  return runDesktopUpdate("download");
 }
 
 export function runDesktopUpdate(nextAction: NonNullable<typeof desktopUpdateAction.value>) {

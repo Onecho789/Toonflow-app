@@ -14,9 +14,8 @@ import { registerDownloads } from "@/lib/saveFile";
 import { actualPlatform } from "@/lib/platform";
 import "@/lib/mobile";
 import { getMissingBrowserFeatures } from "@/lib/browserCapabilities";
-import { registerAnonymousData } from "@/lib/anonymousData";
 import { loadSettings, settingsStorage } from "@/stores/settings";
-import { registerDesktopAutoUpdate } from "@/stores/desktopUpdate";
+import { runDesktopUpdate } from "@/stores/desktopUpdate";
 import { registerLanguage } from "@/lib/i18n";
 import { locale, translate } from "@toonflow/i18n/vue";
 
@@ -46,7 +45,6 @@ async function notifyDesktopReady(failed = false) {
   app.use(createPinia().use(createPersistedState({ storage: settingsStorage })));
   app.use(router);
   await router.isReady();
-  app.onUnmount(registerAnonymousData());
   app.mount("#app");
   isMounted = true;
   app.onUnmount(registerDownloads());
@@ -58,7 +56,8 @@ async function notifyDesktopReady(failed = false) {
     await new Promise<void>((resolve) => window.addEventListener("load", () => resolve(), { once: true }));
   }
   await notifyDesktopReady();
-  if (actualPlatform.isLocalDesktop) app.onUnmount(registerDesktopAutoUpdate());
+  // ACT: 暂时关闭自动检查更新；启动时只读取本机更新状态，用于显示上次更新失败和更新说明。
+  if (actualPlatform.isLocalDesktop) void runDesktopUpdate("read").catch(() => {});
 }).catch(async (error) => {
   console.error("页面初始化失败：", error);
   if (isMounted) app.unmount();

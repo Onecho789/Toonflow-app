@@ -54,7 +54,7 @@
       <div v-if="!isRemoteConnection" class="developerRow">
         <div class="toolDescription">
           <h3>自定义更新源</h3>
-          <p>填写更新清单和安装包所在的目录地址，保存后可在关于页选择。</p>
+          <p>填写更新清单和安装包所在的目录地址，保存后在关于页检查更新时使用。</p>
         </div>
         <div class="updateSourceEditor">
           <el-input v-model="customUpdateUrl" placeholder="https://example.com/desktopUpdates" aria-label="自定义更新源目录地址" clearable :disabled="savingUpdateUrl" @keyup.enter="saveCustomUpdateUrl" />
@@ -196,10 +196,7 @@ async function saveCustomUpdateUrl() {
         throw new Error("请输入不含账号、查询参数或锚点的 HTTP(S) 目录地址");
     }
     savingUpdateUrl.value = true;
-    await saveSettings(current => ({
-      desktopUpdateCustomUrl: url,
-      ...(url || current.desktopUpdateSource !== "custom" ? {} : { desktopUpdateSource: "official" }),
-    }));
+    await saveSettings(() => ({ desktopUpdateCustomUrl: url }));
     customUpdateUrl.value = url;
     ElMessage.success("自定义更新源已保存");
   } catch (error) {

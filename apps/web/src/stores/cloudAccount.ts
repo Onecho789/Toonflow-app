@@ -8,7 +8,9 @@ export const cloudAccountError = ref("");
 const client = axios.create({ baseURL: "/api/cloud", headers: { "x-toonflow-workspace": "1" }, timeout: 20000 });
 
 function errorMessage(error: unknown) {
-  return axios.isAxiosError<{ message?: string }>(error) ? error.response?.data?.message || error.message : error instanceof Error ? error.message : String(error);
+  return axios.isAxiosError<{ message?: string; data?: unknown }>(error)
+    ? [error.response?.data?.message || error.message, ...(Array.isArray(error.response?.data?.data) ? error.response.data.data : [])].join("：")
+    : error instanceof Error ? error.message : String(error);
 }
 
 async function run(action: () => Promise<void>) {
@@ -19,17 +21,27 @@ async function run(action: () => Promise<void>) {
   finally { cloudAccountLoading.value = false; }
 }
 
+// 会话保存在主机本地；云端不可达时服务端沿用已保存的账号，互联设备跟随主机登录状态。
 export function loadCloudAccount() {
   return run(async () => { cloudAccount.value = (await client.get<{ data: CloudUser | null }>("/account")).data.data; });
 }
 
-// 系统浏览器打开云端登录页；登录完成后经 maimai://auth 回到客户端，由 finishCloudLogin 换取会话。
-export function startCloudLogin() {
-  return run(async () => { window.open((await client.post<{ data: { url: string } }>("/login")).data.data.url, "_blank", "noopener"); });
+export function loginCloudAccount(email: string, password: string) {
+  return run(async () => { cloudAccount.value = (await client.post<{ data: CloudUser }>("/login", { email, password })).data.data; });
 }
 
-export function finishCloudLogin(code: string, state: string) {
-  return run(async () => { cloudAccount.value = (await client.post<{ data: CloudUser }>("/callback", { code, state })).data.data; });
+export function registerCloudAccount(email: string, code: string, password: string) {
+  return run(async () => { cloudAccount.value = (await client.post<{ data: CloudUser }>("/register", { email, code, password })).data.data; });
+}
+
+export async function sendCloudCode(email: string) {
+  let sent = false;
+  await run(async () => { await client.post("/code", { email }); sent = true; });
+  return sent;
+}
+
+export function changeCloudPassword(oldPassword: string, newPassword: string) {
+  return run(async () => { cloudAccount.value = (await client.post<{ data: CloudUser }>("/password", { oldPassword, newPassword })).data.data; });
 }
 
 export function logoutCloudAccount() {

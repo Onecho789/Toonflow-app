@@ -78,9 +78,6 @@ export async function createApp({
   app.use(express.urlencoded({ extended: true, limit: "100mb" }));
   app.use("/api/desktop", desktopRequest);
 
-  const { default: initializeProviderModels } = await import("@/utils/ai/initialize");
-  // ACT: 启动先使用已有模型，远程刷新不阻塞服务监听。
-  void initializeProviderModels().catch(error => console.warn("启动时刷新供应商模型失败：", error));
   const router = await import("@/router");
   router.default(app);
   const [{ createMcpRouter }, { getMcpTools }, { authorizeMcp }, { skillResources }] = await Promise.all([

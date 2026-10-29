@@ -6,10 +6,6 @@ import type { DesktopRuntime, desktopUpdateAttempt, updateSnapshot } from "@/typ
 import { msg, translateError, translateMessage } from "@/lib/i18n";
 import { messageError } from "@toonflow/i18n/errors";
 
-const updateBaseUrls = {
-  official: "https://api.toonflow.net/web/version/desktopUpdates",
-  github: "https://github.com/HBAI-Ltd/Toonflow-app/releases/latest/download",
-};
 const updateRuntimeId = crypto.randomUUID();
 let cancelledUpdateAttempt: string | undefined;
 
@@ -61,7 +57,8 @@ function getInstallFailure(local: Awaited<ReturnType<DesktopRuntime["updater"]["
     currentVersion: local.version,
     currentHash: local.hash,
     message: translateMessage(message),
-    downloadUrl: "https://github.com/HBAI-Ltd/Toonflow-app/releases/latest",
+    // ACT: 自有下载页上线前留空，前端不显示“前往下载页”。
+    downloadUrl: "",
   };
 }
 
@@ -83,11 +80,10 @@ export function isValidUpdateUrl(value: unknown): value is string {
   return (url.protocol === "http:" || url.protocol === "https:") && !url.username && !url.password && !url.search && !url.hash;
 }
 
+// ACT: 自有更新服务器上线前不内置更新源，只使用开发者选项里填写的自定义地址；未填写时返回空字符串。
 function getUpdateBaseUrl(): string {
-  const settings = conf.get("settings", {});
-  if (settings.desktopUpdateSource === "github") return updateBaseUrls.github;
-  if (settings.desktopUpdateSource === "custom" && isValidUpdateUrl(settings.desktopUpdateCustomUrl)) return settings.desktopUpdateCustomUrl;
-  return updateBaseUrls.official;
+  const url = conf.get("settings", {}).desktopUpdateCustomUrl;
+  return isValidUpdateUrl(url) ? url : "";
 }
 
 async function withUpdateSource<T>(updater: DesktopRuntime["updater"], updateBaseUrl: string, run: () => Promise<T>) {
@@ -170,9 +166,10 @@ export async function checkDesktopUpdate(req: Request): Promise<void> {
   const state = getDesktopState(req);
   if (state.checkingUpdate || state.downloadingUpdate || state.applyingUpdate)
     throw Object.assign(new Error("更新操作正在执行，请稍后再试。"), { status: 409 });
+  const updateBaseUrl = getUpdateBaseUrl();
+  if (!updateBaseUrl) throw Object.assign(new Error("尚未配置更新源，请先在开发者选项中填写自定义更新源。"), { status: 400 });
   state.checkingUpdate = true;
   state.updateError = "";
-  const updateBaseUrl = getUpdateBaseUrl();
   state.checkedBaseUrl = undefined;
   state.lastBaseUrl = updateBaseUrl;
   try {

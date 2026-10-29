@@ -1,7 +1,8 @@
 <template>
   <el-config-provider :locale="elementLocale">
     <config-provider :globalConfig="tdesignLocale">
-      <router-view v-slot="{ Component: currentComponent }">
+      <loginGate v-if="accountChecked && (!cloudAccount || cloudAccount.mustChangePassword)" />
+      <router-view v-else-if="accountChecked" v-slot="{ Component: currentComponent }">
         <transition name="el-fade-in" mode="out-in">
           <component :is="currentComponent" />
         </transition>
@@ -29,11 +30,11 @@
               <dd><strong>{{ installFailure.targetVersion ? `v${installFailure.targetVersion}` : "未知版本" }}</strong><code>{{ installFailure.targetHash || "构建标识未知" }}</code></dd>
             </div>
           </dl>
-          <p class="failureHint">请前往 GitHub 最新发布页，选择适合当前系统的完整安装包，关闭客户端后重新安装。</p>
+          <p class="failureHint">请下载适合当前系统的完整安装包，关闭客户端后重新安装。</p>
         </div>
         <template #footer>
           <el-button @click="installFailureVisible = false">稍后</el-button>
-          <el-button tag="a" type="primary" :href="installFailure.downloadUrl" target="_blank" rel="noopener noreferrer">前往下载页</el-button>
+          <el-button v-if="installFailure.downloadUrl" tag="a" type="primary" :href="installFailure.downloadUrl" target="_blank" rel="noopener noreferrer">前往下载页</el-button>
         </template>
       </el-dialog>
     </config-provider>
@@ -64,10 +65,15 @@ import { useMcpControl } from "@/lib/mcpControl";
 import ffmpegRequired from "@/components/settings/ffmpegRequired.vue";
 import desktopQuit from "@/components/desktopQuit.vue";
 import updateBox from "@/components/updateBox.vue";
+import loginGate from "@/components/loginGate.vue";
+import { cloudAccount, loadCloudAccount } from "@/stores/cloudAccount";
 import "element-plus/theme-chalk/dark/css-vars.css";
 
 useMcpControl();
 const workspaceStore = useWorkspaceStore();
+// 启动时先确认主机本地的麦麦云会话，未登录只显示登录页。
+const accountChecked = ref(false);
+void loadCloudAccount().finally(() => { accountChecked.value = true; });
 
 // ACT: TDesign 缺少的语言使用英语基底，聊天控件由应用字典补齐。
 const tdesignLocales = {

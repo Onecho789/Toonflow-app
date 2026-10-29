@@ -8,33 +8,30 @@ import { file } from "@toonflow/file/bun";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
 import { dlopen, ptr } from "bun:ffi";
-import type { CloudAuthCallback, DesktopRuntime, PluginInstallRequest } from "@toonflow/server/desktop";
+import type { DesktopRuntime, PluginInstallRequest } from "@toonflow/server/desktop";
 import { showNativeSplash } from "@toonflow/startup";
 import Electrobun, { ApplicationMenu, BrowserWindow, PATHS, Screen, Utils, Updater } from "electrobun/main";
-import { isAuthUrl, parseAuthUrl, parseInstallUrl } from "./protocol";
+import { parseInstallUrl } from "./protocol";
 import saveFile, { selectSaveFile } from "./saveFile";
 import createWindowsUpdater, { confirmWindowsUpdateStartup } from "./update/windowsUpdater";
 import prepareWebviewRuntime from "./webviewRuntime";
 
 const execFileAsync = promisify(execFile);
-type DesktopEvent = { name: "toonflow:install-plugin"; detail: PluginInstallRequest } | { name: "toonflow:cloud-auth"; detail: CloudAuthCallback };
-const pendingEvents: DesktopEvent[] = [];
-let deliverEvent: ((event: DesktopEvent) => void) | undefined;
+const pendingInstalls: PluginInstallRequest[] = [];
+let deliverInstall: ((request: PluginInstallRequest) => void) | undefined;
 function openUrl(url: string) {
-  const event: DesktopEvent = isAuthUrl(url)
-    ? { name: "toonflow:cloud-auth", detail: parseAuthUrl(url) }
-    : { name: "toonflow:install-plugin", detail: parseInstallUrl(url) };
-  if (deliverEvent) deliverEvent(event);
-  else if (!pendingEvents.some(item => JSON.stringify(item) === JSON.stringify(event))) {
-    if (pendingEvents.length >= 20) throw new Error(t`待确认的安装请求过多，请稍后重试`);
-    pendingEvents.push(event);
+  const request = parseInstallUrl(url);
+  if (deliverInstall) deliverInstall(request);
+  else if (!pendingInstalls.some(item => item.type === request.type && item.url === request.url)) {
+    if (pendingInstalls.length >= 20) throw new Error(t`待确认的安装请求过多，请稍后重试`);
+    pendingInstalls.push(request);
   }
 }
 // 冷启动的 macOS URL 可能先于窗口就绪到达，先接收再等待页面挂载。
 Electrobun.events.on("open-url", event => {
   try { openUrl(event.data.url); }
   catch (error) {
-    void Utils.showMessageBox({ type: "error", title: isAuthUrl(event.data.url) ? t`登录失败` : t`安装链接无效`, message: translateMessage(error instanceof Error ? error.message : "无法打开安装链接") });
+    void Utils.showMessageBox({ type: "error", title: t`安装链接无效`, message: translateMessage(error instanceof Error ? error.message : "无法打开安装链接") });
   }
 });
 
@@ -147,7 +144,7 @@ async function start() {
     });
     const { default: createDesktopConnection } = await import("./connection");
     const connection = desktopConnection = await createDesktopConnection(app, dataDirectory, resolve(PATHS.VIEWS_FOLDER, "../mcp/stdio.js"), (port, remote) => {
-      deliverEvent = undefined;
+      deliverInstall = undefined;
       saveRuntime(port);
       mainWindow.webview.setNavigationRules(getNavigationRules(port));
       mainWindow.webview.loadURL(`http://127.0.0.1:${port}/?desktop=1${remote ? "&remote=1" : ""}`);
@@ -301,7 +298,7 @@ async function start() {
       }
       quitReady = false;
       pendingQuit?.resolve(false);
-      deliverEvent = undefined;
+      deliverInstall = undefined;
     });
     let isShowing = false;
     const updater = process.platform === "win32" ? createWindowsUpdater(PATHS.RESOURCES_FOLDER, Utils as unknown as Parameters<typeof createWindowsUpdater>[1]) : Updater;
@@ -340,25 +337,25 @@ async function start() {
         if (failed && !connection.remote) {
           if (process.platform === "win32") confirmWindowsUpdateStartup(PATHS.RESOURCES_FOLDER, true);
           else await (Updater as DesktopRuntime["updater"]).confirmStartup?.(true);
-          deliverEvent = undefined;
+          deliverInstall = undefined;
           return;
         }
         if (connection.remote) {
           // 远端离线不代表本机更新启动失败；安装协议等回到独立运行后再投递。
-          deliverEvent = undefined;
+          deliverInstall = undefined;
           if (process.platform === "win32") confirmWindowsUpdateStartup(PATHS.RESOURCES_FOLDER);
           else await (Updater as DesktopRuntime["updater"]).confirmStartup?.();
           return;
         }
-        deliverEvent = event => {
+        deliverInstall = request => {
           mainWindow.unminimize();
           mainWindow.show();
           mainWindow.activate();
-          mainWindow.webview.executeJavascript(`window.dispatchEvent(new CustomEvent(${JSON.stringify(event.name)}, { detail: ${JSON.stringify(event.detail)} }));`);
+          mainWindow.webview.executeJavascript(`window.dispatchEvent(new CustomEvent("toonflow:install-plugin", { detail: ${JSON.stringify(request)} }));`);
         };
-        while (pendingEvents.length) {
-          deliverEvent(pendingEvents[0]!);
-          pendingEvents.shift();
+        while (pendingInstalls.length) {
+          deliverInstall(pendingInstalls[0]!);
+          pendingInstalls.shift();
         }
         if (process.platform === "win32") confirmWindowsUpdateStartup(PATHS.RESOURCES_FOLDER);
         else await (Updater as DesktopRuntime["updater"]).confirmStartup?.();
@@ -409,8 +406,8 @@ async function start() {
       void connection.close().catch(error => console.error("设备连接关闭失败：", error));
       void closeBrowsers().catch(error => console.error("浏览器关闭失败：", error));
       isClosing = true;
-      deliverEvent = undefined;
-      pendingEvents.length = 0;
+      deliverInstall = undefined;
+      pendingInstalls.length = 0;
       splash?.close();
       splash = undefined;
     });

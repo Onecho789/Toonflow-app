@@ -20,30 +20,14 @@
           </div>
         </div>
         <div class="updateActions">
-          <el-button v-if="isMobile" tag="a" size="small" type="primary" plain :href="`${repositoryUrl}/releases/latest`" target="_blank" rel="noopener noreferrer">
-            前往 GitHub 更新
-          </el-button>
-          <template v-else>
-            <el-select :modelValue="updateSource" aria-label="更新源" size="small" :disabled="working || sourceSaving" @change="saveUpdateSource">
-              <template #prefix>
-                <icon-brand-github v-if="updateSource === 'github'" :size="14" aria-hidden="true" />
-                <icon-world v-else :size="14" aria-hidden="true" />
-              </template>
-              <el-option label="官方源" value="official" />
-              <el-option label="GitHub" value="github" />
-              <el-option v-if="customUpdateUrl" label="自定义源" value="custom" />
-            </el-select>
+          <template v-if="!isMobile">
             <el-badge isDot :hidden="!hasDesktopUpdate">
-              <el-button size="small" type="primary" plain :loading="checking" :disabled="sourceSaving" @click="openUpdate">
+              <el-button size="small" type="primary" plain :loading="checking" @click="openUpdate">
                 {{ snapshot?.installFailure ? "查看更新失败原因" : snapshot?.updateReady ? "更新已就绪" : snapshot?.updating || action === "download" ? "查看更新进度" : "检查更新" }}
               </el-button>
             </el-badge>
           </template>
         </div>
-      </div>
-      <div v-if="isLocalDesktop" class="autoUpdateSetting">
-        <span>自动更新</span>
-        <el-switch :modelValue="desktopAutoUpdate" size="small" :loading="autoUpdateSaving" :disabled="!actualPlatform.isLocalDesktop" aria-label="自动更新" @change="(value) => saveAutoUpdate(value === true)" />
       </div>
       <div v-if="!isMobile && snapshot?.hash" class="buildInfo">
         <span>构建标识</span>
@@ -52,8 +36,8 @@
       <div v-if="!isMobile && snapshot?.installFailure" class="installFailureNotice" role="alert">
         <strong>上次更新未成功</strong>
         <p>{{ snapshot.installFailure.message }}</p>
-        <p>请前往 GitHub 最新发布页，选择适合当前系统的完整安装包，关闭客户端后重新安装。</p>
-        <el-button tag="a" type="primary" size="small" :href="snapshot.installFailure.downloadUrl" target="_blank" rel="noopener noreferrer">前往下载页</el-button>
+        <p>请下载适合当前系统的完整安装包，关闭客户端后重新安装。</p>
+        <el-button v-if="snapshot.installFailure.downloadUrl" tag="a" type="primary" size="small" :href="snapshot.installFailure.downloadUrl" target="_blank" rel="noopener noreferrer">前往下载页</el-button>
       </div>
     </el-card>
 
@@ -105,8 +89,7 @@
       </div>
       <template #footer>
         <el-button size="small" @click="resultVisible = false">关闭</el-button>
-        <el-button v-if="updateError && !snapshot?.installFailure && !updateInProgress" tag="a" size="small" :href="`${repositoryUrl}/releases/latest`" target="_blank" rel="noopener noreferrer">前往下载页</el-button>
-        <el-button v-if="snapshot?.installFailure" tag="a" type="primary" size="small" :href="snapshot.installFailure.downloadUrl" target="_blank" rel="noopener noreferrer">前往下载页</el-button>
+        <el-button v-if="snapshot?.installFailure?.downloadUrl" tag="a" type="primary" size="small" :href="snapshot.installFailure.downloadUrl" target="_blank" rel="noopener noreferrer">前往下载页</el-button>
         <el-button v-else-if="snapshot?.updating && !working" size="small" type="primary" @click="runUpdate('read')">重新读取状态</el-button>
         <el-button
           v-else-if="snapshot?.canUpdate && snapshot.updateAvailable"
@@ -127,37 +110,28 @@ import { translate, t } from "@toonflow/i18n/vue";
 import { computed, onMounted, onBeforeUnmount, ref } from "vue";
 import axios from "axios";
 import { ElMessage } from "element-plus";
-import { actualPlatform, isMobile, isLocalDesktop, isRemoteConnection } from "@/lib/platform";
+import { actualPlatform, isMobile, isRemoteConnection } from "@/lib/platform";
 import {
   IconRefresh,
-  IconBrandGithub,
   IconAlertCircle,
   IconArrowUpCircle,
   IconCircleCheck,
   IconArrowRight,
-  IconWorld,
 } from "@tabler/icons-vue";
 import logoUrl from "@toonflow/assets/logo.svg";
 import { saveSettings } from "@/stores/settings";
 import {
-  desktopAutoUpdate,
-  desktopUpdateSource as updateSource,
-  desktopUpdateCustomUrl as customUpdateUrl,
   desktopUpdateSnapshot as snapshot,
   desktopUpdateError as updateError,
   desktopUpdateAction as action,
   desktopUpdateChecking,
   hasDesktopUpdate,
   runDesktopUpdate,
-  startDesktopUpdate,
 } from "@/stores/desktopUpdate";
 
-const repositoryUrl = "https://github.com/HBAI-Ltd/Toonflow-app";
 const clientBuild = ref<{ version: string; channel: string }>();
 const currentVersion = computed(() => actualPlatform.isDesktop && actualPlatform.isRemoteConnection
   ? clientBuild.value?.version || "" : snapshot.value?.version || import.meta.env.appVersion);
-const sourceSaving = ref(false);
-const autoUpdateSaving = ref(false);
 const checking = computed(() => desktopUpdateChecking.value);
 const working = computed(() => !!action.value);
 const updateInProgress = computed(() => working.value || !!snapshot.value?.updating);
@@ -209,33 +183,6 @@ function openUpdate() {
   void runUpdate("check");
 }
 
-async function saveUpdateSource(source: string) {
-  if (actualPlatform.isRemoteConnection) return;
-  if (source === updateSource.value || sourceSaving.value || working.value) return;
-  if (source !== "official" && source !== "github" && (source !== "custom" || !customUpdateUrl.value)) return;
-  sourceSaving.value = true;
-  try {
-    await saveSettings(() => ({ desktopUpdateSource: source }));
-  } catch (error) {
-    ElMessage.error(getUpdateError(error));
-  } finally {
-    sourceSaving.value = false;
-  }
-}
-
-async function saveAutoUpdate(enabled: boolean) {
-  if (!actualPlatform.isLocalDesktop || autoUpdateSaving.value || enabled === desktopAutoUpdate.value) return;
-  autoUpdateSaving.value = true;
-  try {
-    await saveSettings(() => ({ desktopAutoUpdate: enabled }));
-    if (enabled) void startDesktopUpdate().catch(() => {});
-  } catch (error) {
-    ElMessage.error(getUpdateError(error));
-  } finally {
-    autoUpdateSaving.value = false;
-  }
-}
-
 function getUpdateError(error: unknown) {
   return axios.isAxiosError<{ message?: string }>(error) ? error.response?.data?.message || error.message : String(error);
 }
@@ -245,7 +192,7 @@ function formatBytes(bytes: number) {
 }
 
 async function runUpdate(nextAction: "read" | "check" | "download" | "apply") {
-  if (working.value || sourceSaving.value) return;
+  if (working.value) return;
   updateError.value = "";
   try {
     await runDesktopUpdate(nextAction);
@@ -335,16 +282,6 @@ async function runUpdate(nextAction: "read" | "check" | "download" | "apply") {
     }
 
     &.updateCard {
-      .autoUpdateSetting {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        margin-top: 8px;
-        color: var(--el-text-color-primary);
-        font-size: 13px;
-      }
-
       .cardHeader {
         .updateCopy {
           flex: 1;
@@ -362,10 +299,6 @@ async function runUpdate(nextAction: "read" | "check" | "download" | "apply") {
 
           a {
             text-decoration: none;
-          }
-
-          :deep(.el-select) {
-            width: 120px;
           }
         }
       }

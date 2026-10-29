@@ -5,7 +5,6 @@ import { lstat, mkdir, readFile, readdir, unlink } from "@toonflow/file";
 import { dirname, join } from "node:path";
 import { createContext, SourceTextModule } from "node:vm";
 import type { AudioConvertOptions, Provider, ProviderTools } from "@toonflow/providers";
-import tfRouter from "@toonflow/providers/media/tfRouter";
 import { parse, parseExpression } from "@babel/parser";
 import { z } from "zod";
 import conf from "@/utils/conf";
@@ -232,7 +231,7 @@ function parseProvider(source: string) {
     return (property?.type === "ObjectMethod" && property.kind === "method") || (property?.type === "ObjectProperty" && ["FunctionExpression", "ArrowFunctionExpression"].includes(unwrap(property.value as Expression).type));
   });
   return { object, modelProperty: entries.get("models"), id: id as string, label, icon, version: version?.trim(), readme, modelsUrl: modelsUrl as string | undefined, modelConnection, listedModels, adapterSource: adapterSource as string | undefined, generationTypes, rules: rules.data, models: models.data,
-    imageProtocolId, supportsPrice: entries.has("getPrice") || id === tfRouter.id, supportsBalance: entries.has("getBalance") || id === tfRouter.id };
+    imageProtocolId, supportsPrice: entries.has("getPrice"), supportsBalance: entries.has("getBalance") };
 }
 
 function metadata(fileName: string, source: string) {
@@ -256,8 +255,7 @@ function metadata(fileName: string, source: string) {
   }
   const definition = adapter ?? current;
   const rules = modelConnection ? definition.rules.filter(rule => !["apiUrl", "apiKey", "protocol"].includes(String(rule.field))) : definition.rules;
-  // ACT: 兼容旧 TF-Router 文件，缺少列表地址时使用内置定义。
-  return { fileName, id, label, icon: definition.icon, version: definition.version, readme: definition.readme, modelsUrl: modelsUrl ?? (id === tfRouter.id ? tfRouter.modelsUrl : undefined), rules, models,
+  return { fileName, id, label, icon: definition.icon, version: definition.version, readme: definition.readme, modelsUrl, rules, models,
     modelConnection, listedModels, imageProtocolId, adapter: adapter ? { id: adapter.id, label: adapter.label, models: adapterModels! } : undefined,
     generationTypes: [...new Set([...definition.generationTypes, ...models.map(model => model.type)])], supportsPrice: definition.supportsPrice, supportsBalance: definition.supportsBalance, revision: createHash("sha256").update(source).digest("hex"), loadError: "" };
 }
@@ -400,49 +398,42 @@ export function getMediaProviderApiKey(id: string) {
   return typeof value === "string" ? value.trim().replace(/^Bearer(?:\s+|$)/i, "").trim() : "";
 }
 
-export async function refreshMediaProviderModels(fileName: string, revision?: string, modelType?: ModelType, expectedApiKey?: string) {
+export async function refreshMediaProviderModels(fileName: string, revision?: string) {
   if (!mediaProviderFileSchema.safeParse(fileName).success) invalid("供应商文件名无效");
   const provider = await getMediaProvider(fileName.slice(0, -3));
   if (provider.modelConnection) invalid("请在供应商编辑窗口中获取并勾选模型");
   if (revision !== undefined && revision !== provider.revision) invalid("供应商文件已被修改，请刷新页面后再获取", 409);
   if (!provider.modelsUrl) invalid("供应商未配置 modelsUrl");
   const apiKey = getMediaProviderApiKey(provider.id);
-  if (expectedApiKey !== undefined && apiKey !== expectedApiKey) invalid("供应商配置已变更，请重试", 409);
-  const modelTypes = provider.id === tfRouter.id && !modelType ? ["video", "image", "audio"] : [modelType];
-  // ACT: 各类型只并行获取，汇总后保存一次，避免同一供应商文件发生版本冲突。
-  const models = (await Promise.all(modelTypes.map(async requestedModelType => {
-    const modelsUrl = new URL(provider.modelsUrl!);
-    if (requestedModelType) modelsUrl.searchParams.set("type", requestedModelType);
-    const response = await fetch(modelsUrl, {
-      headers: { Accept: "application/json", ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}) },
-      signal: AbortSignal.timeout(30000), redirect: "error",
-    });
-    if (!response.ok) throw new Error(t`获取媒体模型列表失败（HTTP ${response.status}）`);
-    const result = z.object({ data: z.array(mediaModelsSchema.element.partial({ label: true, type: true }).extend({
-      modelInfo: z.object({
-        mode: z.array(z.union([z.string().min(1), z.array(z.string().min(1))])).optional(),
-        audio: z.union([z.literal("optional"), z.boolean()]).optional(),
-        durationResolutionMap: z.array(z.object({ duration: z.array(z.number().positive()), resolution: z.array(z.string().min(1)) })).optional(),
-        imageSizes: z.array(z.string().min(1)).optional(),
-        imageRatios: z.array(z.string().min(1)).optional(),
-      }).catchall(z.json()).optional(),
-    })).max(2000) }).parse(await response.json());
-    if (!result.data.length) throw new Error("未获取到媒体模型，保留原有列表");
-    const requestedType = z.enum(["text", "image", "video", "audio"]).safeParse(modelsUrl.searchParams.get("type"));
-    return result.data.map(({ modelInfo, ...model }) => {
-      const id = model.id.trim();
-      const previous = provider.models.find(item => item.id === id)
-        ?? (provider.id === tfRouter.id ? tfRouter.models.find(item => item.id === id) : undefined);
-      const type = model.type ?? (requestedType.success ? requestedType.data : previous?.type);
-      if (!type) invalid(t`模型 ${id} 缺少 type，请在返回数据或 modelsUrl 的 type 参数中指定`);
-      if (requestedType.success && type !== requestedType.data) invalid(t`模型 ${id} 的 type 与请求类型不一致`);
-      // ACT: modelInfo 覆盖已有能力；缺省字段沿用同名配置，新模型不猜测生成能力。
-      const merged = { ...previous, ...model, ...modelInfo, id, label: model.label ?? previous?.label
-        ?? (typeof model.display_name === "string" ? model.display_name : typeof model.displayName === "string" ? model.displayName : id), type };
-      Reflect.deleteProperty(merged, "modelInfo");
-      return merged;
-    });
-  }))).flat();
+  const modelsUrl = new URL(provider.modelsUrl!);
+  const response = await fetch(modelsUrl, {
+    headers: { Accept: "application/json", ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}) },
+    signal: AbortSignal.timeout(30000), redirect: "error",
+  });
+  if (!response.ok) throw new Error(t`获取媒体模型列表失败（HTTP ${response.status}）`);
+  const result = z.object({ data: z.array(mediaModelsSchema.element.partial({ label: true, type: true }).extend({
+    modelInfo: z.object({
+      mode: z.array(z.union([z.string().min(1), z.array(z.string().min(1))])).optional(),
+      audio: z.union([z.literal("optional"), z.boolean()]).optional(),
+      durationResolutionMap: z.array(z.object({ duration: z.array(z.number().positive()), resolution: z.array(z.string().min(1)) })).optional(),
+      imageSizes: z.array(z.string().min(1)).optional(),
+      imageRatios: z.array(z.string().min(1)).optional(),
+    }).catchall(z.json()).optional(),
+  })).max(2000) }).parse(await response.json());
+  if (!result.data.length) throw new Error("未获取到媒体模型，保留原有列表");
+  const requestedType = z.enum(["text", "image", "video", "audio"]).safeParse(modelsUrl.searchParams.get("type"));
+  const models = result.data.map(({ modelInfo, ...model }) => {
+    const id = model.id.trim();
+    const previous = provider.models.find(item => item.id === id);
+    const type = model.type ?? (requestedType.success ? requestedType.data : previous?.type);
+    if (!type) invalid(t`模型 ${id} 缺少 type，请在返回数据或 modelsUrl 的 type 参数中指定`);
+    if (requestedType.success && type !== requestedType.data) invalid(t`模型 ${id} 的 type 与请求类型不一致`);
+    // ACT: modelInfo 覆盖已有能力；缺省字段沿用同名配置，新模型不猜测生成能力。
+    const merged = { ...previous, ...model, ...modelInfo, id, label: model.label ?? previous?.label
+      ?? (typeof model.display_name === "string" ? model.display_name : typeof model.displayName === "string" ? model.displayName : id), type };
+    Reflect.deleteProperty(merged, "modelInfo");
+    return merged;
+  });
   const types = new Set(models.map(model => model.type));
   return saveMediaProvider(fileName, [...provider.models.filter(model => !types.has(model.type)), ...models], provider.revision, apiKey);
 }
@@ -481,11 +472,6 @@ export async function loadMediaProviderSource(source: string, config: Record<str
   await module.evaluate({ timeout: 1000 });
   signal?.throwIfAborted();
   const definition = (module.namespace as { default: Provider }).default;
-  // ACT: 已安装 TF-Router 仅补齐缺省查询能力，保留用户适配代码与模型列表。
-  if (definition.id === tfRouter.id) {
-    definition.getPrice ??= tfRouter.getPrice;
-    definition.getBalance ??= tfRouter.getBalance;
-  }
   const protocolModels = new Map(info.models.filter(model => typeof model.imageProtocolId === "string").map(model => [model.id, model.imageProtocolId as string]));
   if (protocolModels.size) {
     const generateImage = definition.generateImage;

@@ -1,8 +1,10 @@
 import u from "@/utils";
 import { Router } from "express";
+import { z } from "zod";
+import { validateFields } from "@/lib/middleware";
 import { success } from "@/lib/responseFormat";
 
-export default Router().post("/", (req, res) => {
+export default Router().post("/", validateFields({ email: z.string().trim().min(3).max(254), password: z.string().min(1).max(128) }), async (req, res) => {
   u.mcpControl.assertAppRequest(req);
-  res.json(success({ url: u.cloud.startLogin() }));
+  res.json(success(await u.cloud.login(req.body.email.trim(), req.body.password)));
 });

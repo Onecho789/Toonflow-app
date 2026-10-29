@@ -9,20 +9,14 @@
         </div>
         <el-button :loading="cloudAccountLoading" @click="logoutCloudAccount">退出登录</el-button>
       </div>
-      <div v-else class="accountRow">
-        <span class="description">未登录</span>
-        <el-button type="primary" :loading="cloudAccountLoading" @click="startCloudLogin">登录</el-button>
-      </div>
-      <p class="description">登录会在系统浏览器中打开麦麦云，完成后自动返回客户端。项目文件始终保存在本机。</p>
+      <p class="description">项目文件始终保存在本机。</p>
       <el-alert v-if="cloudAccountError" :title="cloudAccountError" type="error" :closable="false" showIcon />
     </section>
   </div>
 </template>
 
 <script setup lang="ts">
-import { cloudAccount, cloudAccountError, cloudAccountLoading, loadCloudAccount, logoutCloudAccount, startCloudLogin } from "@/stores/cloudAccount";
-
-void loadCloudAccount();
+import { cloudAccount, cloudAccountError, cloudAccountLoading, logoutCloudAccount } from "@/stores/cloudAccount";
 </script>
 
 <style lang="scss" scoped>

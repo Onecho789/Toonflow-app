@@ -139,7 +139,7 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 - 提交：`7fe6793`（2026-10-29），分支 `codex/simplifyMediaModels`；云端 `maimai-cloud` 首个提交 `429abfa`，已部署到 https://159.75.178.145:8100
 - 状态：第一期，只做账号与客户端登录；网关计费、支付、管理后台在后续几期
 - 目的：客户端接入自有云端账号服务 `maimai-cloud`（独立仓库，`D:\2api-codes\maimai-cloud`，Postgres + Redis）。设置页“账号”点登录 → 系统浏览器打开云端 `/login` → 登录后跳回 `maimai://auth?code&state` → 本机服务用 PKCE verifier 换取会话，存进 `data/settings.json` 的 `cloudSession`（0o600）
-- 云端地址：默认 `http://127.0.0.1:8100`，用环境变量 `MAIMAI_CLOUD_URL` 覆盖；正式域名定下后改 `apps/server/src/utils/cloud/index.ts` 的默认值
+- 云端地址：默认测试服务器 `https://159.75.178.145:8100`，用环境变量 `MAIMAI_CLOUD_URL` 覆盖；正式域名定下后改 `apps/server/src/utils/cloud/index.ts` 的默认值
 - 上游 TF-Router 登录（引导页、`tfAccount.vue`）这一期没动，两者并存
 
 ### 我们新增的文件
@@ -160,6 +160,64 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 | `apps/web/src/lib/desktopProtocol.ts` | 监听 `toonflow:cloud-auth` 完成登录 | 保留监听，安装部分以上游为准 |
 | `apps/web/src/components/settings/index.vue` | 设置列表最前面加“账号” | 保留这一项 |
 | i18n 21 份字典与 `messageSources.json` | 追加 13 个键（账号、登录、退出登录、麦麦云相关报错等） | 追加在末尾，与源码一致 |
+
+### 改为内置登录与启动登录页
+
+- 原因：系统浏览器跳回 `maimai://auth` 依赖浏览器放行自定义协议，用户的 Chrome 会拦截；改为应用内直接输入账号密码
+- 打开客户端先显示登录页（`apps/web/src/components/loginGate.vue`），已登录才渲染路由；支持登录、邮箱验证码注册、首次登录强制修改初始密码，退出登录后回到登录页
+- 会话仍存在主机 `data/settings.json` 的 `cloudSession`，桌面、网页开发模式、互联设备都跟随主机登录状态
+- 离线：云端不可达（网络错误或 5xx）时沿用本地保存的账号进入；云端返回 401 才清掉会话
+- 删除：PKCE 流程、`routes/cloud/callback.ts`、`CloudAuthCallback` 类型、`maimai://auth` 处理。上表中 `protocol.ts`、`desktop/src/index.ts`、`protocolLauncher.cs`、`desktopProtocol.ts` 四行已还原为上游内容，不再有冲突处理
+- 新增路由：`POST /api/cloud/login`（改为直接用账号密码）、`register`、`code`、`password`；`utils/cloud/index.ts` 对应 `login`、`register`、`sendCode`、`changePassword`
+- 设置页账号面板只显示邮箱、管理员标签和退出登录
+- i18n：追加登录页 19 个键，删除浏览器登录专用的 6 个键（未登录、登录说明、登录失败、已登录、两条登录链接失效提示）
+- 云端 `public/login.html` 里的桌面 PKCE 跳转客户端已不用，暂未删除
+
+### 引导页去掉 TF-Router
+
+- `apps/web/src/pages/hello/index.vue`：删掉“登录 TF-Router 自动配置”按钮、TF-Router 登录 iframe 和自动写入 TF-Router 供应商的逻辑；主按钮改为“添加模型供应商”（进入原来的语言模型配置），保留设备互联和稍后配置
+- i18n：删掉引导页专用的 16 个键，追加 2 个新文案键
+- 冲突时：上游改了引导页的 TF-Router 部分，直接丢弃；其他部分以上游为准后再去掉 TF-Router 入口
+- TF-Router 的账号、充值入口见下一节；其余残留这次没动
+
+### 设置页去掉 TF-Router 账号与充值
+
+- 删除 `apps/web/src/components/settings/tfAccount.vue`、`tfRechargeDialog.vue`，并在 `types/components.d.ts` 删掉对应条目
+- `settings/panels/languageModel/index.vue`：删掉 TF-Router 卡片的账号区、“官方”标签、置顶排序、单色 Logo 兜底，以及只给 TF-Router 用的“获取模型”按钮（连带 `saveProviderApiKey`、`fetchProviderModels` 和 `visible` 属性）；`settings/index.vue` 不再给它传 `visible`
+- `settings/panels/mediaModel/index.vue`：同样删掉 TF-Router 的账号区、“官方”标签、置顶排序和 Logo 兜底
+- `pages/workspace/panels/canvas/components/canvasMenu.vue`：画布右上角余额去掉 TF-Router 专用弹层（余额详情 + 充值），所有供应商统一为点击刷新
+- `lib/providerBilling.ts`：去掉固定插入的 TF-Router 余额项、`tfBalanceApiKey`、`saveTfMediaApiKey` 和 `configured` 字段，只显示声明了 `supportsBalance` 的供应商；`getProviderBalance` 不再导出
+- `lib/tf.ts`：删掉充值、订单相关接口和类型（`queryOrder`、`getRechargeData`、`pay`）
+- `apps/server/src/utils/conf/index.ts`：首次启动不再自动写入 TF-Router 文本供应商，新用户的文本供应商列表为空
+- i18n：删掉 42 个只在上述代码里用的键，同步 `messageSources.json` 中这些文件的来源路径
+- 冲突时：上游改了上述 TF-Router 账号、充值、余额弹层或自动写入逻辑，直接丢弃；上游给 `providerBilling.ts` 的通用余额逻辑做的修改照常合并，再去掉其中的 tfRouter 特判
+- 还没动的 TF-Router 残留：首页“探索”云端项目（`lib/tf.ts` 探索接口、`pages/home/explore*.vue`）、插件市场（TF-Router API Key 输入、`getPlugIn`）、`isTfRouterProvider`（`languageModel/add*Dialog.vue`）、服务端 `utils/media/provider.ts` / `billing.ts` / `generation.ts` / `utils/ai/initialize.ts` 的 tfRouter 特判、`packages/providers/*/tfRouter`、更新地址与匿名统计指向 api.toonflow.net（除插件市场和更新地址外，已在下一节清理）
+
+### 首页探索、匿名统计与服务端 TF-Router 残留清理
+
+- 首页探索：删除 `pages/home/explore.vue`、`exploreDetail.vue`、`exploreProcess.vue`；`pages/home/index.vue` 去掉“探索”分区和侧栏入口；`lib/tf.ts` 删掉全部探索接口、类型和校验函数
+- 匿名统计（上报 api.toonflow.net）：删除 `lib/anonymousData.ts`、`settings/panels/privacy.vue`（设置页“隐私”）；去掉 `main.ts`、`agent/conversation.vue`、`pages/hello/index.vue`、`pages/workspace/index.vue`、`workspace/panels/canvas/index.vue` 中的统计调用，`stores/settings.ts` 删 `privacySettings`，`types/components.d.ts` 删 Privacy 条目
+- 添加供应商：`languageModel/addProviderDialog.vue`、`addCustomProviderDialog.vue` 去掉 `isTfRouterProvider` 特判和单色 Logo；`providerList.scss` 删 `.monochrome`；`modelPopover.vue`、`packages/nodeShared/src/groupNodeModels.ts` 去掉 tfRouter 置顶排序
+- 内置供应商：删除 `packages/providers/src/media/tfRouter.ts` 及其 `package.json` 导出；`packages/providers/index.ts` 的文本、媒体列表不再包含 tfRouter
+- 服务端：删除 `utils/ai/initialize.ts`（启动时刷新 TF-Router 模型），`app.ts`、`utils/ai/index.ts` 去掉对应调用和导出；`routes/settings/save.ts` 保存后不再刷新供应商模型；`utils/media/provider.ts` 去掉 tfRouter 的余额、价格补丁与模型地址兜底；`billing.ts` 去掉 tfRouter 的 Key 归一化；`generation.ts` 参考图顺序去掉 tfRouter；`modelContextLimits.ts` 删 TF-Router 注释
+- i18n：删掉 105 个只在上述代码里用的键，同步来源路径
+- 冲突时：上游改了上述探索、匿名统计、tfRouter 特判或启动刷新逻辑，直接丢弃；同文件的其他通用改动照常合并后再去掉 tfRouter 部分
+- 保留：插件市场（`settings/panels/pluginMarket`、`lib/tf.ts` 的 `getPlugIn` / `toggleCollection` / `getTfApiKey` / `isTfRouterProvider`、`@toonflow/providers/language/tfRouter`）；桌面更新源见下一节；`stores/settings.ts` 仍处理保存接口已不再返回的 `customProviders`、`mediaProvider`、`modelRefreshErrors`
+
+### 去掉内置更新源并关闭自动检查更新
+
+- `apps/server/src/utils/desktop/index.ts`：删掉官方源（api.toonflow.net）和 GitHub 源，更新只使用开发者选项里的自定义更新源；未填写时检查更新返回 400“尚未配置更新源”
+- `routes/settings/save.ts`：删掉 `desktopUpdateSource`、`desktopAutoUpdate` 字段校验和“选择自定义源前须填地址”的校验；`utils/conf/index.ts` 的 `removeLegacySettings` 会清掉旧的 `desktopUpdateSource`
+- `stores/desktopUpdate.ts`：删掉 `desktopAutoUpdate`、`desktopUpdateSource`、`registerDesktopAutoUpdate`（每 15 分钟检查）、`startDesktopUpdate`；`desktopUpdateKey` 直接取自定义地址。`main.ts` 启动时只读取一次本机更新状态，用来显示上次更新失败和更新说明
+- `settings/panels/about.vue`：删掉更新源下拉框、自动更新开关和指向上游仓库的“前往下载页”；“检查更新”按钮保留，手动检查走自定义源
+- `settings/panels/developer/index.vue`：保存自定义源时不再联动 `desktopUpdateSource`，说明文字改为“保存后在关于页检查更新时使用”
+- i18n：删掉 6 个键，新增 2 个键（21 种语言）
+- 冲突时：上游改了官方源地址、更新源切换或自动检查逻辑，直接丢弃；下载、安装、失败核验等通用更新流程照常合并
+- 上游 GitHub 地址清空：`utils/desktop/index.ts` 安装失败的 `downloadUrl` 改为空字符串，`App.vue`、`about.vue` 在地址为空时不显示“前往下载页”，提示文字去掉“GitHub”；`about.vue` 删掉移动端“前往 GitHub 更新”按钮和 `repositoryUrl`
+- `electrobun.config.ts` 的 `release.baseUrl` 改为空字符串；`apps/desktop/scripts/release.ts` 在地址为空时只允许 `--initial`，`--auto` 和增量发布会直接报错（CI 的 debug 工作流勾选 generatePatch 时同样会失败）
+- i18n：再删 2 个键，新增 1 个键（21 种语言）
+- `pages/home/index.vue`：删掉侧栏底部指向上游仓库的 GitHub 链接
+- 有自有更新服务器后要改：`getUpdateBaseUrl` 加默认地址、`downloadUrl`、`release.baseUrl`，需要时从 git 历史找回 `registerDesktopAutoUpdate` 恢复自动检查
 
 ---
 

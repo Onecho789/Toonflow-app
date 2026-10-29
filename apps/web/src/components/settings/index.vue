@@ -25,7 +25,7 @@
               <component
                 :is="activePanel.component"
                 v-bind="
-                  ['pluginMarket', 'languageModel', 'mediaModel', 'personalization', 'deviceLink'].includes(activePanel.id) ? { visible } : {}
+                  ['pluginMarket', 'mediaModel', 'personalization', 'deviceLink'].includes(activePanel.id) ? { visible } : {}
                 " />
             </keep-alive>
           </transition>
@@ -46,7 +46,6 @@ import {
   IconBuildingStore,
   IconInfoCircle,
   IconCode,
-  IconShieldLock,
   IconPlugConnected,
   IconUserCog,
   IconSubtitlesAi,
@@ -86,7 +85,6 @@ const settingsPanels = [
     groupLabel: "其他",
     component: defineAsyncComponent(() => import("./panels/personalization.vue")),
   },
-  { id: "privacy", label: "隐私", icon: IconShieldLock, component: defineAsyncComponent(() => import("./panels/privacy.vue")) },
   { id: "developer", label: "开发者选项", icon: IconCode, component: defineAsyncComponent(() => import("./panels/developer/index.vue")) },
   { id: "about", label: "关于", icon: IconInfoCircle, component: defineAsyncComponent(() => import("./panels/about.vue")) },
 ];

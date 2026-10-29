@@ -1,20 +1,5 @@
 import { t } from "@toonflow/server/i18n";
-import type { CloudAuthCallback, PluginInstallRequest, PluginInstallType } from "@toonflow/server/desktop";
-
-export function isAuthUrl(value: string) {
-  return /^maimai:\/\/auth(?:[/?]|$)/i.test(value);
-}
-
-// 云端登录页回调：maimai://auth?code&state，只取这两个参数，交给本机服务换取会话。
-export function parseAuthUrl(value: string): CloudAuthCallback {
-  const link = value.length <= 8192 && URL.canParse(value) ? new URL(value) : undefined;
-  const code = link?.searchParams.get("code") ?? "";
-  const state = link?.searchParams.get("state") ?? "";
-  if (!link || link.hostname !== "auth" || !["", "/"].includes(link.pathname) || !/^[\w-]{1,100}$/.test(code) || !/^[\w-]{1,100}$/.test(state)) {
-    throw Object.assign(new Error(t`登录链接无效，请在麦麦工坊中重新点击登录`), { status: 400 });
-  }
-  return { code, state };
-}
+import type { PluginInstallRequest, PluginInstallType } from "@toonflow/server/desktop";
 
 export function parseInstallUrl(value: string): PluginInstallRequest {
   try {
