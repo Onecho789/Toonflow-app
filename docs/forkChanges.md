@@ -161,7 +161,7 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 | `apps/web/src/components/settings/index.vue` | 设置列表最前面加“账号” | 保留这一项 |
 | i18n 21 份字典与 `messageSources.json` | 追加 13 个键（账号、登录、退出登录、麦麦云相关报错等） | 追加在末尾，与源码一致 |
 
-### 改为内置登录与启动登录页
+### 改为内置登录与启动登录页（提交 14b8439）
 
 - 原因：系统浏览器跳回 `maimai://auth` 依赖浏览器放行自定义协议，用户的 Chrome 会拦截；改为应用内直接输入账号密码
 - 打开客户端先显示登录页（`apps/web/src/components/loginGate.vue`），已登录才渲染路由；支持登录、邮箱验证码注册、首次登录强制修改初始密码，退出登录后回到登录页
@@ -173,14 +173,14 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 - i18n：追加登录页 19 个键，删除浏览器登录专用的 6 个键（未登录、登录说明、登录失败、已登录、两条登录链接失效提示）
 - 云端 `public/login.html` 里的桌面 PKCE 跳转客户端已不用，暂未删除
 
-### 引导页去掉 TF-Router
+### 引导页去掉 TF-Router（提交 14b8439）
 
 - `apps/web/src/pages/hello/index.vue`：删掉“登录 TF-Router 自动配置”按钮、TF-Router 登录 iframe 和自动写入 TF-Router 供应商的逻辑；主按钮改为“添加模型供应商”（进入原来的语言模型配置），保留设备互联和稍后配置
 - i18n：删掉引导页专用的 16 个键，追加 2 个新文案键
 - 冲突时：上游改了引导页的 TF-Router 部分，直接丢弃；其他部分以上游为准后再去掉 TF-Router 入口
 - TF-Router 的账号、充值入口见下一节；其余残留这次没动
 
-### 设置页去掉 TF-Router 账号与充值
+### 设置页去掉 TF-Router 账号与充值（提交 14b8439）
 
 - 删除 `apps/web/src/components/settings/tfAccount.vue`、`tfRechargeDialog.vue`，并在 `types/components.d.ts` 删掉对应条目
 - `settings/panels/languageModel/index.vue`：删掉 TF-Router 卡片的账号区、“官方”标签、置顶排序、单色 Logo 兜底，以及只给 TF-Router 用的“获取模型”按钮（连带 `saveProviderApiKey`、`fetchProviderModels` 和 `visible` 属性）；`settings/index.vue` 不再给它传 `visible`
@@ -193,7 +193,7 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 - 冲突时：上游改了上述 TF-Router 账号、充值、余额弹层或自动写入逻辑，直接丢弃；上游给 `providerBilling.ts` 的通用余额逻辑做的修改照常合并，再去掉其中的 tfRouter 特判
 - 还没动的 TF-Router 残留：首页“探索”云端项目（`lib/tf.ts` 探索接口、`pages/home/explore*.vue`）、插件市场（TF-Router API Key 输入、`getPlugIn`）、`isTfRouterProvider`（`languageModel/add*Dialog.vue`）、服务端 `utils/media/provider.ts` / `billing.ts` / `generation.ts` / `utils/ai/initialize.ts` 的 tfRouter 特判、`packages/providers/*/tfRouter`、更新地址与匿名统计指向 api.toonflow.net（除插件市场和更新地址外，已在下一节清理）
 
-### 首页探索、匿名统计与服务端 TF-Router 残留清理
+### 首页探索、匿名统计与服务端 TF-Router 残留清理（提交 14b8439）
 
 - 首页探索：删除 `pages/home/explore.vue`、`exploreDetail.vue`、`exploreProcess.vue`；`pages/home/index.vue` 去掉“探索”分区和侧栏入口；`lib/tf.ts` 删掉全部探索接口、类型和校验函数
 - 匿名统计（上报 api.toonflow.net）：删除 `lib/anonymousData.ts`、`settings/panels/privacy.vue`（设置页“隐私”）；去掉 `main.ts`、`agent/conversation.vue`、`pages/hello/index.vue`、`pages/workspace/index.vue`、`workspace/panels/canvas/index.vue` 中的统计调用，`stores/settings.ts` 删 `privacySettings`，`types/components.d.ts` 删 Privacy 条目
@@ -204,7 +204,7 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 - 冲突时：上游改了上述探索、匿名统计、tfRouter 特判或启动刷新逻辑，直接丢弃；同文件的其他通用改动照常合并后再去掉 tfRouter 部分
 - 保留：插件市场（`settings/panels/pluginMarket`、`lib/tf.ts` 的 `getPlugIn` / `toggleCollection` / `getTfApiKey` / `isTfRouterProvider`、`@toonflow/providers/language/tfRouter`）；桌面更新源见下一节；`stores/settings.ts` 仍处理保存接口已不再返回的 `customProviders`、`mediaProvider`、`modelRefreshErrors`
 
-### 去掉内置更新源并关闭自动检查更新
+### 去掉内置更新源并关闭自动检查更新（提交 14b8439）
 
 - `apps/server/src/utils/desktop/index.ts`：删掉官方源（api.toonflow.net）和 GitHub 源，更新只使用开发者选项里的自定义更新源；未填写时检查更新返回 400“尚未配置更新源”
 - `routes/settings/save.ts`：删掉 `desktopUpdateSource`、`desktopAutoUpdate` 字段校验和“选择自定义源前须填地址”的校验；`utils/conf/index.ts` 的 `removeLegacySettings` 会清掉旧的 `desktopUpdateSource`
