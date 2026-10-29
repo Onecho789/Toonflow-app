@@ -222,7 +222,7 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 ## 麦麦云模型
 
 - 提交：`ddf727d`（2026-10-30），分支 `codex/simplifyMediaModels`；云端 `maimai-cloud` 同期提交 `c6e9d59`（模型网关统一协议与适配器）
-- 状态：本地联调通过（文本、图片、视频各真实调用一次，扣费与余额正确）；未部署，云端渠道未导入
+- 状态：已上线。云端镜像 `1.2.0-202610300702` 于 2026-10-30 部署到 https://159.75.178.145:8100，3 个渠道、5 个模型已按本地联调配置导入（占位价）；线上文本、图片、视频各真实调用一次，扣费正确。部署前的库备份在服务器 `/opt/maimai-cloud/backups/maimai-202610300702.sql.gz`
 - 目的：文本、图片、视频模型全部由麦麦云网关按登录账号提供，客户端不保存上游地址与 Key；本地供应商、媒体供应商、生图协议功能彻底移除，“文本模型”“媒体模型”菜单改为只读
 - 详细说明：[cloudModels.md](./cloudModels.md)
 - 旧配置：`removeLegacySettings` 会删除 `customProviders`、`mediaProviderConfigs`、`imageProtocols`。开发机的旧配置和 `data/providers/` 已备份到 `data/backup/cloudModels/`，作为云端渠道的导入来源
