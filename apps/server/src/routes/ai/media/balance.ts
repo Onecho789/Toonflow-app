@@ -1,12 +1,9 @@
 import { Router } from "express";
-import { z } from "zod";
-import { validateFields } from "@/lib/middleware";
 import { success } from "@/lib/responseFormat";
 import u from "@/utils";
 
-export default Router().post("/", validateFields({
-  providerId: z.string().regex(/^[a-z][a-zA-Z0-9]{0,95}$/), apiKey: z.string().max(16384).optional(),
-}), async (req, res) => {
+// 麦麦云账户余额，单位 0.0001 元；附带充值页地址，前端不写死云端地址。
+export default Router().post("/", async (req, res) => {
   u.mcpControl.assertAppRequest(req);
-  res.set("Cache-Control", "no-store").json(success(await u.mediaBilling.getProviderBalance(req.body.providerId, req.body.apiKey)));
+  res.set("Cache-Control", "no-store").json(success({ balance: await u.cloudModels.getCloudBalance(), walletUrl: `${u.cloud.cloudUrl}/wallet` }));
 });

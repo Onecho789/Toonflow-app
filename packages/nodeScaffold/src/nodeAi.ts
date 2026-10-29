@@ -375,7 +375,9 @@ export function useNodeAi() {
     } finally {
       waitingSignal.removeEventListener("abort", abort);
     }
-    return await mediaTasks.wait(input.directory, taskId, waitingSignal) as { path: string; mimeType: string; mediaType: T }[];
+    // 生成结束后通知宿主刷新麦麦云余额。
+    try { return await mediaTasks.wait(input.directory, taskId, waitingSignal) as { path: string; mimeType: string; mediaType: T }[]; }
+    finally { window.dispatchEvent(new Event("toonflow:media-generated")); }
   }
 
   function generateImage(input: NodeImageRequest, signal?: AbortSignal) {

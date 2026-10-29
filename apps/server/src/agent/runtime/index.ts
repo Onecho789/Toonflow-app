@@ -80,7 +80,7 @@ export async function run(
   mentions = agentMentionsSchema.parse(mentions);
   validateMentionTokens(prompt, mentions);
   if (!prompt.trim() && !attachments.length && !mentions.length) throw Object.assign(new Error("请输入消息、提及或添加附件"), { status: 400 });
-  getAgentModelConfiguration(providerId, modelId, thinkingLevel);
+  await getAgentModelConfiguration(providerId, modelId, thinkingLevel);
   const attachmentContents: (z.infer<typeof agentAttachmentsSchema>[number] & { content?: string })[] = [];
   for (const attachment of attachments) {
     const { path } = await resolveWorkspacePath(cwd, attachment.path);

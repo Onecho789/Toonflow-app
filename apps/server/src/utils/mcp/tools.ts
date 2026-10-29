@@ -201,10 +201,7 @@ export async function getMcpTools(): Promise<McpTool[]> {
     if (operation.refresh) {
       const name = operation.refresh.nameField ? parameters[operation.refresh.nameField] : (result as { name?: string } | null)?.name;
       for (const connection of listConnections()) {
-        try { await callControl(connection.id, "refreshResources", {
-          type: operation.refresh.type, name,
-          ...(operation.name === "deleteMediaProvider" ? { removedProviderId: (parameters.fileName as string).slice(0, -3) } : {}),
-        }, signal); }
+        try { await callControl(connection.id, "refreshResources", { type: operation.refresh.type, name }, signal); }
         catch (error) { refreshErrors.push(error instanceof Error ? error.message : String(error)); }
       }
     }

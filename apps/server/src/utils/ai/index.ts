@@ -6,6 +6,8 @@ import { getSupportedThinkingLevels, type Context, type KnownApi, type Model, ty
 import { defaultThinkingLevels, thinkingLevels, type ThinkingLevel } from "@/lib/modelReasoning";
 import { z } from "zod";
 import conf from "@/utils/conf";
+import { getApiKey } from "@/utils/cloud";
+import { cloudProviderId, gatewayUrl, listCloudModels } from "@/utils/cloud/models";
 import { readReference } from "@/utils/media/generation";
 import { findModelContextLimits } from "@/utils/ai/modelContextLimits";
 import { createFileTransport, getUnsupportedFileText, type FileProvider } from "@/utils/ai/files";
@@ -15,32 +17,13 @@ import { resolveWorkspacePath } from "@/utils/workspace/files";
 import { getReadableFileMimeType } from "@/lib/documentFormats";
 import { readDocument } from "@/utils/documents";
 
-export { fetchProviderModels } from "@/utils/ai/models";
-
-export const reasoningEffortsSchema = z.union([
-  z.literal(false),
-  z.partialRecord(z.enum(thinkingLevels), z.string().min(1).refine(value => value.trim() === value, "接口值不能包含首尾空白").nullable())
-    .refine(value => Object.entries(value).every(([level, wire]) => level === "off" || typeof wire === "string"), "仅关闭档位可省略接口值")
-    .refine(value => Object.keys(value).some(level => level !== "off"), "请至少声明一个推理档位"),
-]);
-
-export const providerSchema = z.object({
-  apiUrl: z.url({ protocol: /^https?$/ }),
-  apiKey: z.string(),
-  protocol: z.enum(["openai-completions", "openai-responses", "anthropic-messages"]),
-  maxRequestImageBytes: z.number().int().positive().max(Number.MAX_SAFE_INTEGER).optional(),
-  maxRequestBytes: z.number().int().positive().max(Number.MAX_SAFE_INTEGER).optional(),
-  models: z.array(z.object({
-    id: z.string(), label: z.string(),
-    contextWindow: z.number().int().positive().optional(),
-    maxOutputTokens: z.number().int().positive().optional(),
-    reasoningEfforts: reasoningEffortsSchema.optional(),
-  })),
-});
+// 推理档位 → 接口值；false 表示不支持推理。
+type ReasoningEfforts = false | Partial<Record<ThinkingLevel, string | null>>;
+type TextModel = { id: string; label: string; contextWindow?: number; maxOutputTokens?: number; reasoningEfforts?: ReasoningEfforts };
 
 const builtinModels: Model<KnownApi>[] = getBuiltinProviders().flatMap(provider => getBuiltinModels(provider));
 
-export function getModelReasoning(providerId: string, model: z.infer<typeof providerSchema>["models"][number], protocol: string) {
+export function getModelReasoning(providerId: string, model: TextModel, protocol: string) {
   const matches = builtinModels.filter(item => item.id === model.id);
   const base = matches.find(item => item.provider.toLowerCase() === providerId.toLowerCase() && item.api === protocol);
   const candidates = base ? [base] : matches;
@@ -70,12 +53,13 @@ export function getModelReasoning(providerId: string, model: z.infer<typeof prov
   return { reasoning, thinkingLevelMap, reasoningLevels, compat };
 }
 
-export function getModelLimits(providerId: string, model: z.infer<typeof providerSchema>["models"][number]) {
-  const limits = findModelContextLimits(model.id);
-  if (limits) return { contextWindow: limits.contextWindow, maxTokens: limits.maxTokens };
+export function getModelLimits(providerId: string, model: TextModel) {
+  // 云端后台填写的上下文与输出上限优先，未填时再查内置模型表。
   if (model.contextWindow != null && model.maxOutputTokens != null) {
     return { contextWindow: model.contextWindow, maxTokens: model.maxOutputTokens };
   }
+  const limits = findModelContextLimits(model.id);
+  if (limits) return { contextWindow: limits.contextWindow, maxTokens: limits.maxTokens };
   const matches = builtinModels.filter(item => item.id === model.id);
   const exact = matches.find(item => item.provider === providerId);
   const candidates = exact ? [exact] : matches;
@@ -88,34 +72,38 @@ export function getModelLimits(providerId: string, model: z.infer<typeof provide
   };
 }
 
-export function getConfiguredModel(providerId: string, modelId: string) {
-  const providers = conf.get("settings", {}).customProviders;
-  const parsed = providerSchema.safeParse(Array.isArray(providers) ? providers.find(item => item?.id === providerId) : undefined);
-  if (!parsed.success) throw Object.assign(new Error("请先在设置中配置模型供应商"), { status: 400 });
-  const provider = parsed.data;
-  const model = provider.models.find(item => item.id === modelId);
-  if (!model) throw Object.assign(new Error("所选模型不存在，请重新选择"), { status: 400 });
-  const baseUrl = new URL(provider.apiUrl);
-  if (baseUrl.pathname === "/") baseUrl.pathname = "/v1";
-  const limits = getModelLimits(providerId, model);
-  return { provider, model: { ...model, ...getModelReasoning(providerId, model, provider.protocol), contextWindow: limits.contextWindow, maxOutputTokens: limits.maxTokens }, baseUrl: baseUrl.href.replace(/\/+$/, "") };
+const cloudProtocols = { chat: "openai-completions", responses: "openai-responses" } as const;
+
+// 文本模型统一来自麦麦云目录，旧对话里保存的其他 providerId 按模型 ID 匹配。
+async function cloudTextModels() {
+  return (await listCloudModels()).filter(model => model.type === "text").map(item => {
+    const meta = item.meta as { contextWindow?: number; maxOutputTokens?: number; reasoningEfforts?: string[] | false };
+    const efforts = meta.reasoningEfforts;
+    const model = {
+      id: item.id, label: item.label, contextWindow: meta.contextWindow, maxOutputTokens: meta.maxOutputTokens,
+      reasoningEfforts: Array.isArray(efforts) ? Object.fromEntries(efforts.filter(level => (thinkingLevels as readonly string[]).includes(level)).map(level => [level, level])) : efforts === false ? false as const : undefined,
+    } satisfies TextModel;
+    return { model, protocol: cloudProtocols[item.protocol as keyof typeof cloudProtocols] ?? "openai-completions" };
+  });
 }
 
-export function listAiModels() {
-  const providers = conf.get("settings", {}).customProviders;
-  if (!Array.isArray(providers)) return [];
-  return providers.flatMap(item => {
-    const parsed = providerSchema.extend({ id: z.string().min(1), label: z.string() }).safeParse(item);
-    if (!parsed.success) return [];
-    const provider = parsed.data;
-    return provider.models.filter(model => model.id.trim()).map(model => {
-      const limits = getModelLimits(provider.id, model);
-      return {
-        providerId: provider.id, providerLabel: provider.label, protocol: provider.protocol, modelId: model.id, label: model.label,
-        contextWindow: limits.contextWindow, maxOutputTokens: limits.maxTokens,
-        reasoningLevels: getModelReasoning(provider.id, model, provider.protocol).reasoningLevels,
-      };
-    });
+export async function getConfiguredModel(_providerId: string, modelId: string) {
+  const found = (await cloudTextModels()).find(item => item.model.id === modelId);
+  if (!found) throw Object.assign(new Error(conf.get("cloudSession") ? "所选模型已下架或不存在，请重新选择" : "请先登录麦麦云账号"), { status: 400 });
+  const { model, protocol } = found;
+  const provider = { apiUrl: gatewayUrl, apiKey: await getApiKey(), protocol };
+  const limits = getModelLimits(cloudProviderId, model);
+  return { provider, model: { ...model, ...getModelReasoning(cloudProviderId, model, protocol), contextWindow: limits.contextWindow, maxOutputTokens: limits.maxTokens }, baseUrl: gatewayUrl };
+}
+
+export async function listAiModels() {
+  return (await cloudTextModels()).map(({ model, protocol }) => {
+    const limits = getModelLimits(cloudProviderId, model);
+    return {
+      providerId: cloudProviderId, providerLabel: "麦麦云", protocol, modelId: model.id, label: model.label,
+      contextWindow: limits.contextWindow, maxOutputTokens: limits.maxTokens,
+      reasoningLevels: getModelReasoning(cloudProviderId, model, protocol).reasoningLevels,
+    };
   });
 }
 
@@ -185,7 +173,7 @@ export function referenceContent(protocol: string, prompt: string, references: A
 }
 
 export function streamAi(
-  configured: ReturnType<typeof getConfiguredModel>,
+  configured: Awaited<ReturnType<typeof getConfiguredModel>>,
   context: Context,
   signal: AbortSignal,
   references: Awaited<ReturnType<typeof readAiReferences>> = [],
@@ -222,8 +210,8 @@ export function streamAi(
       }
       await files.prepare(body);
       const imageBytes = getRequestFiles(body).filter(file => file.mimeType.toLowerCase().startsWith("image/")).reduce((sum, file) => sum + file.inlineBytes, 0);
-      if (imageBytes > (provider.maxRequestImageBytes ?? 20 * 1024 * 1024)
-        || Buffer.byteLength(JSON.stringify(body), "utf8") > (provider.maxRequestBytes ?? 32 * 1024 * 1024)) {
+      if (imageBytes > 20 * 1024 * 1024
+        || Buffer.byteLength(JSON.stringify(body), "utf8") > 32 * 1024 * 1024) {
         throw new Error("模型请求超过附件或请求体字节预算，请减少附件或上下文后重试");
       }
       return body;

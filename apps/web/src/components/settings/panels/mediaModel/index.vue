@@ -1,159 +1,57 @@
 <template>
-  <div class="mediaModelPanel">
-    <el-segmented v-model="activeTab" class="panelTabs" :options="panelTabs" block ariaLabel="媒体模型设置" />
-    <imageProtocolPanel v-if="activeTab === 'protocol'" :visible="visible" />
-    <div v-else-if="loaded" class="providerList">
-      <div class="itemList">
-        <el-card v-for="item in providers" :key="item.fileName" class="providerItem" shadow="never">
-          <div class="providerHeader">
-            <div v-if="item.icon" class="providerMark" aria-hidden="true">
-              <img class="providerLogo" :src="item.icon" alt="" />
+  <div class="providerList">
+    <el-alert v-if="error" :title="error" type="error" :closable="false" showIcon />
+    <div class="itemList">
+      <el-card v-for="item in models" :key="item.modelId" class="providerItem" shadow="never">
+        <div class="providerHeader">
+          <div class="providerMark" aria-hidden="true"><modelIcon :model="item.modelId" :size="24" /></div>
+          <div class="providerInfo">
+            <div class="providerHeading">
+              <el-text class="providerName" tag="strong">{{ item.label }}</el-text>
             </div>
-            <div class="providerInfo">
-              <div class="providerHeading">
-                <el-text class="providerName" tag="strong">{{ item.label }}</el-text>
-              </div>
-              <el-text class="providerId" size="small" type="info" :title="item.fileName">{{ item.fileName }}</el-text>
-            </div>
+            <el-text class="providerId" size="small" type="info" :title="item.modelId">{{ item.modelId }}</el-text>
           </div>
-          <el-alert v-if="item.loadError" :title="item.loadError" type="error" :closable="false" showIcon />
-          <div class="providerFooter">
-            <div class="providerMeta">
-              <el-tag v-if="item.version" size="small" type="info" effect="plain">v{{ item.version }}</el-tag>
-              <el-text size="small" type="info">{{ (item.listedModels ?? item.models).length }} 个模型{{ item.modelConnection ? ` · ${item.models.length} 个可用于生成` : '' }}</el-text>
-            </div>
-            <el-space class="itemActions" wrap>
-              <el-button v-if="item.modelsUrl" text :icon="IconDownload" :loading="fetchingFile === item.fileName" :disabled="!!fetchingFile || !!deletingFile || !!item.loadError || !item.revision" @click="fetchModels(item)">获取模型</el-button>
-              <el-button text :icon="IconEdit" :disabled="!!fetchingFile || !!deletingFile || !!item.loadError" @click="editProvider(item)">{{ item.modelConnection ? '编辑' : '编辑模型' }}</el-button>
-              <el-popconfirm title="确定删除此供应商及其模型？" confirmButtonText="删除" cancelButtonText="取消" @confirm="deleteProvider(item)">
-                <template #reference><el-button text type="danger" :icon="IconTrash" :loading="deletingFile === item.fileName" :disabled="!!fetchingFile || !!deletingFile || !item.revision">删除</el-button></template>
-              </el-popconfirm>
-            </el-space>
+        </div>
+        <div class="providerFooter">
+          <div class="providerMeta">
+            <el-tag size="small" type="info" effect="plain">{{ item.type === "image" ? "图片" : "视频" }}</el-tag>
           </div>
-        </el-card>
-      </div>
-      <div class="providerActions">
-        <el-button class="addButton" :icon="IconPlus" @click="openAdd">添加自定义供应商</el-button>
-      </div>
-      <component :is="mediaProviderDialog" v-model="providerDialogVisible" @added="saveProviderItem" />
-      <component :is="editProviderDialog" v-model="editorVisible" :provider="editingProvider" @saved="saveProviderItem" />
+        </div>
+      </el-card>
+      <el-empty v-if="!models.length && !loading" :description="cloudAccount ? '暂无可用模型' : '请先登录麦麦云账号'" />
+    </div>
+    <div class="providerActions">
+      <el-button class="refreshButton" :icon="IconRefresh" :loading="loading" @click="refresh">刷新</el-button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { translate } from "@toonflow/i18n/vue";
 import axios from "axios";
-import { defineAsyncComponent, onMounted, onBeforeUnmount, ref, shallowRef, type Component } from "vue";
-import { ElMessage } from "element-plus";
-import { IconPlus, IconEdit, IconTrash, IconDownload } from "@tabler/icons-vue";
-import type { MediaProvider } from "./types";
-import { saveSettings } from "@/stores/settings";
+import { onMounted, ref } from "vue";
+import { IconRefresh } from "@tabler/icons-vue";
 import { invalidateNodeModels } from "@toonflow/nodes-scaffold/nodeAi";
-import imageProtocolPanel from "../imageProtocol/index.vue";
+import { cloudAccount } from "@/stores/cloudAccount";
 
-const { visible = true } = defineProps<{ visible?: boolean }>();
-const panelTabs = [{ label: "供应商", value: "provider" }, { label: "生图协议", value: "protocol" }];
-const activeTab = ref<"provider" | "protocol">("provider");
-const mediaProviderDialog = shallowRef<Component>();
-const editProviderDialog = shallowRef<Component>();
-const providers = ref<MediaProvider[]>([]);
-const loaded = ref(false);
-const providerDialogVisible = ref(false);
-const editorVisible = ref(false);
-const editingProvider = ref<MediaProvider>();
-const deletingFile = ref("");
-const fetchingFile = ref("");
-let loadRequest = 0;
+type MediaModel = { modelId: string; label: string; type: "image" | "video" };
+const models = ref<MediaModel[]>([]);
+const loading = ref(false);
+const error = ref("");
 
-function refreshInstalled(event: WindowEventMap["toonflow:plugin-installed"]) {
-  if (event.detail.type === "provider") void loadProviders();
-}
-onMounted(() => {
-  void loadProviders();
-  window.addEventListener("toonflow:plugin-installed", refreshInstalled);
-});
-onBeforeUnmount(() => {
-  loadRequest++;
-  window.removeEventListener("toonflow:plugin-installed", refreshInstalled);
-});
-
-async function loadProviders() {
-  const request = ++loadRequest;
+async function refresh() {
+  loading.value = true;
+  error.value = "";
   try {
-    const { data } = await axios.get<{ data: MediaProvider[] }>("/api/providers/media/list");
-    if (request === loadRequest) providers.value = data.data;
-  } catch (error) {
-    if (request === loadRequest) ElMessage.error(axios.isAxiosError(error) ? error.response?.data?.message || error.message : "读取媒体供应商失败");
-  } finally {
-    if (request === loadRequest) loaded.value = true;
-  }
-}
-
-function openAdd() {
-  mediaProviderDialog.value ??= defineAsyncComponent(() => import("./addCustomProviderDialog.vue"));
-  providerDialogVisible.value = true;
-}
-
-function editProvider(provider: MediaProvider) {
-  if (fetchingFile.value || deletingFile.value || provider.loadError) return;
-  editProviderDialog.value ??= defineAsyncComponent(() => import("./editProviderDialog.vue"));
-  editingProvider.value = provider;
-  editorVisible.value = true;
-}
-
-async function fetchModels(provider: MediaProvider) {
-  if (provider.modelConnection) { editProvider(provider); return; }
-  if (fetchingFile.value || deletingFile.value || !provider.modelsUrl || !provider.revision || provider.loadError) return;
-  fetchingFile.value = provider.fileName;
-  try {
-    const { data } = await axios.post<{ code: number; data: MediaProvider; message: string }>("/api/providers/media/models", {
-      fileName: provider.fileName, revision: provider.revision,
-    }, { timeout: 35000 });
-    if (data.code !== 200 || !data.data) throw new Error(data.message || "获取模型失败");
-    saveProviderItem(data.data);
+    const { data } = await axios.get<{ code: number; data: MediaModel[]; message?: string }>("/api/ai/media/models", { headers: { "Cache-Control": "no-cache" } });
+    if (data.code !== 200 || !Array.isArray(data.data)) throw new Error(data.message || "读取媒体模型失败");
+    models.value = data.data;
     invalidateNodeModels("media");
-    ElMessage.success("模型列表已更新");
-  } catch (error) {
-    ElMessage.error(axios.isAxiosError(error) ? error.response?.data?.message || error.message : error instanceof Error ? error.message : "获取模型失败，请重试");
-  } finally { fetchingFile.value = ""; }
+  } catch (cause) {
+    error.value = axios.isAxiosError<{ message?: string }>(cause) ? cause.response?.data?.message || cause.message : cause instanceof Error ? cause.message : String(cause);
+  } finally { loading.value = false; }
 }
 
-async function deleteProvider(provider: MediaProvider) {
-  if (fetchingFile.value || deletingFile.value || !provider.revision) return;
-  deletingFile.value = provider.fileName;
-  let deleted = false;
-  try {
-    await axios.delete("/api/providers/media/delete", { data: { fileName: provider.fileName, revision: provider.revision } });
-    deleted = true;
-    loadRequest++;
-    invalidateNodeModels("media");
-    providers.value = providers.value.filter(item => item.fileName !== provider.fileName);
-    await saveSettings(settings => {
-      const configs = settings.mediaProviderConfigs;
-      if (!configs || typeof configs !== "object" || Array.isArray(configs) || !Object.hasOwn(configs, provider.id)) return;
-      const current = { ...configs } as Record<string, unknown>;
-      delete current[provider.id];
-      return { mediaProviderConfigs: current };
-    });
-  } catch (error) {
-    const message = axios.isAxiosError(error) ? error.response?.data?.message || error.message : error instanceof Error ? error.message : translate("删除失败，请重试");
-    ElMessage.error(deleted ? `供应商已删除，但相关连接配置清理失败：${message}` : message);
-  } finally { deletingFile.value = ""; }
-}
-
-function saveProviderItem(provider: MediaProvider) {
-  loadRequest++;
-  const index = providers.value.findIndex(item => item.fileName === provider.fileName);
-  if (index < 0) providers.value.push(provider);
-  else providers.value.splice(index, 1, provider);
-}
+onMounted(refresh);
 </script>
 
 <style lang="scss" scoped src="../../providerList.scss"></style>
-<style lang="scss" scoped>
-.mediaModelPanel {
-  .panelTabs { margin-bottom: 16px; }
-  .providerList .providerActions { grid-template-columns: minmax(0, 1fr); }
-}
-</style>

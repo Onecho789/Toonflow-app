@@ -24,7 +24,9 @@ const config = new conf<{ settings: Record<string, unknown>; pluginInstalledAt: 
 export function removeLegacySettings(settings: Record<string, unknown>) {
   let changed = false;
   // ACT: 只清理已废弃字段，保留其他设置和插件配置。
-  for (const [record, key] of [[settings, "developerConfirmed"], [settings, "desktopUpdateSource"], [settings.general, "systemPrompt"], [settings.stores, "toonflow.developer"]] as const) {
+  // 模型改由麦麦云提供后，本地供应商、媒体供应商配置与生图协议一并清理（旧数据已备份到 data/backup）。
+  for (const [record, key] of [[settings, "developerConfirmed"], [settings, "desktopUpdateSource"], [settings.general, "systemPrompt"], [settings.stores, "toonflow.developer"],
+    [settings, "customProviders"], [settings, "mediaProviderConfigs"], [settings, "imageProtocols"]] as const) {
     if (record && typeof record === "object" && !Array.isArray(record) && Object.hasOwn(record, key)) {
       Reflect.deleteProperty(record, key);
       changed = true;

@@ -57,7 +57,7 @@ import { locale } from "@toonflow/i18n/vue";
 import type { updateSnapshot } from "@toonflow/server/desktop";
 import { chatLocale } from "@/lib/i18n";
 import { actualPlatform, isMobile } from "@/lib/platform";
-import { saveSettings, settings, uiSettings } from "@/stores/settings";
+import { loadAiModels, saveSettings, settings, uiSettings } from "@/stores/settings";
 import { desktopUpdateSnapshot, stopDesktopUpdateObservation } from "@/stores/desktopUpdate";
 import { useWorkspaceStore } from "@/stores/workspace";
 import loadingPage from "@/components/loadingPage.vue";
@@ -67,6 +67,7 @@ import desktopQuit from "@/components/desktopQuit.vue";
 import updateBox from "@/components/updateBox.vue";
 import loginGate from "@/components/loginGate.vue";
 import { cloudAccount, loadCloudAccount } from "@/stores/cloudAccount";
+import { invalidateNodeModels } from "@toonflow/nodes-scaffold/nodeAi";
 import "element-plus/theme-chalk/dark/css-vars.css";
 
 useMcpControl();
@@ -74,6 +75,12 @@ const workspaceStore = useWorkspaceStore();
 // 启动时先确认主机本地的麦麦云会话，未登录只显示登录页。
 const accountChecked = ref(false);
 void loadCloudAccount().finally(() => { accountChecked.value = true; });
+// 模型按登录账号从麦麦云下发，切换账号后重新读取。
+watch(() => cloudAccount.value?.id, () => {
+  invalidateNodeModels("media");
+  window.dispatchEvent(new Event("toonflow:provider-config-changed"));
+  void loadAiModels().catch(() => {});
+});
 
 // ACT: TDesign 缺少的语言使用英语基底，聊天控件由应用字典补齐。
 const tdesignLocales = {

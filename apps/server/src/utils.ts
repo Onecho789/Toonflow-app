@@ -2,12 +2,8 @@ import * as assets from "@/utils/assets";
 import * as browser from "@/utils/browser";
 import * as singleAgent from "@/utils/singleAgent";
 import * as desktop from "@/utils/desktop";
-import * as providerDebug from "@/utils/media/debug";
 import * as mediaGeneration from "@/utils/media/generation";
 import * as mediaTasks from "@/utils/media/tasks";
-import * as mediaProvider from "@/utils/media/provider";
-import * as imageProtocols from "@/utils/media/imageProtocols";
-import * as mediaBilling from "@/utils/media/billing";
 import * as ffmpeg from "@/utils/ffmpeg";
 import * as pluginInstall from "@/utils/plugins/install";
 import conf, { cleanNodeMenuSettings, removeLegacySettings } from "@/utils/conf";
@@ -34,18 +30,15 @@ import * as personalization from "@/utils/personalization";
 import * as mentionFiles from "@/agent/mentionFiles";
 import * as network from "@/utils/network";
 import * as cloud from "@/utils/cloud";
+import * as cloudModels from "@/utils/cloud/models";
 
 export default {
   assets,
   browser,
   singleAgent,
   desktop,
-  providerDebug,
   mediaGeneration,
   mediaTasks,
-  mediaProvider,
-  imageProtocols,
-  mediaBilling,
   ffmpeg,
   pluginInstall,
   conf,
@@ -74,4 +67,5 @@ export default {
   mentionFiles,
   network,
   cloud,
+  cloudModels,
 };

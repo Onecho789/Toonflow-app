@@ -17,8 +17,8 @@
 
 | 上游行为 | 本 fork 的处理 | 来源 |
 | --- | --- | --- |
-| 媒体模型页的“添加供应商”（内置 4 家）入口 | 不恢复。`addCustomProviderDialog.vue` 只保留自定义模式，上游给内置模式加的功能全部丢弃 | 只留自定义供应商 |
-| 启动时自动安装内置媒体供应商（`providersRoot`、`autoInstallProviders`） | 不恢复。上游若修改这段逻辑，整段丢弃。合并后执行 `git grep -n "providersRoot\|autoInstallProviders" -- apps/server/src/app.ts`，应无结果（`utils/conf/index.ts` 里同名的 `autoInstallProviders` 是文本供应商的首次初始化，与此无关） | 媒体供应商简化接入 |
+| 文本、媒体供应商的添加 / 编辑 / 删除，生图协议，供应商开发工具 | 不恢复。模型全部由麦麦云提供，上游对这些界面和接口的修改直接丢弃 | 麦麦云模型 |
+| 启动时自动安装内置媒体供应商（`providersRoot`、`autoInstallProviders`） | 不恢复。上游若修改这段逻辑，整段丢弃。合并后执行 `git grep -n "providersRoot\|autoInstallProviders" -- apps/server/src/app.ts`，应无结果 | 媒体供应商简化接入 |
 | 各端构建打包 `packages/providers/src` → `providers` 目录 | 不打包。上游若在构建脚本的目录列表中新增或保留 `providers`，合并时删掉 | 媒体供应商简化接入 |
 | 安装器重置 `data/providers/initialized` | 不重置 | 媒体供应商简化接入 |
 
@@ -27,9 +27,7 @@
 ## 媒体供应商简化接入
 
 - 提交：`eaecb97`（2026-10-27），分支 `codex/simplifyMediaModels`
-- 状态：开发中
-- 目的：自定义媒体供应商填 API 地址、协议、Key 并勾选模型即可接入，不必写 TS 代码；新增可配置的生图协议
-- 详细说明：[mediaProviderConnection.md](./mediaProviderConnection.md)
+- 状态：**已被“麦麦云模型”取代**。表单接入、生图协议和下表大部分新增文件已删除；只剩“刻意不跟上游的地方”里不自动安装、不打包内置供应商这几条仍然有效。下面的文件表留作历史，合并时以“麦麦云模型”一节为准
 
 ### 我们新增的文件
 
@@ -44,7 +42,7 @@
 - `apps/web/src/components/settings/panels/mediaModel/customProviderForm.vue`
 - `apps/web/src/components/settings/panels/mediaModel/providerAdapterDialog.vue`
 - `packages/providers/src/imageProtocols.ts`
-- `docs/mediaProviderConnection.md`、`docs/forkChanges.md`（`docs/readme.md` 中有对应入口，见下表）
+- `docs/forkChanges.md`（`docs/readme.md` 中有对应入口，见下表）；原 `docs/mediaProviderConnection.md` 已改名为 `docs/cloudModels.md`
 
 ### 改动了上游文件
 
@@ -221,6 +219,54 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 
 ---
 
+## 麦麦云模型
+
+- 提交：待提交（2026-10-30），分支 `codex/simplifyMediaModels`；云端 `maimai-cloud` 同期提交模型网关的统一协议与适配器
+- 状态：本地联调通过（文本、图片、视频各真实调用一次，扣费与余额正确）；未部署，云端渠道未导入
+- 目的：文本、图片、视频模型全部由麦麦云网关按登录账号提供，客户端不保存上游地址与 Key；本地供应商、媒体供应商、生图协议功能彻底移除，“文本模型”“媒体模型”菜单改为只读
+- 详细说明：[cloudModels.md](./cloudModels.md)
+- 旧配置：`removeLegacySettings` 会删除 `customProviders`、`mediaProviderConfigs`、`imageProtocols`。开发机的旧配置和 `data/providers/` 已备份到 `data/backup/cloudModels/`，作为云端渠道的导入来源
+
+### 我们新增的文件
+
+- `apps/server/src/utils/cloud/models.ts`：网关地址、带 Key 请求（401 重建一次）、模型目录缓存、余额
+- `apps/server/src/utils/media/cloud.ts`：价格估算、图片与视频生成（视频轮询与下载）
+- `docs/cloudModels.md`
+
+### 删除的文件
+
+- 服务端：`routes/providers/**`、`routes/imageProtocols/**`、`routes/ai/media/balanceEvents.ts`、`utils/ai/models.ts`、`utils/media/{provider,billing,debug,imageProtocols,priceReference,audioProcessor}.ts`
+- 前端：`languageModel/add*Dialog.vue`、`mediaModel/` 下除 `index.vue` 外的全部文件、`imageProtocol/index.vue`、`developer/providerDebugDialog.vue`、`lib/providerBilling.ts`
+- 上游改了这些文件：直接丢弃上游的修改
+
+### 改动了上游文件
+
+| 文件 | 改动 | 冲突时的处理 |
+| --- | --- | --- |
+| `apps/server/src/utils/ai/index.ts` | 模型来自 `listCloudModels`，`getConfiguredModel`、`listAiModels` 改为 async，provider 固定为网关地址 + 客户端 Key；删 `providerSchema`、`fetchProviderModels` | 保留我们的模型来源；上游对流式调用、参考素材的通用改动照收 |
+| `apps/server/src/agent/runtime/{index,model,requests,sessions}.ts`、`routes/{agent,agents/a2a/save,singleAgent/run,ai/generate,ai/models}.ts` | 跟随上面改为 `await`；`requests.ts` 去掉 `customProviders` 查找 | 采用上游后补 `await` |
+| `apps/server/src/utils/media/generation.ts` | 模型列表、价格、生成全部改走云端；音频返回“麦麦云暂未开放音频生成” | 保留我们的版本，上游对写盘、任务状态的通用改动照收 |
+| `apps/server/src/routes/ai/media/balance.ts` | 返回麦麦云余额与充值页地址 | 保留我们的版本 |
+| `apps/server/src/utils/cloud/index.ts` | 会话增加 `apiKey`，登录创建、退出删除客户端 Key | 我们的文件，保留 |
+| `apps/server/src/routes/settings/save.ts`、`utils/conf/index.ts` | 删供应商与生图协议的 schema 和引用检查，返回值只剩 `nodeMenu`；清理旧字段 | 保留我们的版本 |
+| `apps/server/src/utils/mcp/{operations,tools}.ts`、`utils/plugins/install.ts`、`types/desktop.ts`、`routes/desktop/plugins/install.ts` | 删媒体供应商操作与 `provider` 插件类型 | 上游新增的供应商相关操作直接丢弃 |
+| `apps/web/src/stores/settings.ts` | 删 `customProviders`；`modelChoices` 由 `/api/ai/models` 构建（新增 `aiModels`、`loadAiModels`） | 保留我们的版本 |
+| `apps/web/src/components/settings/panels/{languageModel,mediaModel}/index.vue` | 改为只读模型列表 + 刷新 | 保留我们的版本 |
+| `apps/web/src/components/settings/panels/account.vue`、`stores/cloudAccount.ts` | 余额与充值入口；`useCloudBalanceRefresh` 替代 `providerBilling` | 我们的文件，保留 |
+| `apps/web/src/pages/workspace/index.vue`、`panels/canvas/components/canvasMenu.vue` | 画布右上角只显示麦麦云余额 | 上游改余额面板时丢弃，其余照收 |
+| `apps/web/src/components/modelPopover.vue` | 模型下拉不再按供应商分组 | 保留我们的版本 |
+| `apps/web/src/App.vue` | 切换账号后重新读取模型并派发 `toonflow:provider-config-changed` | 保留这段 watch |
+| `apps/web/src/pages/hello/index.vue`、`stores/hello.ts` | 引导页去掉“添加模型供应商”，只剩开始使用与设备互联 | 保留我们的版本 |
+| `apps/web/src/components/settings/panels/developer/index.vue` | 删“供应商开发工具” | 上游改这一块直接丢弃 |
+| `apps/web/src/lib/tf.ts`、`settings/panels/pluginMarket/index.vue` | 插件市场 Key 改存 `settings.tfApiKey`，不再写入供应商配置；删 `isTfRouterProvider` | 保留我们的版本 |
+| `apps/web/src/lib/{mcpControl,desktopProtocol}.ts` | 删 `provider` 资源类型 | 保留 |
+| `apps/web/src/components/settings/index.vue`、`providerList.scss` | 媒体模型面板不再传 `visible`；列表底部只剩刷新按钮 | 保留 |
+| `packages/nodeScaffold/src/nodeAi.ts` | 媒体生成结束派发 `toonflow:media-generated`（刷新余额） | 保留这一句 |
+| i18n 21 份字典与 `messageSources.json` | 重新提取；删除被移除功能的 391 个键 | 以 `bun run extract` 结果为准，译文删掉 zhCn 中不存在的键 |
+| `apps/server/src/router.ts`、`apps/web/src/types/components.d.ts` | 自动生成 | 重新生成 |
+
+---
+
 ## 同步记录
 
 | 日期 | 上游提交 | 说明 |
@@ -231,4 +277,4 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 
 `data/` 被 Git 忽略，同步代码不会改动其中的文件；但旧代码运行一次就可能写入数据，且新代码不会自动清理。
 
-**内置供应商被重新装回**：设置 → 媒体模型中出现 `tfRouter.ts`、`apiMart.ts`、`metaso.ts`、`compshare.ts` 时，在界面上逐个删除，删除接口会同时清理 `settings.mediaProviderConfigs` 中的配置。然后删掉 `data/providers/initialized`。不要用删除整个 `data/providers/` 的方式处理，那会把自定义的 `customMedia*.ts` 一起删掉。
+**旧的供应商数据**：模型改由麦麦云提供后，`data/providers/` 已不再读取，`settings.json` 中的 `customProviders`、`mediaProviderConfigs`、`imageProtocols` 会在启动时被清掉。开发机的旧数据已备份到 `data/backup/cloudModels/`，确认云端渠道导入完成后再删除 `data/providers/`。

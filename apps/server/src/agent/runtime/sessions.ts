@@ -6,8 +6,7 @@ import type { AgentSession, FileEntry, SessionEntry } from "@earendil-works/pi-c
 import type { UserMessage } from "@earendil-works/pi-ai";
 import type { AgentEvent, AgentMention, AgentMessageDelivery, AgentPeerMessage, AgentQueue, AgentQueuedMessage, AgentSubAgent, AgentToolCall } from "@/agent/runtime/types";
 import { agentMentionsSchema } from "@/agent/runtime/mentions";
-import conf from "@/utils/conf";
-import { providerSchema, getModelLimits } from "@/utils/ai";
+import { listAiModels } from "@/utils/ai";
 import { lockWorkspaceFiles, resolveWorkspacePath, writeWorkspaceFile } from "@/utils/workspace/files";
 import { getReadableFileMimeType } from "@/lib/documentFormats";
 import { thinkingLevels } from "@/lib/modelReasoning";
@@ -524,9 +523,6 @@ export async function getAgentSession(cwd: string, path: string) {
     lastReply?.type === "message" && lastReply.message.role === "assistant"
       ? { provider: lastReply.message.provider, modelId: lastReply.message.model }
       : context.model;
-  const providers = conf.get("settings", {}).customProviders;
-  const provider = providerSchema.safeParse(Array.isArray(providers) ? providers.find((item) => item?.id === model?.provider) : undefined);
-  const configuredModel = provider.success ? provider.data.models.find((item) => item.id === model?.modelId) : undefined;
   const subAgents = new Map<string, AgentSubAgent>();
   for (const entry of history.getEntries()) {
     if (entry.type !== "custom" || entry.customType !== "toonflowSubAgent") continue;
@@ -540,7 +536,7 @@ export async function getAgentSession(cwd: string, path: string) {
     name: history.getSessionName() || (firstUserMessage?.content.trim() || firstUserMessage?.attachments?.[0]?.name)?.slice(0, 60) || translateMessage("新对话"),
     messages,
     stats: getAgentStats(history),
-    contextUsage: getAgentContext(history, active?.session?.model?.contextWindow ?? (configuredModel && model ? getModelLimits(model.provider, configuredModel).contextWindow : 0)),
+    contextUsage: getAgentContext(history, active?.session?.model?.contextWindow ?? (await listAiModels().catch(() => [])).find(item => item.modelId === model?.modelId)?.contextWindow ?? 0),
     providerId: model?.provider,
     modelId: model?.modelId,
     thinkingLevel: reasoningSelection.success ? reasoningSelection.data.thinkingLevel ?? undefined : context.thinkingLevel,

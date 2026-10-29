@@ -9,14 +9,26 @@
         </div>
         <el-button :loading="cloudAccountLoading" @click="logoutCloudAccount">退出登录</el-button>
       </div>
+      <div v-if="cloudAccount" class="accountRow">
+        <div class="accountInfo">
+          <span>余额</span>
+          <strong class="balance">{{ cloudBalance ? `¥${(cloudBalance.balance / 10000).toFixed(2)}` : "—" }}</strong>
+          <el-button text :icon="IconRefresh" :loading="cloudBalanceLoading" aria-label="刷新余额" @click="loadCloudBalance" />
+        </div>
+        <el-button v-if="cloudBalance" tag="a" type="primary" :href="cloudBalance.walletUrl" target="_blank" rel="noopener noreferrer">充值</el-button>
+      </div>
       <p class="description">项目文件始终保存在本机。</p>
+      <el-alert v-if="cloudBalanceError" :title="cloudBalanceError" type="error" :closable="false" showIcon />
       <el-alert v-if="cloudAccountError" :title="cloudAccountError" type="error" :closable="false" showIcon />
     </section>
   </div>
 </template>
 
 <script setup lang="ts">
-import { cloudAccount, cloudAccountError, cloudAccountLoading, logoutCloudAccount } from "@/stores/cloudAccount";
+import { IconRefresh } from "@tabler/icons-vue";
+import { cloudAccount, cloudAccountError, cloudAccountLoading, cloudBalance, cloudBalanceError, cloudBalanceLoading, loadCloudBalance, logoutCloudAccount } from "@/stores/cloudAccount";
+
+void loadCloudBalance();
 </script>
 
 <style lang="scss" scoped>
@@ -49,6 +61,10 @@ import { cloudAccount, cloudAccountError, cloudAccountLoading, logoutCloudAccoun
 
         .email {
           overflow-wrap: anywhere;
+        }
+
+        .balance {
+          font-variant-numeric: tabular-nums;
         }
       }
     }

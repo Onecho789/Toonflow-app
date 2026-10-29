@@ -7,7 +7,6 @@ import type { AgentImageReference } from "@/agent/runtime/imageAttachments";
 import { getAgentTaskId } from "@/agent/runtime/sessions";
 import { getRequestFiles, type RequestFile } from "@/utils/ai/requestFiles";
 import { createFileTransport, FileRequestLimitError } from "@/utils/ai/files";
-import conf from "@/utils/conf";
 import { t } from "@/lib/i18n";
 
 function contentHash(value: unknown) {
@@ -84,8 +83,6 @@ export function configureAgentRequests(session: AgentSession, limits?: { maxRequ
       try {
         options?.signal?.throwIfAborted();
         if (toolFailure) { const { error } = toolFailure; toolFailure = undefined; throw error; }
-        const providers = conf.get("settings", {}).customProviders;
-        const provider = Array.isArray(providers) ? providers.find(item => item?.id === model.provider) : undefined;
         const auth = await session.modelRuntime.getAuth(model, { apiKey: options?.apiKey, env: options?.env, signal: options?.signal });
         const apiKey = options?.apiKey ?? auth?.auth.apiKey;
         const files = createFileTransport({
@@ -93,8 +90,8 @@ export function configureAgentRequests(session: AgentSession, limits?: { maxRequ
           apiKey: apiKey ?? "",
           protocol: model.api,
         }, { fetch: options?.fetch, signal: options?.signal });
-        const maxRequestImageBytes = limits?.maxRequestImageBytes ?? provider?.maxRequestImageBytes ?? 20 * 1024 * 1024;
-        const maxRequestBytes = limits?.maxRequestBytes ?? provider?.maxRequestBytes ?? 32 * 1024 * 1024;
+        const maxRequestImageBytes = limits?.maxRequestImageBytes ?? 20 * 1024 * 1024;
+        const maxRequestBytes = limits?.maxRequestBytes ?? 32 * 1024 * 1024;
         for (const value of [maxRequestImageBytes, maxRequestBytes]) {
           if (!Number.isSafeInteger(value) || value <= 0) throw new Error("图片请求预算必须为正安全整数");
         }

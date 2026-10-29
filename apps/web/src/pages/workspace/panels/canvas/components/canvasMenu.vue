@@ -39,15 +39,13 @@
     </el-card>
     <div class="menuExtension"><slot /></div>
   </panel>
-  <panel v-if="providerBalances.length" class="balanceMenuPanel" position="top-right">
-    <div class="balanceList" tabindex="0" aria-label="供应商余额">
-      <el-card v-for="item in providerBalances" :key="item.id" class="balanceCard" shadow="never" :bodyStyle="{ padding: '2px 4px' }">
-        <el-button class="balanceTrigger" text :loading="item.loading" :title="item.error || `点击刷新 ${item.label} 余额`" :aria-label="`刷新 ${item.label} 余额`" @click="refreshProviderBalance(item.id)">
-          <span class="providerLabel">{{ item.label }}</span>
-          <span>{{ item.balance ? `${balanceFormat.format(Math.min(item.balance.balance, item.balance.keyBalance ?? Infinity))} ${item.balance.unit}` : '—' }}</span>
-        </el-button>
-      </el-card>
-    </div>
+  <panel v-if="cloudBalance" class="balanceMenuPanel" position="top-right">
+    <el-card class="balanceCard" shadow="never" :bodyStyle="{ padding: '2px 4px' }">
+      <el-button class="balanceTrigger" text :loading="cloudBalanceLoading" :title="cloudBalanceError || '点击刷新麦麦云余额'" aria-label="刷新麦麦云余额" @click="loadCloudBalance">
+        <span class="providerLabel">余额</span>
+        <span>¥{{ (cloudBalance.balance / 10000).toFixed(2) }}</span>
+      </el-button>
+    </el-card>
   </panel>
   <el-dropdown ref="itemMenu" trigger="contextmenu" virtualTriggering :virtualRef="menuAnchor" placement="bottom-start" :showArrow="false" :hideOnClick="false" :appendTo="canvasPicker" popperClass="canvasActionMenu" @command="handleItemCommand" @visibleChange="(opened: boolean) => { if (!opened) moveVisible = false; }">
     <template #dropdown>
@@ -72,7 +70,7 @@
 
 <script setup lang="ts">
 import axios from "axios";
-import { locale, translate } from "@toonflow/i18n/vue";
+import { translate } from "@toonflow/i18n/vue";
 import { computed, inject, nextTick, onBeforeUnmount, ref, shallowRef, watch, type ShallowRef } from "vue";
 import { Panel, useVueFlow, type FlowExportObject } from "@vue-flow/core";
 import { ElMessage, ElMessageBox, type DropdownInstance, type FilterNodeMethodFunction, type InputInstance, type LoadFunction, type TreeInstance } from "element-plus";
@@ -81,7 +79,7 @@ import { useWorkspaceStore } from "@/stores/workspace";
 import useWorkspaceFiles from "@/lib/workspaceFiles";
 import { getCanvasAssetDirectories, isCanvasFile } from "@/pages/workspace/canvasFile";
 import { findRemainingCanvas } from "../canvasFiles";
-import { providerBalances, refreshProviderBalance } from "@/lib/providerBilling";
+import { cloudBalance, cloudBalanceError, cloudBalanceLoading, loadCloudBalance } from "@/stores/cloudAccount";
 
 const props = defineProps<{
   directory?: string;
@@ -90,7 +88,6 @@ const props = defineProps<{
   flushSave: (action?: () => Promise<void>) => Promise<void>;
 }>();
 const workspaceStore = useWorkspaceStore();
-const balanceFormat = computed(() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 6 }));
 const workspaceName = computed(() => workspaceStore.project?.name || translate("未命名工作区"));
 const projectNameDraft = ref("");
 watch([() => workspaceStore.project?.directory, workspaceName], () => {
@@ -822,23 +819,14 @@ defineExpose({ getCanvases, peekCanvases, initialized, addCanvas, switchCanvas, 
 .balanceMenuPanel.vue-flow__panel {
   max-width: calc(50% - 90px);
 
-  .balanceList {
-    display: flex;
-    gap: 6px;
-    max-width: 520px;
-    overflow-x: auto;
-    scrollbar-width: thin;
-
-    .balanceCard {
-      flex-shrink: 0;
-      font-variant-numeric: tabular-nums;
-      .providerLabel { color: var(--el-text-color-secondary); font-size: 12px; }
-      .balanceTrigger {
-        height: 28px;
-        padding: 0 3px;
-        font-size: 13px;
-        :deep(> span) { display: flex; align-items: center; gap: 4px; }
-      }
+  .balanceCard {
+    font-variant-numeric: tabular-nums;
+    .providerLabel { color: var(--el-text-color-secondary); font-size: 12px; }
+    .balanceTrigger {
+      height: 28px;
+      padding: 0 3px;
+      font-size: 13px;
+      :deep(> span) { display: flex; align-items: center; gap: 4px; }
     }
   }
 }

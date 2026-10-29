@@ -1,6 +1,6 @@
 import axios from "axios";
 import { translate } from "@toonflow/i18n/vue";
-import { customProviders, settings } from "@/stores/settings";
+import { settings } from "@/stores/settings";
 
 type TfRequestOptions = { apiKey?: string; signal?: AbortSignal };
 
@@ -32,19 +32,12 @@ type TfPluginParams = {
   searchKeyword?: string;
 };
 
-export function isTfRouterProvider(provider: { id: string; apiUrl: string }) {
-  return provider.id.toLowerCase() === "tfrouter" && URL.canParse(provider.apiUrl)
-    && new URL(provider.apiUrl).origin === "https://api.toonflow.net";
-}
-
 const client = axios.create({ baseURL: "https://api.toonflow.net" });
 
+// 插件市场 Key 单独保存，模型改由麦麦云提供后不再借用供应商配置。
 export function getTfApiKey() {
-  const provider = customProviders.value.find(isTfRouterProvider);
-  const mediaConfigs = settings.value.mediaProviderConfigs as Record<string, { apiKey?: unknown }> | undefined;
-  return [provider?.apiKey, mediaConfigs?.tfRouter?.apiKey]
-    .map(key => typeof key === "string" ? key.trim().replace(/^Bearer(?:\s+|$)/i, "").trim() : "")
-    .find(Boolean) ?? "";
+  const key = settings.value.tfApiKey;
+  return typeof key === "string" ? key.trim().replace(/^Bearer(?:\s+|$)/i, "").trim() : "";
 }
 
 function requestOptions({ apiKey, signal }: TfRequestOptions = {}) {

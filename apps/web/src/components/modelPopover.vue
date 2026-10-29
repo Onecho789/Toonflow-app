@@ -22,16 +22,14 @@
       </template>
       <el-form class="modelOptions" labelPosition="top">
         <el-form-item label="模型">
-          <el-select v-model="selectedModel" filterable :disabled="disabled" :teleported="false" placeholder="选择模型" aria-label="选择模型" noDataText="请先在设置中添加模型" @change="reasoningEffort = ''">
+          <el-select v-model="selectedModel" filterable :disabled="disabled" :teleported="false" placeholder="选择模型" aria-label="选择模型" noDataText="请先登录麦麦云账号" @change="reasoningEffort = ''">
             <template #prefix><modelIcon v-if="selectedModelChoice" :model="selectedModelChoice.modelId" :size="18" /></template>
-            <el-option-group v-for="provider in customProviders" :key="provider.id" :label="provider.label">
-              <el-option v-for="model in provider.models" :key="model.id" :label="model.label" :value="JSON.stringify([provider.id, model.id])">
-                <el-space :size="8">
-                  <modelIcon :model="model.id" :size="16" />
-                  <span>{{ model.label }}</span>
-                </el-space>
-              </el-option>
-            </el-option-group>
+            <el-option v-for="model in modelChoices" :key="model.value" :label="model.label" :value="model.value">
+              <el-space :size="8">
+                <modelIcon :model="model.modelId" :size="16" />
+                <span>{{ model.label }}</span>
+              </el-space>
+            </el-option>
           </el-select>
         </el-form-item>
         <el-form-item v-if="reasoningLevels.length" label="思考强度">
@@ -55,7 +53,7 @@ import { computed, ref, useId, watch } from "vue";
 import { IconChevronDown, IconChevronUp } from "@tabler/icons-vue";
 import { modelIcon } from "@toonflow/model-icons";
 import type { ThinkingLevel } from "@toonflow/server/modelReasoning";
-import { customProviders, modelChoices } from "@/stores/settings";
+import { modelChoices } from "@/stores/settings";
 
 const selectedModel = defineModel<string>({ default: "" });
 const reasoningEffort = defineModel<string>("reasoningEffort", { default: "" });

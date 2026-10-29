@@ -111,7 +111,7 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import settings from "@/components/settings/index.vue";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { registerWorkspaceControl, waitForControlValue } from "@/lib/mcpControl";
-import { useProviderBalances } from "@/lib/providerBilling";
+import { useCloudBalanceRefresh } from "@/stores/cloudAccount";
 import canvasPanel from "./panels/canvas/canvasHost.vue";
 import type { DocumentNodeOptions } from "./panels/canvas/canvasFiles";
 import workspaceMenu from "./components/workspaceMenu.vue";
@@ -133,7 +133,7 @@ onScopeDispose(() => {
   for (const eventName of sideButtonEvents) window.removeEventListener(eventName, preventSideButtonNavigation, true);
 });
 const workspaceStore = useWorkspaceStore();
-useProviderBalances();
+useCloudBalanceRefresh();
 const panelOptions = [
   { label: "画布", value: "canvas", icon: IconVector },
   { label: "文档", value: "document", icon: IconFileText },
