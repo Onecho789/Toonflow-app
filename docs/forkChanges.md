@@ -136,7 +136,7 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 
 ## 麦麦云账号登录（第一期）
 
-- 提交：未提交（2026-10-29），分支 `codex/simplifyMediaModels`
+- 提交：`7fe6793`（2026-10-29），分支 `codex/simplifyMediaModels`；云端 `maimai-cloud` 首个提交 `429abfa`，已部署到 https://159.75.178.145:8100
 - 状态：第一期，只做账号与客户端登录；网关计费、支付、管理后台在后续几期
 - 目的：客户端接入自有云端账号服务 `maimai-cloud`（独立仓库，`D:\2api-codes\maimai-cloud`，Postgres + Redis）。设置页“账号”点登录 → 系统浏览器打开云端 `/login` → 登录后跳回 `maimai://auth?code&state` → 本机服务用 PKCE verifier 换取会话，存进 `data/settings.json` 的 `cloudSession`（0o600）
 - 云端地址：默认 `http://127.0.0.1:8100`，用环境变量 `MAIMAI_CLOUD_URL` 覆盖；正式域名定下后改 `apps/server/src/utils/cloud/index.ts` 的默认值
