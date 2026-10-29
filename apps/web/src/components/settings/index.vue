@@ -52,9 +52,11 @@ import {
   IconSubtitlesAi,
   IconDevices,
   IconNetwork,
+  IconUserCircle,
 } from "@tabler/icons-vue";
 
 const settingsPanels = [
+  { id: "account", label: "账号", icon: IconUserCircle, component: defineAsyncComponent(() => import("./panels/account.vue")) },
   { id: "ui", label: "界面设置", icon: IconPalette, component: defineAsyncComponent(() => import("./panels/ui.vue")) },
   { id: "general", label: "常规配置", icon: IconSettings, component: defineAsyncComponent(() => import("./panels/general/index.vue")) },
   {

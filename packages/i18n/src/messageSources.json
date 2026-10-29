@@ -9656,5 +9656,44 @@
   "退出麦麦工坊": [
     "apps/web/src/components/desktopQuit.vue",
     "apps/desktop/src/index.ts"
+  ],
+  "账号": [
+    "apps/web/src/components/settings/index.vue"
+  ],
+  "麦麦云账号": [
+    "apps/web/src/components/settings/panels/account.vue"
+  ],
+  "管理员": [
+    "apps/web/src/components/settings/panels/account.vue"
+  ],
+  "退出登录": [
+    "apps/web/src/components/settings/panels/account.vue"
+  ],
+  "未登录": [
+    "apps/web/src/components/settings/panels/account.vue"
+  ],
+  "登录": [
+    "apps/web/src/components/settings/panels/account.vue"
+  ],
+  "登录会在系统浏览器中打开麦麦云，完成后自动返回客户端。项目文件始终保存在本机。": [
+    "apps/web/src/components/settings/panels/account.vue"
+  ],
+  "登录失败：{0}": [
+    "apps/web/src/lib/desktopProtocol.ts"
+  ],
+  "已登录 {0}": [
+    "apps/web/src/lib/desktopProtocol.ts"
+  ],
+  "登录链接无效，请在麦麦工坊中重新点击登录": [
+    "apps/desktop/src/protocol.ts"
+  ],
+  "登录请求已失效，请在麦麦工坊中重新点击登录": [
+    "apps/server/src/utils/cloud/index.ts"
+  ],
+  "无法连接麦麦云，请检查网络后重试": [
+    "apps/server/src/utils/cloud/index.ts"
+  ],
+  "麦麦云请求失败（HTTP {0}）": [
+    "apps/server/src/utils/cloud/index.ts"
   ]
 }

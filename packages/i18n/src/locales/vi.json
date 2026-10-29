@@ -3201,5 +3201,18 @@
   "麦麦工坊 Android": "MaiMai Studio Android",
   "麦麦工坊 Logo": "MaiMai Studio Logo",
   "麦麦工坊 Skill": "MaiMai Studio Skill",
-  "退出麦麦工坊": "Thoát MaiMai Studio"
+  "退出麦麦工坊": "Thoát MaiMai Studio",
+  "账号": "Tài khoản",
+  "麦麦云账号": "Tài khoản MaiMai Cloud",
+  "管理员": "Quản trị viên",
+  "退出登录": "Đăng xuất",
+  "未登录": "Chưa đăng nhập",
+  "登录": "Đăng nhập",
+  "登录会在系统浏览器中打开麦麦云，完成后自动返回客户端。项目文件始终保存在本机。": "Đăng nhập sẽ mở MaiMai Cloud trong trình duyệt hệ thống và tự quay lại ứng dụng khi hoàn tất. Tệp dự án luôn được lưu trên thiết bị này.",
+  "登录失败：{0}": "Đăng nhập thất bại: {0}",
+  "已登录 {0}": "Đã đăng nhập bằng {0}",
+  "登录链接无效，请在麦麦工坊中重新点击登录": "Liên kết đăng nhập không hợp lệ. Hãy nhấn Đăng nhập lại trong MaiMai Studio",
+  "登录请求已失效，请在麦麦工坊中重新点击登录": "Yêu cầu đăng nhập đã hết hạn. Hãy nhấn Đăng nhập lại trong MaiMai Studio",
+  "无法连接麦麦云，请检查网络后重试": "Không thể kết nối MaiMai Cloud. Hãy kiểm tra mạng và thử lại",
+  "麦麦云请求失败（HTTP {0}）": "Yêu cầu MaiMai Cloud thất bại (HTTP {0})"
 }

@@ -134,6 +134,35 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 
 ---
 
+## 麦麦云账号登录（第一期）
+
+- 提交：未提交（2026-10-29），分支 `codex/simplifyMediaModels`
+- 状态：第一期，只做账号与客户端登录；网关计费、支付、管理后台在后续几期
+- 目的：客户端接入自有云端账号服务 `maimai-cloud`（独立仓库，`D:\2api-codes\maimai-cloud`，Postgres + Redis）。设置页“账号”点登录 → 系统浏览器打开云端 `/login` → 登录后跳回 `maimai://auth?code&state` → 本机服务用 PKCE verifier 换取会话，存进 `data/settings.json` 的 `cloudSession`（0o600）
+- 云端地址：默认 `http://127.0.0.1:8100`，用环境变量 `MAIMAI_CLOUD_URL` 覆盖；正式域名定下后改 `apps/server/src/utils/cloud/index.ts` 的默认值
+- 上游 TF-Router 登录（引导页、`tfAccount.vue`）这一期没动，两者并存
+
+### 我们新增的文件
+
+- `apps/server/src/utils/cloud/index.ts`：PKCE 登录、令牌刷新（合并并发刷新，刷新令牌每次轮换）、退出
+- `apps/server/src/routes/cloud/login.ts`、`callback.ts`、`account.ts`、`logout.ts`：`POST /api/cloud/login`、`POST /api/cloud/callback`、`GET /api/cloud/account`、`POST /api/cloud/logout`，都要求 `x-toonflow-workspace` 与同源 Origin
+- `apps/web/src/stores/cloudAccount.ts`、`apps/web/src/components/settings/panels/account.vue`
+
+### 改动了上游文件
+
+| 文件 | 改动 | 冲突时的处理 |
+| --- | --- | --- |
+| `apps/desktop/src/protocol.ts` | 新增 `isAuthUrl`、`parseAuthUrl` | 保留两个函数，`parseInstallUrl` 以上游为准 |
+| `apps/desktop/src/index.ts` | `pendingInstalls`/`deliverInstall` 改名为 `pendingEvents`/`deliverEvent`，队列里放 `{ name, detail }`，`maimai://auth` 派发 `toonflow:cloud-auth` 事件 | 采用上游后重新套用改名，`openUrl` 按链接类型分流 |
+| `apps/desktop/native/protocolLauncher.cs` | 无效链接提示不再只说安装链接 | 以上游为准，再改回这一句 |
+| `apps/server/src/types/desktop.ts` | 新增 `CloudAuthCallback`、`CloudUser` | 保留 |
+| `apps/server/src/utils.ts`、`utils/conf/index.ts` | 导出 `cloud`；conf 类型加 `cloudSession` | 保留 |
+| `apps/web/src/lib/desktopProtocol.ts` | 监听 `toonflow:cloud-auth` 完成登录 | 保留监听，安装部分以上游为准 |
+| `apps/web/src/components/settings/index.vue` | 设置列表最前面加“账号” | 保留这一项 |
+| i18n 21 份字典与 `messageSources.json` | 追加 13 个键（账号、登录、退出登录、麦麦云相关报错等） | 追加在末尾，与源码一致 |
+
+---
+
 ## 同步记录
 
 | 日期 | 上游提交 | 说明 |

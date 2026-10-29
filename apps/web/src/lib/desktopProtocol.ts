@@ -3,12 +3,14 @@ import { t, translate } from "@toonflow/i18n/vue";
 import { h } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { invalidateNodeModels } from "@toonflow/nodes-scaffold/nodeAi";
-import type { PluginInstallRequest, PluginInstallType } from "@toonflow/server/desktop";
+import type { CloudAuthCallback, PluginInstallRequest, PluginInstallType } from "@toonflow/server/desktop";
+import { cloudAccount, cloudAccountError, finishCloudLogin } from "@/stores/cloudAccount";
 
 declare global {
   interface WindowEventMap {
     "toonflow:install-plugin": CustomEvent<PluginInstallRequest>;
     "toonflow:plugin-installed": CustomEvent<{ type: PluginInstallType; name: string }>;
+    "toonflow:cloud-auth": CustomEvent<CloudAuthCallback>;
   }
 }
 
@@ -78,5 +80,15 @@ export function registerDesktopProtocol() {
       loading.close();
     }
   }
-  return () => window.removeEventListener("toonflow:install-plugin", handleInstall);
+  const handleCloudAuth = async (event: WindowEventMap["toonflow:cloud-auth"]) => {
+    await finishCloudLogin(event.detail.code, event.detail.state);
+    if (cloudAccountError.value) ElMessage.error(t`登录失败：${cloudAccountError.value}`);
+    else ElMessage.success(t`已登录 ${cloudAccount.value?.email ?? ""}`);
+  };
+  window.addEventListener("toonflow:cloud-auth", handleCloudAuth);
+
+  return () => {
+    window.removeEventListener("toonflow:install-plugin", handleInstall);
+    window.removeEventListener("toonflow:cloud-auth", handleCloudAuth);
+  };
 }

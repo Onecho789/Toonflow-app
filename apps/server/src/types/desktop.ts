@@ -1,5 +1,7 @@
 export type PluginInstallType = "node" | "tool" | "skill" | "provider" | "agent" | "ext";
 export type PluginInstallRequest = { type: PluginInstallType; url: string; fileName: string };
+export type CloudAuthCallback = { code: string; state: string };
+export type CloudUser = { id: number; email: string; role: number; mustChangePassword: boolean };
 
 export type desktopUpdateAttempt = {
   attemptId: string;

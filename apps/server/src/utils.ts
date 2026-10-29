@@ -33,6 +33,7 @@ import * as a2aSettings from "@/agent/a2a/settings";
 import * as personalization from "@/utils/personalization";
 import * as mentionFiles from "@/agent/mentionFiles";
 import * as network from "@/utils/network";
+import * as cloud from "@/utils/cloud";
 
 export default {
   assets,
@@ -72,4 +73,5 @@ export default {
   personalization,
   mentionFiles,
   network,
+  cloud,
 };

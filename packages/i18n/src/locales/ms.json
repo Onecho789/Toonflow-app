@@ -3199,5 +3199,18 @@
   "麦麦工坊 Android": "MaiMai Studio Android",
   "麦麦工坊 Logo": "MaiMai Studio Logo",
   "麦麦工坊 Skill": "MaiMai Studio Skill",
-  "退出麦麦工坊": "Keluar dari MaiMai Studio"
+  "退出麦麦工坊": "Keluar dari MaiMai Studio",
+  "账号": "Akaun",
+  "麦麦云账号": "Akaun MaiMai Cloud",
+  "管理员": "Pentadbir",
+  "退出登录": "Log keluar",
+  "未登录": "Belum log masuk",
+  "登录": "Log masuk",
+  "登录会在系统浏览器中打开麦麦云，完成后自动返回客户端。项目文件始终保存在本机。": "Log masuk akan membuka MaiMai Cloud dalam pelayar sistem dan kembali ke aplikasi apabila selesai. Fail projek sentiasa disimpan pada peranti ini.",
+  "登录失败：{0}": "Log masuk gagal: {0}",
+  "已登录 {0}": "Log masuk sebagai {0}",
+  "登录链接无效，请在麦麦工坊中重新点击登录": "Pautan log masuk tidak sah. Klik Log masuk sekali lagi dalam MaiMai Studio",
+  "登录请求已失效，请在麦麦工坊中重新点击登录": "Permintaan log masuk telah tamat tempoh. Klik Log masuk sekali lagi dalam MaiMai Studio",
+  "无法连接麦麦云，请检查网络后重试": "Tidak dapat menyambung ke MaiMai Cloud. Semak rangkaian dan cuba lagi",
+  "麦麦云请求失败（HTTP {0}）": "Permintaan MaiMai Cloud gagal (HTTP {0})"
 }

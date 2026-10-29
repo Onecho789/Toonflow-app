@@ -3201,5 +3201,18 @@
   "麦麦工坊 Android": "MaiMai Studio Android",
   "麦麦工坊 Logo": "MaiMai Studio Logo",
   "麦麦工坊 Skill": "MaiMai Studio Skill",
-  "退出麦麦工坊": "MaiMai Studio'dan çık"
+  "退出麦麦工坊": "MaiMai Studio'dan çık",
+  "账号": "Hesap",
+  "麦麦云账号": "MaiMai Cloud hesabı",
+  "管理员": "Yönetici",
+  "退出登录": "Oturumu kapat",
+  "未登录": "Oturum açılmadı",
+  "登录": "Oturum aç",
+  "登录会在系统浏览器中打开麦麦云，完成后自动返回客户端。项目文件始终保存在本机。": "Oturum açma, MaiMai Cloud'u sistem tarayıcısında açar ve tamamlandığında uygulamaya döner. Proje dosyaları her zaman bu cihazda kalır.",
+  "登录失败：{0}": "Oturum açılamadı: {0}",
+  "已登录 {0}": "{0} olarak oturum açıldı",
+  "登录链接无效，请在麦麦工坊中重新点击登录": "Oturum açma bağlantısı geçersiz. MaiMai Studio'da yeniden Oturum aç'a tıklayın",
+  "登录请求已失效，请在麦麦工坊中重新点击登录": "Oturum açma isteğinin süresi doldu. MaiMai Studio'da yeniden Oturum aç'a tıklayın",
+  "无法连接麦麦云，请检查网络后重试": "MaiMai Cloud'a bağlanılamıyor. Ağı kontrol edip yeniden deneyin",
+  "麦麦云请求失败（HTTP {0}）": "MaiMai Cloud isteği başarısız (HTTP {0})"
 }
