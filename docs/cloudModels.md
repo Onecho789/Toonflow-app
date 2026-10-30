@@ -6,14 +6,14 @@
 
 ## 链路
 
-1. 登录或注册成功后，本机服务调用云端 `POST /api/keys` 创建一把名为“麦麦工坊客户端”的 `mm-` Key，存在 `data/settings.json` 的 `cloudSession.apiKey`（文件权限 0o600）。初始密码未修改时不创建，第一次调用模型时再补建。
-2. 所有模型请求都带这把 Key 发到 `${MAIMAI_CLOUD_URL}/v1`。云端返回 401 时丢弃本地 Key 并重建一次。
-3. 退出登录时先删除云端 Key，再作废会话；删除失败只记日志，不阻止退出。
+1. 客户端不存任何 Key。登录或注册后只在 `data/settings.json` 的 `cloudSession` 保存会话（文件权限 0o600）；旧版残留的 `cloudSession.apiKey` 读取时忽略。
+2. 所有模型请求由 `sessionFetch` 带登录会话的访问令牌（15 分钟有效，过期前自动刷新）发到 `${MAIMAI_CLOUD_URL}/v1`。云端返回 401 时强制刷新会话后重试一次，仍 401 视为未登录并清除本地会话。
+3. 退出登录时作废云端会话；云端不可达只记日志，不阻止退出。
 
 | 本机接口 | 云端网关 | 说明 |
 | --- | --- | --- |
 | `GET /api/ai/models` | `GET /v1/models`（`type: text`） | 文本模型；`meta.contextWindow`、`maxOutputTokens`、`reasoningEfforts` 决定上下文与思考档位。协议 `chat` → openai-completions，`responses` → openai-responses |
-| `GET /api/ai/media/models` | `GET /v1/models`（`type: image/video`） | 媒体模型；`meta` 中的 `mode`、`durationResolutionMap`、`audio`、`imageSizes`、`imageRatios` 原样给节点 |
+| `GET /api/ai/media/models` | `GET /v1/models`（`type: image/video`） | 媒体模型；`meta` 中的 `mode`、`durationResolutionMap`、`audio`、`imageSizes`、`imageRatios`、视频 `ratios` 原样给节点；视频节点比例按钮读取 `ratios`，缺省 `16:9`、`9:16`、`1:1` |
 | `POST /api/ai/media/price` | 本地按 `pricing` 与 `meta` 估算 | 图片 `unit × sizePrices[size]`；视频 `unit × 秒数 × resolutionPrices[分辨率] × （有声时）audioPrice`；只做展示，以云端实际扣费为准 |
 | `POST /api/ai/media/generate` | `POST /v1/images/generations`、`POST /v1/videos` | 图片同步返回 b64；视频每 5 秒查一次任务，最长 30 分钟，完成后从 `/content` 下载 |
 | `POST /api/ai/media/balance` | `GET /v1/balance` | 返回 `{ balance, walletUrl }`，余额单位 0.0001 元 |
@@ -26,6 +26,7 @@
 ## 界面
 
 - 设置 →“文本模型”“媒体模型”：只读列出当前账号可用的模型，可刷新；没有添加、编辑、删除。
+- 模型图标：`/v1/models` 的 `vendor`（lobehub 图标名，可为空串）透传到前端；非空时直接用该图标，否则按模型 ID 推断。画布节点的模型下拉通过 `@toonflow/node-shared/modelOption` 显示图标，图标组件由宿主经 `toonflowNodeHost.modelIcons` 提供。
 - 设置 →“账号”：显示余额，“充值”打开云端 `/wallet` 页面。
 - 画布右上角显示余额，进入工作区、窗口获得焦点、媒体生成结束后刷新；点击也可刷新。
 - 切换账号后重新读取模型列表，并通知各生成节点刷新。

@@ -55,7 +55,10 @@ for (const [brand, names] of Object.entries(aliases)) {
 }
 modelNames.sort((left, right) => right.prefix.length - left.prefix.length);
 
-export function getModelIcon(model: string) {
+// vendor 为云端后台指定的 lobehub 图标名，非空时直接使用；未收录的图标名回退到按模型名推断。
+export function getModelIcon(model: string, vendor = "") {
+  const named = icons.get(vendor.trim().toLowerCase().replace(/-color$/, ""));
+  if (named) return named;
   // ACT: 无法凭任意名称可靠识别品牌；优先模型路径末段，未匹配再尝试服务商，最终由组件显示默认图标。
   const segments = model.trim().toLowerCase().replace(/[_.\s]+/g, "-").split("/").reverse();
   for (const name of segments) {

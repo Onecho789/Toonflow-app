@@ -66,13 +66,15 @@
             noDataText="请先在设置中添加图片模型"
             placement="top-start"
             @visible-change="(visible) => visible && loadModels().catch((error) => showNodeError(error, '模型读取失败'))">
-            <template #prefix><icon-sparkles :size="17" /></template>
+            <template #prefix><modelOption v-if="selectedModel" :model="selectedModel" iconOnly :size="17" /><icon-sparkles v-else :size="17" /></template>
             <el-option-group v-for="provider in modelGroups" :key="provider.id" :label="provider.label">
               <el-option
                 v-for="item in provider.models"
                 :key="item.modelId"
                 :label="item.label"
-                :value="JSON.stringify([item.providerId, item.modelId])" />
+                :value="JSON.stringify([item.providerId, item.modelId])">
+                <modelOption :model="item" />
+              </el-option>
             </el-option-group>
           </el-select>
           <generationSettings
@@ -122,6 +124,7 @@ import { useNodeGeneration } from "@toonflow/node-shared/useNodeGeneration";
 import { useNodeReferences } from "@toonflow/node-shared/useNodeReferences";
 import { useModelForm } from "@toonflow/node-shared/useModelForm";
 import promptInput from "@toonflow/node-shared/promptInput";
+import modelOption from "@toonflow/node-shared/modelOption";
 import referenceItem from "@toonflow/node-shared/referenceItem";
 import mediaHistory from "@toonflow/node-shared/mediaHistory";
 import mediaPrice from "@toonflow/node-shared/mediaPrice";

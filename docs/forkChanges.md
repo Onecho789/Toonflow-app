@@ -229,7 +229,7 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 
 ### 我们新增的文件
 
-- `apps/server/src/utils/cloud/models.ts`：网关地址、带 Key 请求（401 重建一次）、模型目录缓存、余额
+- `apps/server/src/utils/cloud/models.ts`：网关地址、网关请求（现为会话令牌，见“登录会话直连网关”）、模型目录缓存、余额
 - `apps/server/src/utils/media/cloud.ts`：价格估算、图片与视频生成（视频轮询与下载）
 - `docs/cloudModels.md`
 
@@ -247,7 +247,7 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 | `apps/server/src/agent/runtime/{index,model,requests,sessions}.ts`、`routes/{agent,agents/a2a/save,singleAgent/run,ai/generate,ai/models}.ts` | 跟随上面改为 `await`；`requests.ts` 去掉 `customProviders` 查找 | 采用上游后补 `await` |
 | `apps/server/src/utils/media/generation.ts` | 模型列表、价格、生成全部改走云端；音频返回“麦麦云暂未开放音频生成” | 保留我们的版本，上游对写盘、任务状态的通用改动照收 |
 | `apps/server/src/routes/ai/media/balance.ts` | 返回麦麦云余额与充值页地址 | 保留我们的版本 |
-| `apps/server/src/utils/cloud/index.ts` | 会话增加 `apiKey`，登录创建、退出删除客户端 Key | 我们的文件，保留 |
+| `apps/server/src/utils/cloud/index.ts` | 会话增加 `apiKey`，登录创建、退出删除客户端 Key（已被“登录会话直连网关”取代） | 我们的文件，保留 |
 | `apps/server/src/routes/settings/save.ts`、`utils/conf/index.ts` | 删供应商与生图协议的 schema 和引用检查，返回值只剩 `nodeMenu`；清理旧字段 | 保留我们的版本 |
 | `apps/server/src/utils/mcp/{operations,tools}.ts`、`utils/plugins/install.ts`、`types/desktop.ts`、`routes/desktop/plugins/install.ts` | 删媒体供应商操作与 `provider` 插件类型 | 上游新增的供应商相关操作直接丢弃 |
 | `apps/web/src/stores/settings.ts` | 删 `customProviders`；`modelChoices` 由 `/api/ai/models` 构建（新增 `aiModels`、`loadAiModels`） | 保留我们的版本 |
@@ -264,6 +264,32 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 | `packages/nodeScaffold/src/nodeAi.ts` | 媒体生成结束派发 `toonflow:media-generated`（刷新余额） | 保留这一句 |
 | i18n 21 份字典与 `messageSources.json` | 重新提取；删除被移除功能的 391 个键 | 以 `bun run extract` 结果为准，译文删掉 zhCn 中不存在的键 |
 | `apps/server/src/router.ts`、`apps/web/src/types/components.d.ts` | 自动生成 | 重新生成 |
+
+---
+
+## 登录会话直连网关
+
+- 提交：`ca291ec`（2026-10-31），分支 `claude/cloudsessionauth-93d374`；配合云端 Go 版（`maimai-cloud` 分支 `goRewrite`，契约见其 `docs/apiContract.md`），Go 版部署前未做真实联调
+- 目的：客户端不再创建和保存 `mm-` Key，网关请求直接带登录会话的访问令牌；模型下拉显示厂商图标；视频比例由云端模型配置下发
+- 旧数据：本地 `cloudSession.apiKey` 读取时忽略，不迁移；TS 版云端账号 Key 列表里遗留的“麦麦工坊客户端”Key 不会再被使用，可在云端清理
+
+### 我们新增的文件
+
+- `packages/nodeShared/src/components/modelOption.vue`：模型图标 + 名称，节点模型下拉共用（导出 `@toonflow/node-shared/modelOption`）
+
+### 改动了上游文件
+
+| 文件 | 改动 | 冲突时的处理 |
+| --- | --- | --- |
+| `apps/server/src/utils/cloud/{index,models}.ts` | 删 `createApiKey`、`getApiKey`、`dropApiKey` 及登录建 Key、退出删 Key；新增 `sessionFetch`（只给麦麦云地址带令牌，401 强制刷新重试一次）与 `getAccessToken`；`CloudModel` 增加 `vendor` | 我们的文件，保留 |
+| `apps/server/src/utils/ai/index.ts`、`agent/runtime/requests.ts` | provider 的 Key 改为访问令牌，SDK 请求的 fetch 换成 `sessionFetch`；文本模型透传 `vendor` | 上游改 fetch 传递时保留 `sessionFetch` 兜底 |
+| `apps/server/src/utils/media/generation.ts`、`packages/toolScaffold/src/runtime.ts`、`packages/nodeScaffold/src/nodeAi.ts` | `MediaModel` 增加 `vendor`、`ratios`，`NodeAiModel` 增加 `vendor` | 合并时保留这几个可选字段 |
+| `packages/modelIcons/src/{getModelIcon.ts,modelIcon.vue}` | 增加可选 `vendor`，非空且已收录时直接取该图标 | 保留 |
+| `packages/nodeScaffold/index.ts`、`readme.md`、`apps/web/src/pages/workspace/panels/canvas/index.vue` | `@toonflow/model-icons` 设为节点 external，宿主经 `toonflowNodeHost.modelIcons` 提供 | 上游改 external 列表时补回这一项 |
+| `packages/nodes/{textNode,imageGenerationNode,videoGenerationNode,audioGenerationNode,frameAnalysisNode,director3dNode,imageNode}` 模型下拉 | 选项与已选项前显示 `modelOption` 图标 | 上游改下拉时补回 `modelOption` |
+| `packages/nodes/videoGenerationNode/src/index.vue` | 比例改读 `meta.ratios`，缺省 `16:9/9:16/1:1`；`setConfig` 按模型比例校验 | 保留我们的比例来源 |
+| `apps/web/src/stores/settings.ts`、`components/modelPopover.vue`、`settings/panels/{languageModel,mediaModel}/index.vue` | 透传并使用 `vendor` | 保留 |
+| `docs/cloudModels.md` | 链路改为会话令牌 | 我们的文件 |
 
 ---
 

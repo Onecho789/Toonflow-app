@@ -6,7 +6,7 @@ import { getSupportedThinkingLevels, type Context, type KnownApi, type Model, ty
 import { defaultThinkingLevels, thinkingLevels, type ThinkingLevel } from "@/lib/modelReasoning";
 import { z } from "zod";
 import conf from "@/utils/conf";
-import { getApiKey } from "@/utils/cloud";
+import { getAccessToken, sessionFetch } from "@/utils/cloud";
 import { cloudProviderId, gatewayUrl, listCloudModels } from "@/utils/cloud/models";
 import { readReference } from "@/utils/media/generation";
 import { findModelContextLimits } from "@/utils/ai/modelContextLimits";
@@ -19,7 +19,7 @@ import { readDocument } from "@/utils/documents";
 
 // 推理档位 → 接口值；false 表示不支持推理。
 type ReasoningEfforts = false | Partial<Record<ThinkingLevel, string | null>>;
-type TextModel = { id: string; label: string; contextWindow?: number; maxOutputTokens?: number; reasoningEfforts?: ReasoningEfforts };
+type TextModel = { id: string; label: string; vendor?: string; contextWindow?: number; maxOutputTokens?: number; reasoningEfforts?: ReasoningEfforts };
 
 const builtinModels: Model<KnownApi>[] = getBuiltinProviders().flatMap(provider => getBuiltinModels(provider));
 
@@ -80,7 +80,7 @@ async function cloudTextModels() {
     const meta = item.meta as { contextWindow?: number; maxOutputTokens?: number; reasoningEfforts?: string[] | false };
     const efforts = meta.reasoningEfforts;
     const model = {
-      id: item.id, label: item.label, contextWindow: meta.contextWindow, maxOutputTokens: meta.maxOutputTokens,
+      id: item.id, label: item.label, vendor: item.vendor, contextWindow: meta.contextWindow, maxOutputTokens: meta.maxOutputTokens,
       reasoningEfforts: Array.isArray(efforts) ? Object.fromEntries(efforts.filter(level => (thinkingLevels as readonly string[]).includes(level)).map(level => [level, level])) : efforts === false ? false as const : undefined,
     } satisfies TextModel;
     return { model, protocol: cloudProtocols[item.protocol as keyof typeof cloudProtocols] ?? "openai-completions" };
@@ -91,7 +91,7 @@ export async function getConfiguredModel(_providerId: string, modelId: string) {
   const found = (await cloudTextModels()).find(item => item.model.id === modelId);
   if (!found) throw Object.assign(new Error(conf.get("cloudSession") ? "所选模型已下架或不存在，请重新选择" : "请先登录麦麦云账号"), { status: 400 });
   const { model, protocol } = found;
-  const provider = { apiUrl: gatewayUrl, apiKey: await getApiKey(), protocol };
+  const provider = { apiUrl: gatewayUrl, apiKey: await getAccessToken(), protocol };
   const limits = getModelLimits(cloudProviderId, model);
   return { provider, model: { ...model, ...getModelReasoning(cloudProviderId, model, protocol), contextWindow: limits.contextWindow, maxOutputTokens: limits.maxTokens }, baseUrl: gatewayUrl };
 }
@@ -100,7 +100,7 @@ export async function listAiModels() {
   return (await cloudTextModels()).map(({ model, protocol }) => {
     const limits = getModelLimits(cloudProviderId, model);
     return {
-      providerId: cloudProviderId, providerLabel: "麦麦云", protocol, modelId: model.id, label: model.label,
+      providerId: cloudProviderId, providerLabel: "麦麦云", protocol, modelId: model.id, label: model.label, vendor: model.vendor,
       contextWindow: limits.contextWindow, maxOutputTokens: limits.maxTokens,
       reasoningLevels: getModelReasoning(cloudProviderId, model, protocol).reasoningLevels,
     };
@@ -186,7 +186,7 @@ export function streamAi(
     contextWindow: configuredModel.contextWindow,
     maxTokens: configuredModel.maxOutputTokens,
   };
-  const files = createFileTransport({ ...provider, apiUrl: baseUrl }, { signal });
+  const files = createFileTransport({ ...provider, apiUrl: baseUrl }, { fetch: sessionFetch, signal });
   return aiApis[provider.protocol].streamSimple(model, context, {
     apiKey: provider.apiKey,
     signal,

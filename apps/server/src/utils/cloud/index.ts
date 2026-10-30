@@ -2,7 +2,8 @@ import conf from "@/utils/conf";
 import { t } from "@/lib/i18n";
 import type { CloudUser } from "@/types/desktop";
 
-export type CloudSession = { user: CloudUser; accessToken: string; refreshToken: string; expiresAt: number; apiKey?: { id: number; key: string } };
+// ACT: 旧版本地会话里残留的 apiKey 字段不再读取，也不迁移；Go 版云端不再使用客户端 Key。
+export type CloudSession = { user: CloudUser; accessToken: string; refreshToken: string; expiresAt: number };
 type Tokens = { accessToken: string; refreshToken: string; expiresIn: number };
 
 // ACT: 正式域名确定前默认连接测试服务器（IP 证书）；本机联调用 MAIMAI_CLOUD_URL 覆盖。
@@ -33,9 +34,10 @@ function replaceSession(previous: CloudSession, next?: CloudSession) {
   else conf.delete("cloudSession");
 }
 
-function currentSession() {
+// staleToken 为刚被拒绝的访问令牌：本地仍是它时强制刷新，已被其他请求刷新过则直接用新令牌。
+function currentSession(staleToken?: string) {
   const session = conf.get("cloudSession");
-  if (!session || session.expiresAt > Date.now() + 60_000) return Promise.resolve(session);
+  if (!session || (session.expiresAt > Date.now() + 60_000 && session.accessToken !== staleToken)) return Promise.resolve(session);
   // 刷新令牌每次使用都会轮换，并发刷新会被云端判定为重放，这里合并为一次。
   refreshing ??= request<Tokens>("refresh", { body: { refreshToken: session.refreshToken } })
     .then(tokens => {
@@ -51,44 +53,49 @@ function currentSession() {
   return refreshing;
 }
 
-async function saveSession(result: Tokens & { user: CloudUser }) {
-  const session: CloudSession = { user: result.user, accessToken: result.accessToken, refreshToken: result.refreshToken, expiresAt: Date.now() + result.expiresIn * 1000 };
-  conf.set("cloudSession", session);
-  // 必须改密码的账号暂时不能建 Key，改密后首次调用模型时再补建。
-  if (!result.user.mustChangePassword) await createApiKey(session).catch(error => console.error("麦麦云客户端 Key 创建失败：", error));
+function saveSession(result: Tokens & { user: CloudUser }) {
+  conf.set("cloudSession", { user: result.user, accessToken: result.accessToken, refreshToken: result.refreshToken, expiresAt: Date.now() + result.expiresIn * 1000 });
   return result.user;
 }
 
-async function createApiKey(session: CloudSession) {
-  const created = await request<{ id: number; key: string }>("keys/", { body: { name: "麦麦工坊客户端" }, token: session.accessToken });
-  const next = { ...session, apiKey: { id: created.id, key: created.key } };
-  replaceSession(session, next);
-  return next;
-}
+// 带登录会话的访问令牌请求麦麦云；401 时强制刷新会话后重试一次，仍 401 视为未登录并清除本地会话。
+// 只给发往麦麦云的请求加令牌，其他地址原样转发，避免令牌泄露给第三方。
+// ACT: 重试会重发 init.body，调用方只传字符串、FormData 等可重复读取的 body；传 ReadableStream 时重试会失败，需要时再改为先缓存。
+export const sessionFetch = Object.assign(async (input: Parameters<typeof fetch>[0], init: RequestInit = {}) => {
+  const source = typeof input === "object" && "url" in input ? input : undefined;
+  const url = source?.url ?? String(input);
+  if (url !== cloudUrl && !url.startsWith(`${cloudUrl}/`)) return fetch(input, init);
+  let token: string | undefined;
+  for (let attempt = 0; ; attempt++) {
+    const session = await currentSession(token);
+    if (!session) throw Object.assign(new Error("请先登录麦麦云账号"), { status: 401 });
+    token = session.accessToken;
+    const headers = new Headers(init.headers ?? source?.headers);
+    headers.set("Authorization", `Bearer ${token}`);
+    // Request 的请求体只能读取一次，每次发送前复制。
+    const response = await fetch((source?.clone() ?? input) as typeof input, { ...init, headers });
+    if (response.status !== 401) return response;
+    if (attempt) {
+      replaceSession(session);
+      return response;
+    }
+    await response.body?.cancel();
+  }
+}, fetch);
 
-// 网关只认 mm- Key；访问令牌 15 分钟过期，所以登录后为本机建一把专用 Key，旧会话首次调用时补建。
-export async function getApiKey() {
+// SDK 初始化需要一个非空 Key；实际发送时由 sessionFetch 换成最新令牌。
+export async function getAccessToken() {
   const session = await currentSession();
   if (!session) throw Object.assign(new Error("请先登录麦麦云账号"), { status: 401 });
-  if (session.apiKey) return session.apiKey.key;
-  if (session.user.mustChangePassword) throw Object.assign(new Error("请先在账号设置中修改初始密码"), { status: 403 });
-  return (await createApiKey(session)).apiKey!.key;
-}
-
-// Key 被删或账号停用时网关返回 401，丢弃本地 Key，下次调用重新创建。
-export function dropApiKey(key: string) {
-  const session = conf.get("cloudSession");
-  if (session?.apiKey?.key !== key) return;
-  const { apiKey: _apiKey, ...rest } = session;
-  conf.set("cloudSession", rest);
+  return session.accessToken;
 }
 
 export async function login(email: string, password: string) {
-  return await saveSession(await request<Tokens & { user: CloudUser }>("login", { body: { email, password } }));
+  return saveSession(await request<Tokens & { user: CloudUser }>("login", { body: { email, password } }));
 }
 
 export async function register(email: string, code: string, password: string) {
-  return await saveSession(await request<Tokens & { user: CloudUser }>("register", { body: { email, code, password } }));
+  return saveSession(await request<Tokens & { user: CloudUser }>("register", { body: { email, code, password } }));
 }
 
 export async function sendCode(email: string) {
@@ -131,11 +138,6 @@ export async function logout() {
   const session = conf.get("cloudSession");
   conf.delete("cloudSession");
   if (!session) return;
-  // ACT: 本地先退出；云端不可达时只记录错误，云端会话最长 30 天后自然过期，未删掉的客户端 Key 留在账号 Key 列表里由用户删除。
-  try {
-    let { accessToken, refreshToken } = session;
-    if (session.apiKey && session.expiresAt <= Date.now() + 60_000) ({ accessToken, refreshToken } = await request<Tokens>("refresh", { body: { refreshToken } }));
-    if (session.apiKey) await request(`keys/${session.apiKey.id}`, { method: "DELETE", token: accessToken }).catch(error => console.error("麦麦云客户端 Key 删除失败：", error));
-    await request("logout", { body: { refreshToken } });
-  } catch (error) { console.error("麦麦云退出失败：", error); }
+  // ACT: 本地先退出；云端不可达时只记录错误，云端会话最长 30 天后自然过期。
+  await request("logout", { body: { refreshToken: session.refreshToken } }).catch(error => console.error("麦麦云退出失败：", error));
 }

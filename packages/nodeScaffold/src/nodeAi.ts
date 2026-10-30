@@ -10,6 +10,7 @@ export type NodeAiModel = {
   providerLabel: string;
   modelId: string;
   label: string;
+  vendor?: string;
   protocol: "openai-completions" | "openai-responses" | "anthropic-messages";
   contextWindow?: number;
   maxOutputTokens?: number;

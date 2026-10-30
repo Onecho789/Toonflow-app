@@ -7,6 +7,7 @@ import type { AgentImageReference } from "@/agent/runtime/imageAttachments";
 import { getAgentTaskId } from "@/agent/runtime/sessions";
 import { getRequestFiles, type RequestFile } from "@/utils/ai/requestFiles";
 import { createFileTransport, FileRequestLimitError } from "@/utils/ai/files";
+import { sessionFetch } from "@/utils/cloud";
 import { t } from "@/lib/i18n";
 
 function contentHash(value: unknown) {
@@ -89,7 +90,7 @@ export function configureAgentRequests(session: AgentSession, limits?: { maxRequ
           apiUrl: auth?.auth.baseUrl ?? model.baseUrl,
           apiKey: apiKey ?? "",
           protocol: model.api,
-        }, { fetch: options?.fetch, signal: options?.signal });
+        }, { fetch: options?.fetch ?? sessionFetch, signal: options?.signal });
         const maxRequestImageBytes = limits?.maxRequestImageBytes ?? 20 * 1024 * 1024;
         const maxRequestBytes = limits?.maxRequestBytes ?? 32 * 1024 * 1024;
         for (const value of [maxRequestImageBytes, maxRequestBytes]) {

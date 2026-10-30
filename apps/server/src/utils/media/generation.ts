@@ -45,11 +45,11 @@ function invalid(message: string): never {
 export async function listMediaModels(): Promise<MediaModel[]> {
   return (await listCloudModels()).flatMap(model => {
     if (model.type !== "image" && model.type !== "video") return [];
-    const meta = model.meta as Pick<MediaModel, "mode" | "durationResolutionMap" | "audio" | "imageSizes" | "imageRatios">;
+    const meta = model.meta as Pick<MediaModel, "mode" | "durationResolutionMap" | "audio" | "imageSizes" | "imageRatios" | "ratios">;
     return [{
-      providerId: cloudProviderId, providerLabel: "麦麦云", modelId: model.id, label: model.label, type: model.type, supportsPrice: true,
+      providerId: cloudProviderId, providerLabel: "麦麦云", modelId: model.id, label: model.label, vendor: model.vendor, type: model.type, supportsPrice: true,
       mode: meta.mode, durationResolutionMap: meta.durationResolutionMap, audio: meta.audio,
-      ...(model.type === "image" ? { imageSizes: meta.imageSizes, imageRatios: meta.imageRatios } : {}),
+      ...(model.type === "image" ? { imageSizes: meta.imageSizes, imageRatios: meta.imageRatios } : { ratios: meta.ratios }),
     }];
   });
 }

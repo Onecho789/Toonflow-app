@@ -11,7 +11,7 @@
       :popperStyle="{ padding: '20px', maxWidth: 'calc(100vw - 24px)' }">
       <template #reference>
         <el-button class="modelButton" text :disabled="disabled" aria-label="模型与思考强度设置">
-          <modelIcon v-if="selectedModelChoice" :model="selectedModelChoice.modelId" :size="14" />
+          <modelIcon v-if="selectedModelChoice" :model="selectedModelChoice.modelId" :vendor="selectedModelChoice.vendor" :size="14" />
           <span class="modelName">{{ selectedModelChoice?.label ?? "选择模型" }}</span>
           <template v-if="reasoningLevels.length">
             ·
@@ -23,10 +23,10 @@
       <el-form class="modelOptions" labelPosition="top">
         <el-form-item label="模型">
           <el-select v-model="selectedModel" filterable :disabled="disabled" :teleported="false" placeholder="选择模型" aria-label="选择模型" noDataText="请先登录麦麦云账号" @change="reasoningEffort = ''">
-            <template #prefix><modelIcon v-if="selectedModelChoice" :model="selectedModelChoice.modelId" :size="18" /></template>
+            <template #prefix><modelIcon v-if="selectedModelChoice" :model="selectedModelChoice.modelId" :vendor="selectedModelChoice.vendor" :size="18" /></template>
             <el-option v-for="model in modelChoices" :key="model.value" :label="model.label" :value="model.value">
               <el-space :size="8">
-                <modelIcon :model="model.modelId" :size="16" />
+                <modelIcon :model="model.modelId" :vendor="model.vendor" :size="16" />
                 <span>{{ model.label }}</span>
               </el-space>
             </el-option>

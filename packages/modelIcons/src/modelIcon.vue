@@ -7,8 +7,8 @@
 import { computed } from "vue";
 import { getModelIcon } from "./getModelIcon";
 
-const props = withDefaults(defineProps<{ model: string; size?: number }>(), { size: 16 });
-const icon = computed(() => getModelIcon(props.model));
+const props = withDefaults(defineProps<{ model: string; vendor?: string; size?: number }>(), { size: 16 });
+const icon = computed(() => getModelIcon(props.model, props.vendor));
 </script>
 
 <style scoped>

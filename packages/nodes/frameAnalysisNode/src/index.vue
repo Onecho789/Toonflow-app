@@ -63,9 +63,9 @@
         <p v-else class="localHint">本地检测分镜、提取关键帧与原音轨，结果直接生成到画布。</p>
         <div class="promptFooter">
           <el-select v-if="settings.aiEnabled" v-model="settings.aiModel" class="modelSelect" :loading="modelsLoading" :disabled="busy" filterable placeholder="选择语言模型" aria-label="拉片语言模型" noDataText="请先在设置中添加模型" placement="top-start" @visible-change="visible => visible && loadModels()">
-            <template #prefix><icon-sparkles :size="17" /></template>
+            <template #prefix><modelOption v-if="selectedModel" :model="selectedModel" iconOnly :size="17" /><icon-sparkles v-else :size="17" /></template>
             <el-option-group v-for="provider in modelGroups" :key="provider.id" :label="provider.label">
-              <el-option v-for="item in provider.models" :key="item.modelId" :value="JSON.stringify([item.providerId, item.modelId])" :label="item.label" />
+              <el-option v-for="item in provider.models" :key="item.modelId" :value="JSON.stringify([item.providerId, item.modelId])" :label="item.label"><modelOption :model="item" /></el-option>
             </el-option-group>
           </el-select>
           <span v-else class="localLabel"><icon-scissors :size="17" />本地分析</span>
@@ -100,6 +100,7 @@ import analysisReport from "./analysisReport.vue";
 import videoPlayer from "@toonflow/node-video/videoPlayer";
 import promptInput from "@toonflow/node-shared/promptInput";
 import { groupNodeModels } from "@toonflow/node-shared/groupNodeModels";
+import modelOption from "@toonflow/node-shared/modelOption";
 
 defineOptions({
   inheritAttrs: false,

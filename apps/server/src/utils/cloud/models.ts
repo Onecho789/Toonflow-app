@@ -1,11 +1,13 @@
 import conf from "@/utils/conf";
 import { t } from "@/lib/i18n";
-import { cloudUrl, dropApiKey, getApiKey } from "@/utils/cloud";
+import { cloudUrl, sessionFetch } from "@/utils/cloud";
 
 export type CloudModel = {
   id: string;
   type: "text" | "image" | "video";
   label: string;
+  // lobehub 图标名，由后台填写，可能为空串；客户端为空时按模型 ID 推断。
+  vendor?: string;
   protocol: "chat" | "responses" | "image" | "video";
   // 金额单位为 0.0001 元，文本按每百万 token，图片按张，视频按秒。
   pricing: { input: number; output: number; unit: number };
@@ -22,20 +24,12 @@ export async function gatewayError(response: Response) {
   return Object.assign(new Error(result?.error?.message || t`麦麦云请求失败（HTTP ${response.status}）`), { status: response.status >= 500 ? 502 : response.status });
 }
 
-// 带客户端 Key 调用网关；Key 失效时丢弃并重建一次。
 export async function gatewayFetch(path: string, init: RequestInit = {}) {
-  for (let attempt = 0; ; attempt++) {
-    const key = await getApiKey();
-    let response: Response;
-    try {
-      response = await fetch(`${gatewayUrl}${path}`, { ...init, headers: { ...init.headers as Record<string, string>, Authorization: `Bearer ${key}` } });
-    } catch (error) {
-      if (init.signal?.aborted) throw error;
-      throw Object.assign(new Error("无法连接麦麦云，请检查网络后重试"), { status: 502 });
-    }
-    if (response.status !== 401 || attempt) return response;
-    await response.body?.cancel();
-    dropApiKey(key);
+  try {
+    return await sessionFetch(`${gatewayUrl}${path}`, init);
+  } catch (error) {
+    if (init.signal?.aborted || (error as { status?: number }).status) throw error;
+    throw Object.assign(new Error("无法连接麦麦云，请检查网络后重试"), { status: 502 });
   }
 }
 
