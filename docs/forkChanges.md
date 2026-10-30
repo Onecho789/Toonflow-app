@@ -269,7 +269,7 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 
 ## 登录会话直连网关
 
-- 提交：待补（2026-10-31），分支 `claude/cloudsessionauth-93d374`；配合云端 Go 版（`maimai-cloud` 分支 `goRewrite`，契约见其 `docs/apiContract.md`），Go 版部署前未做真实联调
+- 提交：`ca291ec`（2026-10-31），分支 `claude/cloudsessionauth-93d374`；配合云端 Go 版（`maimai-cloud` 分支 `goRewrite`，契约见其 `docs/apiContract.md`），Go 版部署前未做真实联调
 - 目的：客户端不再创建和保存 `mm-` Key，网关请求直接带登录会话的访问令牌；模型下拉显示厂商图标；视频比例由云端模型配置下发
 - 旧数据：本地 `cloudSession.apiKey` 读取时忽略，不迁移；TS 版云端账号 Key 列表里遗留的“麦麦工坊客户端”Key 不会再被使用，可在云端清理
 
