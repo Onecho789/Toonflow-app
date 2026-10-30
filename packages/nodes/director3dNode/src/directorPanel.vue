@@ -33,8 +33,9 @@
       <div class="inputContent"><slot name="input" /></div>
       <div class="inputActions">
         <el-select v-model="model" class="modelSelect" size="small" :loading="modelsLoading" filterable placeholder="选择模型" aria-label="生成模型" @visibleChange="$event && emit('loadModels')">
+          <template v-if="selectedModel" #prefix><modelOption :model="selectedModel" iconOnly :size="14" /></template>
           <el-option-group v-for="provider in modelGroups" :key="provider.id" :label="provider.label">
-            <el-option v-for="item in provider.models" :key="item.modelId" :label="item.label" :value="JSON.stringify([item.providerId, item.modelId])" />
+            <el-option v-for="item in provider.models" :key="item.modelId" :label="item.label" :value="JSON.stringify([item.providerId, item.modelId])"><modelOption :model="item" /></el-option>
           </el-option-group>
         </el-select>
         <el-button class="sendButton" type="primary" round :disabled="initializing || !prompt.trim() || !model" aria-label="生成动画" @click="sendInstruction">
@@ -51,6 +52,7 @@ import { ElButton, ElOption, ElOptionGroup, ElSelect } from "element-plus";
 import { IconLoader2, IconSparkles, IconMovie, IconCheck, IconAlertCircle, IconArrowBackUp } from "@tabler/icons-vue";
 import type { NodeAiModel } from "@toonflow/nodes-scaffold/runtime";
 import { groupNodeModels } from "@toonflow/node-shared/groupNodeModels";
+import modelOption from "@toonflow/node-shared/modelOption";
 
 import type { DirectorPlan, DirectorPlanItem, DirectorGeneration } from "./sceneAnimation";
 
@@ -59,6 +61,7 @@ const emit = defineEmits<{ editInstruction: [value: string]; selectPlan: [id: st
 const prompt = defineModel<string>("prompt", { default: "" });
 const model = defineModel<string>("model", { default: "" });
 const modelGroups = computed(() => groupNodeModels(props.models));
+const selectedModel = computed(() => props.models.find(item => JSON.stringify([item.providerId, item.modelId]) === model.value));
 function sendInstruction() {
   if (props.initializing || !prompt.value.trim() || !model.value) return;
   emit("send");

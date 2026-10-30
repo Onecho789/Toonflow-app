@@ -4,7 +4,7 @@
     <div class="itemList">
       <el-card v-for="item in models" :key="item.modelId" class="providerItem" shadow="never">
         <div class="providerHeader">
-          <div class="providerMark" aria-hidden="true"><modelIcon :model="item.modelId" :size="24" /></div>
+          <div class="providerMark" aria-hidden="true"><modelIcon :model="item.modelId" :vendor="item.vendor" :size="24" /></div>
           <div class="providerInfo">
             <div class="providerHeading">
               <el-text class="providerName" tag="strong">{{ item.label }}</el-text>
@@ -33,7 +33,7 @@ import { IconRefresh } from "@tabler/icons-vue";
 import { invalidateNodeModels } from "@toonflow/nodes-scaffold/nodeAi";
 import { cloudAccount } from "@/stores/cloudAccount";
 
-type MediaModel = { modelId: string; label: string; type: "image" | "video" };
+type MediaModel = { modelId: string; label: string; vendor?: string; type: "image" | "video" };
 const models = ref<MediaModel[]>([]);
 const loading = ref(false);
 const error = ref("");

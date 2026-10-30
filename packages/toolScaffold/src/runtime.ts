@@ -84,10 +84,14 @@ export interface MediaModel {
   providerLabel: string;
   modelId: string;
   label: string;
+  /** lobehub 图标名，为空时按模型 ID 推断图标。 */
+  vendor?: string;
   type: "image" | "video" | "audio";
   mode?: unknown;
   imageSizes?: string[];
   imageRatios?: string[];
+  /** 视频画面比例。 */
+  ratios?: string[];
   durationResolutionMap?: { duration: number[]; resolution: string[] }[];
   audio?: boolean | "optional";
   voices?: { title: string; voice: string }[];

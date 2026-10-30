@@ -1,8 +1,9 @@
 <template>
   <footer class="variationFooter">
     <el-select v-model="settings.model" class="modelSelect" filterable :loading="modelsLoading" :disabled="busy" placeholder="选择图片模型" :aria-label="`${label}模型`" noDataText="请先在设置中添加图片模型" placement="top-start" @visible-change="visible => visible && refreshModels()">
+      <template v-if="selectedModel" #prefix><modelOption :model="selectedModel" iconOnly /></template>
       <el-option-group v-for="provider in modelGroups" :key="provider.id" :label="provider.label">
-        <el-option v-for="model in provider.models" :key="model.modelId" :label="model.label" :value="JSON.stringify([model.providerId, model.modelId])" />
+        <el-option v-for="model in provider.models" :key="model.modelId" :label="model.label" :value="JSON.stringify([model.providerId, model.modelId])"><modelOption :model="model" /></el-option>
       </el-option-group>
     </el-select>
     <el-popover trigger="click" placement="top" :width="220" :disabled="busy || !selectedModel" :showArrow="false">
@@ -24,6 +25,7 @@ import { IconSparkles } from "@tabler/icons-vue";
 import { useNodeAi, useNodeToolsContext, type NodeMediaModel, type NodeMediaValue } from "@toonflow/nodes-scaffold/runtime";
 import { groupNodeModels } from "@toonflow/node-shared/groupNodeModels";
 import { showNodeError } from "@toonflow/node-shared/showNodeError";
+import modelOption from "@toonflow/node-shared/modelOption";
 import { useImageVariationNode } from "../useImageVariationNode";
 
 const props = defineProps<{

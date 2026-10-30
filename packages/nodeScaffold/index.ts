@@ -109,7 +109,7 @@ export function createNodeConfig(config: NodeConfig, configUrl: string) {
         fileName: () => fileName,
       },
       rolldownOptions: {
-        external: ["vue", "@vue/runtime-core", "@vue/runtime-dom", "@vue-flow/core", "element-plus", "three", "@earendil-works/pi-agent-core", "@earendil-works/pi-ai", ...Object.keys(tiptapGlobals)],
+        external: ["vue", "@vue/runtime-core", "@vue/runtime-dom", "@vue-flow/core", "element-plus", "three", "@earendil-works/pi-agent-core", "@earendil-works/pi-ai", "@toonflow/model-icons", ...Object.keys(tiptapGlobals)],
         output: {
           exports: "default",
           globals: {
@@ -122,6 +122,8 @@ export function createNodeConfig(config: NodeConfig, configUrl: string) {
             three: "toonflowNodeHost.three",
             "@earendil-works/pi-agent-core": "toonflowNodeHost.ai",
             "@earendil-works/pi-ai": "toonflowNodeHost.ai",
+            // 图标包含整套 SVG 资源，节点单文件无法携带，复用宿主已加载的组件。
+            "@toonflow/model-icons": "toonflowNodeHost.modelIcons",
           },
         },
       },

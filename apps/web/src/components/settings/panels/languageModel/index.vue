@@ -4,7 +4,7 @@
     <div class="itemList">
       <el-card v-for="item in aiModels" :key="item.modelId" class="providerItem" shadow="never">
         <div class="providerHeader">
-          <div class="providerMark" aria-hidden="true"><modelIcon :model="item.modelId" :size="24" /></div>
+          <div class="providerMark" aria-hidden="true"><modelIcon :model="item.modelId" :vendor="item.vendor" :size="24" /></div>
           <div class="providerInfo">
             <div class="providerHeading">
               <el-text class="providerName" tag="strong">{{ item.label }}</el-text>

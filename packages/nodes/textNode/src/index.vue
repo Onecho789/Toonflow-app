@@ -29,9 +29,9 @@
         <promptInput v-model="promptModel" v-model:text="prompt" :references="referenceMentions" />
         <div class="promptFooter">
           <el-select v-model="model" class="modelSelect" filterable :loading="modelsLoading" :disabled="generating" placeholder="选择模型" aria-label="生成模型" noDataText="请先在设置中添加模型" placement="top-start" @visible-change="visible => visible && loadModels()">
-            <template #prefix><icon-sparkles :size="17" /></template>
+            <template #prefix><modelOption v-if="selectedModel" :model="selectedModel" iconOnly :size="17" /><icon-sparkles v-else :size="17" /></template>
             <el-option-group v-for="provider in modelGroups" :key="provider.id" :label="provider.label">
-              <el-option v-for="item in provider.models" :key="item.modelId" :label="item.label" :value="JSON.stringify([item.providerId, item.modelId])" />
+              <el-option v-for="item in provider.models" :key="item.modelId" :label="item.label" :value="JSON.stringify([item.providerId, item.modelId])"><modelOption :model="item" /></el-option>
             </el-option-group>
           </el-select>
           <div class="promptActions">
@@ -59,6 +59,7 @@ import markdownEditor from "./markdownEditor.vue";
 import markdownPreview from "./markdownPreview.vue";
 import referenceItem from "@toonflow/node-shared/referenceItem";
 import promptInput from "@toonflow/node-shared/promptInput";
+import modelOption from "@toonflow/node-shared/modelOption";
 import { useNodeDocumentState, type NodeDocumentContext } from "@toonflow/nodes-scaffold/nodeDocument";
 
 type PromptModel = NonNullable<InstanceType<typeof promptInput>["$props"]["modelValue"]>;
