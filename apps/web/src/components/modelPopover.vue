@@ -66,8 +66,13 @@ const reasoningLevels = computed(() => selectedModelChoice.value?.reasoningLevel
 const reasoningOptions = computed(() => [{ label: "默认", value: "" }, ...reasoningLevels.value.map(value => ({ label: reasoningLabels[value], value }))]);
 const reasoningColumns = computed(() => Math.min(4, reasoningOptions.value.length > 4 ? Math.ceil(reasoningOptions.value.length / 2) : reasoningOptions.value.length));
 const reasoningLabel = computed(() => reasoningOptions.value.find(item => item.value === reasoningEffort.value)?.label ?? "默认");
-watch(modelChoices, items => {
-  if (!selectedModel.value) selectedModel.value = items[0]?.value ?? "";
+// 旧对话保存的是本地供应商 ID（如 codex），按模型 ID 换成云端选项，和服务端匹配规则一致。
+watch([modelChoices, selectedModel], ([items, value]) => {
+  if (!value) return void (selectedModel.value = items[0]?.value ?? "");
+  if (items.some(item => item.value === value)) return;
+  const modelId = (() => { try { return (JSON.parse(value) as unknown[])[1]; } catch { return undefined; } })();
+  const match = items.find(item => item.modelId === modelId);
+  if (match) selectedModel.value = match.value;
 }, { immediate: true });
 watch([() => selectedModelChoice.value?.reasoningLevels, reasoningEffort], ([levels, effort]) => {
   if (levels && effort && !levels.includes(effort as ThinkingLevel)) reasoningEffort.value = "";

@@ -367,6 +367,17 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 | `packages/nodeShared/src/useNodeGeneration.ts` | 状态写入 `node.data.generationStatus` | 补回 watch 一段 |
 | `packages/nodes/{imageNode,imageGenerationNode,videoNode,videoGenerationNode}/src/index.vue` | 双击媒体打开 `mediaPreview`；生成节点工具栏加 `copyPrompt` | 保留上游改动，再补回 |
 
+## 旧对话模型选项迁移
+
+- 日期：2026-10-31
+- 目的：旧对话保存的模型选项仍带已删除的本地供应商 ID（如 `["codex","gpt-6.1-sol"]`），下拉框匹配不到，会直接显示原始字符串
+
+### 改动了上游文件
+
+| 文件 | 改动 | 冲突时的处理 |
+| --- | --- | --- |
+| `apps/web/src/components/modelPopover.vue` | 选中值不在云端目录时，按模型 ID 换成云端选项 | 补回 `watch([modelChoices, selectedModel])` 一段 |
+
 ---
 
 ## 同步记录
