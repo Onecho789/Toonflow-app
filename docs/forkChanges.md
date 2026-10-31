@@ -295,7 +295,7 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 
 ## 设备级 mm- Key
 
-- 提交：见本节所在提交（2026-10-31），分支 `codex/simplifyMediaModels`；配合云端 `maimai-cloud` 的 `71f149f`（分支 `goRewrite`）
+- 提交：`9c36e8e`（2026-10-31），分支 `codex/simplifyMediaModels`；配合云端 `maimai-cloud` 的 `71f149f`（分支 `goRewrite`）
 - 目的：取代“登录会话直连网关”。客户端改为只存这台设备的 `mm-` Key，Key 由云端在登录时签发，同一设备只保留一个；Windows 用 DPAPI 加密保存
 - 旧数据：旧版保存的会话令牌按未登录处理，不迁移
 
