@@ -47,7 +47,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, reactive, ref } from "vue";
-import logoUrl from "@toonflow/assets/logo.svg";
+import logoUrl from "@toonflow/assets/logo.png";
 import { changeCloudPassword, cloudAccount, cloudAccountError, cloudAccountLoading, loginCloudAccount, logoutCloudAccount, registerCloudAccount, sendCloudCode } from "@/stores/cloudAccount";
 
 const mode = ref<"login" | "register">("login");
@@ -106,10 +106,6 @@ onBeforeUnmount(() => clearInterval(countdownTimer));
         width: 40px;
         height: 40px;
         object-fit: contain;
-
-        .dark & {
-          filter: invert(1);
-        }
       }
 
       h1 {

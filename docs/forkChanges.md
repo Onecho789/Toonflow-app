@@ -419,6 +419,21 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 | `packages/nodeShared/package.json` | exports 增加 `promptLibrary`、`promptDetail`、`cloudPrompts` | 补回 |
 | `packages/nodes/{imageGenerationNode,videoGenerationNode}/src/index.vue` | 输入区加 `promptLibrary`；`setPrompt` 工具改用共用的 `setPromptText` | 保留上游改动，再补回 |
 
+## 第三版 Logo：彩色“麦穗屋顶小工坊”
+
+- 日期：2026-11-01
+- 图形：小麦同学从麦穗屋顶小工坊的窗口探身挥手，嫩绿圆角底板；用自家画布的图片生成节点产出（原图与候选在 `D:\2api-codes\maimaiLogo`，旧资源备份在其 `oldAssets/`）
+- `packages/assets/logo.ico`、`logo.iconset/*.png`：彩色原图去白边、透明圆角后按尺寸缩放；新增 `logo.png`（256px），网页里直接显示 Logo 的地方改用它
+- `logo.svg` 仍是单色剪影（圆角底板外形，窗口和窗格镂空），只给需要单色的地方用：加载页描边动画、引导页白色 Logo、对话欢迎图标的 `mask-image`、首页像素雾取样
+- 原生启动动画 `packages/startup/assets/startup.json` 的 `logo` 图层换成新剪影：最大轮廓放 `logoPen`，其余镂空放 `logoBody`，`tr` 缩放和位移按原显示区域对齐；时间轴不变
+
+### 改动了上游文件
+
+| 文件 | 改动 | 冲突时的处理 |
+| --- | --- | --- |
+| `apps/web/src/pages/home/index.vue`、`components/loginGate.vue`、`components/settings/panels/about.vue` | Logo 改引 `logo.png`，删掉暗色模式的 `filter: invert(1)` | 保留上游改动，再补回 |
+| `apps/web/src/components/loadingPage.vue` | 填充图改引 `logo.png`；暗色反色只作用在描边层 `.logoOutline` | 保留上游改动，再补回 |
+
 ---
 
 ## 同步记录

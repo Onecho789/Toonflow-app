@@ -118,7 +118,7 @@ import {
   IconCircleCheck,
   IconArrowRight,
 } from "@tabler/icons-vue";
-import logoUrl from "@toonflow/assets/logo.svg";
+import logoUrl from "@toonflow/assets/logo.png";
 import { saveSettings } from "@/stores/settings";
 import {
   desktopUpdateSnapshot as snapshot,
@@ -228,10 +228,6 @@ async function runUpdate(nextAction: "read" | "check" | "download" | "apply") {
         width: 42px;
         height: 42px;
         object-fit: contain;
-
-        .dark & {
-          filter: invert(1);
-        }
       }
     }
 

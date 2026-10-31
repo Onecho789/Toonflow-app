@@ -14,7 +14,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref, watch } from "vue";
 import logoRaw from "@toonflow/assets/logo.svg?raw";
-import logoUrl from "@toonflow/assets/logo.svg";
+import logoUrl from "@toonflow/assets/logo.png";
 
 const props = defineProps<{ active: boolean }>();
 const visible = defineModel<boolean>("visible", { default: false });
@@ -85,12 +85,12 @@ function finishFilling() {
     aspect-ratio: 1;
     transform: translate(-50%, -50%);
 
-    .dark & { filter: invert(1); }
-
     .logoOutline {
       width: 100%;
       line-height: 0;
       will-change: opacity;
+
+      .dark & { filter: invert(1); }
 
       :deep(svg) { display: block; width: 100%; height: auto; overflow: visible; }
       :deep(path) {
