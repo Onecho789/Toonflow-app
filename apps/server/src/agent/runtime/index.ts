@@ -154,9 +154,13 @@ export async function run(
     const parentFile = getParentSessionFile(history);
     const child = getSubAgentInfo(history)?.data;
     const liveTools = new Map<string, AgentToolCall>();
+    // 工具显示名随事件下发，供对话底部状态行展示；工具列表建好后再填充。
+    const toolLabels = new Map<string, string>();
     const publish = send;
     send = event => {
       if (event.type === "tool") {
+        const label = toolLabels.get(event.tool.name);
+        if (label) event = { ...event, tool: { ...event.tool, label } };
         const tool = { ...liveTools.get(event.tool.id), ...event.tool };
         if (tool.status !== "running") delete tool.question;
         liveTools.set(tool.id, tool);
@@ -204,6 +208,7 @@ export async function run(
         onCanvasCancel: reason => { controller.abort(reason); onCanvasCancel?.(reason); },
       }),
     }));
+    for (const tool of tools) if (tool.label) toolLabels.set(tool.name, tool.label);
     const resources = await createAgentResources(cwd, tools, undefined, child
       ? `## 子 Agent 职责\n你正在执行委派任务：${JSON.stringify({ file, name: child.name, task: child.task })}。遵守当前工作区规则与授权，用户可以进入此子会话补充要求。需要其他 Agent 配合时使用 listAgents 与 sendAgentMessage 直接沟通。重要进展与最终结论使用 report 上报父 Agent。`
       : "");

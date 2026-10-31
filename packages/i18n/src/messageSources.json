@@ -749,6 +749,7 @@
     "apps/web/src/components/singleAgentDialog.vue"
   ],
   "已完成": [
+    "apps/web/src/components/agent/conversation.vue",
     "apps/web/src/components/agent/menu.vue",
     "apps/web/src/components/agent/toolMessage.vue",
     "apps/web/src/components/settings/panels/developer/index.vue"
@@ -1167,7 +1168,7 @@
   "默认由模型决定": [
     "apps/web/src/components/modelPopover.vue"
   ],
-  "最小": [
+  "最少": [
     "apps/web/src/components/modelPopover.vue"
   ],
   "低": [
@@ -1179,7 +1180,7 @@
   "高": [
     "apps/web/src/components/modelPopover.vue"
   ],
-  "极高": [
+  "超高": [
     "apps/web/src/components/modelPopover.vue"
   ],
   "最高": [
@@ -8318,5 +8319,17 @@
   ],
   "FFmpeg 不能操作悬空符号链接": [
     "packages/ffmpeg/src/runtime.ts"
+  ],
+  "出错": [
+    "apps/web/src/components/agent/conversation.vue"
+  ],
+  "等待你回答": [
+    "apps/web/src/components/agent/conversation.vue"
+  ],
+  "运行中 · 调用 {0}": [
+    "apps/web/src/components/agent/conversation.vue"
+  ],
+  "运行中…": [
+    "apps/web/src/components/agent/conversation.vue"
   ]
 }

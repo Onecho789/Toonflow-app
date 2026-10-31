@@ -2,8 +2,8 @@ import { openAICompletionsApi } from "@earendil-works/pi-ai/api/openai-completio
 import { openAIResponsesApi } from "@earendil-works/pi-ai/api/openai-responses.lazy";
 import { anthropicMessagesApi } from "@earendil-works/pi-ai/api/anthropic-messages.lazy";
 import { getBuiltinModels, getBuiltinProviders } from "@earendil-works/pi-ai/providers/all";
-import { getSupportedThinkingLevels, type Context, type KnownApi, type Model, type ThinkingLevelMap } from "@earendil-works/pi-ai";
-import { defaultThinkingLevels, thinkingLevels, type ThinkingLevel } from "@/lib/modelReasoning";
+import type { Context, KnownApi, Model, ThinkingLevelMap } from "@earendil-works/pi-ai";
+import { thinkingLevels, type ThinkingLevel } from "@/lib/modelReasoning";
 import { z } from "zod";
 import conf from "@/utils/conf";
 import { getApiKey, sessionFetch } from "@/utils/cloud";
@@ -17,49 +17,23 @@ import { resolveWorkspacePath } from "@/utils/workspace/files";
 import { getReadableFileMimeType } from "@/lib/documentFormats";
 import { readDocument } from "@/utils/documents";
 
-// 推理档位 → 接口值；false 表示不支持推理。
-type ReasoningEfforts = false | Partial<Record<ThinkingLevel, string | null>>;
-type TextModel = { id: string; label: string; vendor?: string; contextWindow?: number; maxOutputTokens?: number; reasoningEfforts?: ReasoningEfforts };
+type TextModel = { id: string; label: string; vendor?: string; contextWindow?: number; maxOutputTokens?: number; reasoningLevels: ThinkingLevel[] };
 
 const builtinModels: Model<KnownApi>[] = getBuiltinProviders().flatMap(provider => getBuiltinModels(provider));
 
-export function getModelReasoning(providerId: string, model: TextModel, protocol: string) {
-  const matches = builtinModels.filter(item => item.id === model.id);
-  const base = matches.find(item => item.provider.toLowerCase() === providerId.toLowerCase() && item.api === protocol);
-  const candidates = base ? [base] : matches;
-  const efforts = model.reasoningEfforts;
-  const supported = candidates.map(item => item.reasoning ? getSupportedThinkingLevels(item) : []);
-  const wireValue = (item: Model<KnownApi>, level: ThinkingLevel) => item.thinkingLevelMap?.[level] ?? (level === "off" ? undefined : level);
-  // ACT: 中转站仅继承同 ID 模型共同支持且接口值一致的档位，不猜别名或取能力全集。
-  const inheritedLevels: ThinkingLevel[] = candidates.length
-    ? thinkingLevels.filter(level => candidates.every((item, index) => supported[index]!.includes(level)
-      && wireValue(item, level) === wireValue(candidates[0]!, level)))
-    // ACT: 目录未知不等于禁用，保留旧版低中高；额外档位由模型显式声明。
-    : [...defaultThinkingLevels];
-  const reasoningLevels = efforts === false ? [] : efforts
-    ? thinkingLevels.filter(level => Object.hasOwn(efforts, level))
-    : inheritedLevels;
-  const reasoning = reasoningLevels.length > 0;
+// 档位只来自云端下发；客户端统一发 OpenAI 风格的档位名（含 off），由网关按模型格式转换。
+export function getModelReasoning(model: TextModel, protocol: string) {
+  const { reasoningLevels } = model;
   const thinkingLevelMap: ThinkingLevelMap = {};
-  for (const level of thinkingLevels) {
-    if (!reasoningLevels.includes(level)) { thinkingLevelMap[level] = null; continue; }
-    const wire = efforts ? efforts[level] : candidates[0] ? wireValue(candidates[0], level) : level;
-    if (wire != null) thinkingLevelMap[level] = wire;
-  }
-  // ACT: 显式接口值声明使用 Anthropic effort 协议，避免 SDK 将映射值改为 token 预算。
-  const compat = protocol === "anthropic-messages" && efforts
-    ? { ...base?.compat, forceAdaptiveThinking: true, supportsMidConvoEffort: false }
-    : base?.compat;
-  return { reasoning, thinkingLevelMap, reasoningLevels, compat };
+  for (const level of thinkingLevels) thinkingLevelMap[level] = reasoningLevels.includes(level) ? level : null;
+  // 固定 OpenAI 格式，不让 SDK 按 baseUrl 猜厂商改写字段。
+  const compat = protocol === "openai-completions" ? { thinkingFormat: "openai" as const, supportsReasoningEffort: true } : undefined;
+  return { reasoning: reasoningLevels.length > 0, thinkingLevelMap, reasoningLevels, compat };
 }
 
 export function getModelLimits(providerId: string, model: TextModel) {
-  // 云端后台填写的上下文与输出上限优先，未填时再查内置模型表。
-  if (model.contextWindow != null && model.maxOutputTokens != null) {
-    return { contextWindow: model.contextWindow, maxTokens: model.maxOutputTokens };
-  }
+  // 云端后台填写的上下文与输出上限各自优先，缺的一项再查内置限制表和 SDK 模型目录。
   const limits = findModelContextLimits(model.id);
-  if (limits) return { contextWindow: limits.contextWindow, maxTokens: limits.maxTokens };
   const matches = builtinModels.filter(item => item.id === model.id);
   const exact = matches.find(item => item.provider === providerId);
   const candidates = exact ? [exact] : matches;
@@ -67,21 +41,25 @@ export function getModelLimits(providerId: string, model: TextModel) {
   const contextWindow = candidates.every(item => item.contextWindow === candidates[0]?.contextWindow) ? candidates[0]?.contextWindow : undefined;
   const maxTokens = candidates.every(item => item.maxTokens === candidates[0]?.maxTokens) ? candidates[0]?.maxTokens : undefined;
   return {
-    contextWindow: model.contextWindow ?? contextWindow ?? 262144,
-    maxTokens: model.maxOutputTokens ?? maxTokens ?? 32768,
+    contextWindow: model.contextWindow ?? limits?.contextWindow ?? contextWindow ?? 262144,
+    maxTokens: model.maxOutputTokens ?? limits?.maxTokens ?? maxTokens ?? 32768,
   };
 }
+
+const positiveInteger = (value: unknown) => Number.isSafeInteger(value) && (value as number) > 0 ? value as number : undefined;
 
 const cloudProtocols = { chat: "openai-completions", responses: "openai-responses" } as const;
 
 // 文本模型统一来自麦麦云目录，旧对话里保存的其他 providerId 按模型 ID 匹配。
 async function cloudTextModels() {
   return (await listCloudModels()).filter(model => model.type === "text").map(item => {
-    const meta = item.meta as { contextWindow?: number; maxOutputTokens?: number; reasoningEfforts?: string[] | false };
-    const efforts = meta.reasoningEfforts;
+    const meta = item.meta as { contextWindow?: unknown; maxOutputTokens?: unknown; reasoning?: unknown; reasoningEfforts?: unknown };
+    // 新契约 meta.reasoning.efforts 优先，兼容旧 meta.reasoningEfforts；都没有视为不支持思考。
+    const efforts = meta.reasoning && typeof meta.reasoning === "object" ? (meta.reasoning as { efforts?: unknown }).efforts : meta.reasoningEfforts;
     const model = {
-      id: item.id, label: item.label, vendor: item.vendor, contextWindow: meta.contextWindow, maxOutputTokens: meta.maxOutputTokens,
-      reasoningEfforts: Array.isArray(efforts) ? Object.fromEntries(efforts.filter(level => (thinkingLevels as readonly string[]).includes(level)).map(level => [level, level])) : efforts === false ? false as const : undefined,
+      id: item.id, label: item.label, vendor: item.vendor,
+      contextWindow: positiveInteger(meta.contextWindow), maxOutputTokens: positiveInteger(meta.maxOutputTokens),
+      reasoningLevels: Array.isArray(efforts) ? thinkingLevels.filter(level => efforts.includes(level)) : [],
     } satisfies TextModel;
     return { model, protocol: cloudProtocols[item.protocol as keyof typeof cloudProtocols] ?? "openai-completions" };
   });
@@ -93,7 +71,7 @@ export async function getConfiguredModel(_providerId: string, modelId: string) {
   const { model, protocol } = found;
   const provider = { apiUrl: gatewayUrl, apiKey: getApiKey(), protocol };
   const limits = getModelLimits(cloudProviderId, model);
-  return { provider, model: { ...model, ...getModelReasoning(cloudProviderId, model, protocol), contextWindow: limits.contextWindow, maxOutputTokens: limits.maxTokens }, baseUrl: gatewayUrl };
+  return { provider, model: { ...model, ...getModelReasoning(model, protocol), contextWindow: limits.contextWindow, maxOutputTokens: limits.maxTokens }, baseUrl: gatewayUrl };
 }
 
 export async function listAiModels() {
@@ -102,7 +80,7 @@ export async function listAiModels() {
     return {
       providerId: cloudProviderId, providerLabel: "麦麦云", protocol, modelId: model.id, label: model.label, vendor: model.vendor,
       contextWindow: limits.contextWindow, maxOutputTokens: limits.maxTokens,
-      reasoningLevels: getModelReasoning(cloudProviderId, model, protocol).reasoningLevels,
+      reasoningLevels: getModelReasoning(model, protocol).reasoningLevels,
     };
   });
 }

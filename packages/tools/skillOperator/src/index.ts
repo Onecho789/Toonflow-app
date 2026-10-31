@@ -36,7 +36,12 @@ const plugin: ToolPlugin = {
       parameters: z.toJSONSchema(requestSchema, { io: "input", target: "draft-07" }),
       executionMode: "sequential",
       async execute(_id, params, signal) {
-        const { action, name, scope, path, content } = requestSchema.parse(params);
+        const parsed = requestSchema.safeParse(params);
+        if (!parsed.success) {
+          const issues = parsed.error.issues.map(issue => `- ${issue.path.join(".") || "参数"}：${issue.message}`);
+          throw new Error(`skillOperator 参数有误：\n${issues.join("\n")}\n请只传 action、name、scope、path、content 中需要的字段后重试。`);
+        }
+        const { action, name, scope, path, content } = parsed.data;
         signal?.throwIfAborted();
         let result;
         if (action === "list") {

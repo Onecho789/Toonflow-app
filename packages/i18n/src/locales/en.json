@@ -2260,8 +2260,8 @@
   "查看工具": "View tools",
   "连接中…": "Connecting…",
   "测试连接": "Test connection",
-  "最小": "Minimal",
-  "极高": "Very high",
+  "最少": "Minimal",
+  "超高": "Extra high",
   "最高": "Maximum",
   "本地（stdio）": "Local (stdio)",
   "远程（Streamable HTTP）": "Remote (Streamable HTTP)",
@@ -2713,5 +2713,9 @@
   "麦麦云请求失败（HTTP {0}）": "MaiMai Cloud request failed (HTTP {0})",
   "填写更新清单和安装包所在的目录地址，保存后在关于页检查更新时使用。": "Enter the directory URL that hosts the update manifest and packages. It is used when you check for updates on the About page.",
   "尚未配置更新源，请先在开发者选项中填写自定义更新源。": "No update source is configured. Enter a custom update source in Developer options first.",
-  "请下载适合当前系统的完整安装包，关闭客户端后重新安装。": "Download the full installer for your system, close the app, and reinstall."
+  "请下载适合当前系统的完整安装包，关闭客户端后重新安装。": "Download the full installer for your system, close the app, and reinstall.",
+  "出错": "Error",
+  "等待你回答": "Waiting for your answer",
+  "运行中 · 调用 {0}": "Running · calling {0}",
+  "运行中…": "Running…"
 }

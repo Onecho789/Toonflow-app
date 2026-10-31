@@ -316,6 +316,33 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 
 ---
 
+## Agent 提问容错、推理档位与运行状态
+
+- 分支 `claude/unruffled-gagarin-870f9b`
+- 目的：
+  - askUser 收到空数组或同时传了 options 和 fields 时不再报错，校验失败返回中文错误；skillOperator 的报错同样改成中文
+  - 推理档位只用云端下发的值（新字段 `meta.reasoning.efforts`，没有时用旧字段 `meta.reasoningEfforts`），都没有就隐藏选择器；选了“关闭”会发送 `off`，没选就不发；固定按 OpenAI 格式发送
+  - 上下文窗口和最大输出各自取值，取不到的一项按顺序找下一个来源：云端 → `modelContextLimits.ts` → pi-ai 模型目录 → 默认值
+  - 对话框在压缩提示旁边显示运行状态：运行中、调用某个工具、等待你回答、出错、已完成。“已完成”一直显示为灰色，不淡出
+
+### 改动了上游文件
+
+| 文件 | 改动 | 冲突时的处理 |
+| --- | --- | --- |
+| `packages/tools/askUser/src/index.ts` | 新增 `normalizeRequest`、`parseRequest`；更新 options 和 fields 的说明 | 上游改 schema 时保留这两个函数，再接上新的 schema |
+| `packages/tools/skillOperator/src/index.ts` | 把 `parse` 换成 `safeParse` 并输出中文错误，`.strict()` 不变 | 保留 |
+| `apps/server/src/lib/modelReasoning.ts` | 只保留 `thinkingLevels` 和 `ThinkingLevel` | 上游加了默认档位的，不采用 |
+| `apps/server/src/utils/ai/index.ts` | `reasoningEfforts` 改为 `reasoningLevels`；`getModelReasoning(model, protocol)` 生成 `thinkingLevelMap` 和 `compat`；上下文窗口和最大输出各自回退 | 我们的文件，保留 |
+| `apps/server/src/agent/runtime/model.ts` | `compat` 直接用模型自身的配置，不再强制设置 `supportsMidConvoEffort` | 保留 |
+| `apps/server/src/agent/runtime/index.ts`、`types.ts` | 工具事件带上 `label`（工具显示名） | 上游改 `send` 时补回注入 label 的逻辑 |
+| `apps/web/src/components/agent/conversation.vue` | 新增 `runStatus` 状态行和样式 | 保留 |
+| `apps/web/src/components/modelPopover.vue` | 档位名改为 关闭/最少/低/中/高/超高/最高 | 保留 |
+| `packages/i18n/src/**` | 新增 超高、最少、出错、等待你回答、运行中 · 调用 {0}、运行中…；删除 极高、最小 | 先跑 extract，再手工补另外 20 种语言 |
+
+注意：本次 extract 还发现了与本次改动无关的漂移，是设备 Key 提交后云端相关的文案（3 个新增，4 个已废弃），本次没有处理，下次补字典时一起处理。
+
+---
+
 ## 同步记录
 
 | 日期 | 上游提交 | 说明 |

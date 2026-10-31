@@ -60,7 +60,7 @@ const reasoningEffort = defineModel<string>("reasoningEffort", { default: "" });
 const props = withDefaults(defineProps<{ active?: boolean; disabled?: boolean }>(), { active: true, disabled: false });
 const visible = ref(false);
 const reasoningId = useId();
-const reasoningLabels: Record<ThinkingLevel, string> = { off: "关闭", minimal: "最小", low: "低", medium: "中", high: "高", xhigh: "极高", max: "最高" };
+const reasoningLabels: Record<ThinkingLevel, string> = { off: "关闭", minimal: "最少", low: "低", medium: "中", high: "高", xhigh: "超高", max: "最高" };
 const selectedModelChoice = computed(() => modelChoices.value.find(item => item.value === selectedModel.value));
 const reasoningLevels = computed(() => selectedModelChoice.value?.reasoningLevels ?? []);
 const reasoningOptions = computed(() => [{ label: "默认", value: "" }, ...reasoningLevels.value.map(value => ({ label: reasoningLabels[value], value }))]);

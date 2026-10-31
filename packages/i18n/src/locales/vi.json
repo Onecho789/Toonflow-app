@@ -2260,8 +2260,8 @@
   "查看工具": "Xem công cụ",
   "连接中…": "Đang kết nối…",
   "测试连接": "Kiểm tra kết nối",
-  "最小": "Tối thiểu",
-  "极高": "Rất cao",
+  "最少": "Tối thiểu",
+  "超高": "Cực cao",
   "最高": "Tối đa",
   "本地（stdio）": "Cục bộ (stdio)",
   "远程（Streamable HTTP）": "Từ xa (Streamable HTTP)",
@@ -2713,5 +2713,9 @@
   "麦麦云请求失败（HTTP {0}）": "Yêu cầu MaiMai Cloud thất bại (HTTP {0})",
   "填写更新清单和安装包所在的目录地址，保存后在关于页检查更新时使用。": "Nhập URL thư mục chứa tệp kê khai cập nhật và gói cài đặt. URL này được dùng khi kiểm tra cập nhật ở trang Giới thiệu.",
   "尚未配置更新源，请先在开发者选项中填写自定义更新源。": "Chưa cấu hình nguồn cập nhật. Hãy nhập nguồn cập nhật tùy chỉnh trong Tùy chọn nhà phát triển trước.",
-  "请下载适合当前系统的完整安装包，关闭客户端后重新安装。": "Tải trình cài đặt đầy đủ cho hệ thống của bạn, đóng ứng dụng rồi cài đặt lại."
+  "请下载适合当前系统的完整安装包，关闭客户端后重新安装。": "Tải trình cài đặt đầy đủ cho hệ thống của bạn, đóng ứng dụng rồi cài đặt lại.",
+  "出错": "Lỗi",
+  "等待你回答": "Đang chờ bạn trả lời",
+  "运行中 · 调用 {0}": "Đang chạy · gọi {0}",
+  "运行中…": "Đang chạy…"
 }

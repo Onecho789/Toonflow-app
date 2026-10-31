@@ -21,6 +21,14 @@
       <el-icon class="is-loading" aria-hidden="true"><icon-loader-2 :size="14" /></el-icon>
       <span>正在压缩上下文…</span>
     </div>
+    <div v-if="runStatus" class="runStatus" :data-state="runStatus.state" role="status" aria-live="polite">
+      <el-icon v-if="runStatus.state === 'running'" class="is-loading" aria-hidden="true"><icon-loader-2 :size="14" /></el-icon>
+      <span v-if="runStatus.state === 'error'">出错</span>
+      <span v-else-if="runStatus.state === 'waiting'">等待你回答</span>
+      <span v-else-if="runStatus.tool">运行中 · 调用 {{ runStatus.tool }}</span>
+      <span v-else-if="runStatus.state === 'running'">运行中…</span>
+      <span v-else>已完成</span>
+    </div>
     <section v-if="queuedMessages.length" class="messageQueue" aria-label="排队消息">
       <div v-for="message in queuedMessages" :key="message.id" class="queueMessage">
         <icon-list-details class="queueIcon" :size="14" aria-hidden="true" />
@@ -119,6 +127,19 @@ const selectedModel = ref(pendingMessage?.model ?? (props.initialSession?.provid
 const reasoningEffort = ref(pendingMessage?.reasoningEffort ?? props.initialSession?.thinkingLevel ?? "");
 const selectedModelChoice = computed(() => modelChoices.value.find(item => item.value === selectedModel.value));
 const contextWindow = computed(() => contextUsage.value?.contextWindow ?? selectedModelChoice.value?.contextWindow ?? 262144);
+// 底部运行状态取最后一条回复推导；空闲后“已完成”保持灰色小字，不做定时淡出。
+const runStatus = computed(() => {
+  if (!messages.value.length) return;
+  const reply = messages.value.findLast(message => message.role === "assistant");
+  const running = busy.value || remoteRunning.value;
+  // 新一轮已发出但回复尚未出现时，不沿用上一轮的错误；发送失败的错误记在用户消息上。
+  if (messages.value.at(-1)?.error || (!running && reply?.error)) return { state: "error" };
+  if (!running) return { state: "done" };
+  const tools = (reply?.parts ?? []).flatMap(part => part.type === "tool" && part.tool.status === "running" ? [part.tool] : []);
+  if (tools.some(tool => tool.question?.callId)) return { state: "waiting" };
+  const tool = tools.at(-1);
+  return { state: "running", tool: tool && (tool.label || tool.name) };
+});
 function showSteeringMessage(message: AgentQueuedMessage) {
   if (messages.value.some(item => item.role === "user" && (item.queueId === message.id || item.id === message.id))) return;
   const user = messages.value.findLast(item => item.role === "user");
@@ -705,6 +726,33 @@ onBeforeUnmount(abortRequest);
     margin: 0 12px 8px;
     color: var(--el-text-color-secondary);
     font-size: 12px;
+  }
+
+  .runStatus {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    margin: 0 24px 6px;
+    color: var(--el-text-color-secondary);
+    font-size: 12px;
+    line-height: 18px;
+
+    > span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    &[data-state="running"] { color: var(--el-color-primary); }
+    &[data-state="waiting"] { color: var(--el-color-warning); }
+    &[data-state="error"] { color: var(--el-color-danger); }
+    &[data-state="done"] { color: var(--el-text-color-placeholder); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .is-loading { animation: none; }
+    }
   }
 
   .messageQueue {

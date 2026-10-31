@@ -2260,8 +2260,8 @@
   "查看工具": "Lihat alat",
   "连接中…": "Menyambung…",
   "测试连接": "Uji sambungan",
-  "最小": "Minimum",
-  "极高": "Sangat tinggi",
+  "最少": "Minimum",
+  "超高": "Ekstra tinggi",
   "最高": "Maksimum",
   "本地（stdio）": "Setempat (stdio)",
   "远程（Streamable HTTP）": "Jauh (Streamable HTTP)",
@@ -2711,5 +2711,9 @@
   "麦麦云请求失败（HTTP {0}）": "Permintaan MaiMai Cloud gagal (HTTP {0})",
   "填写更新清单和安装包所在的目录地址，保存后在关于页检查更新时使用。": "Masukkan URL direktori yang mengandungi manifes kemas kini dan pakej. Ia digunakan semasa menyemak kemas kini di halaman Perihal.",
   "尚未配置更新源，请先在开发者选项中填写自定义更新源。": "Tiada sumber kemas kini dikonfigurasi. Masukkan sumber kemas kini tersuai dalam Pilihan pembangun dahulu.",
-  "请下载适合当前系统的完整安装包，关闭客户端后重新安装。": "Muat turun pemasang penuh untuk sistem anda, tutup klien dan pasang semula."
+  "请下载适合当前系统的完整安装包，关闭客户端后重新安装。": "Muat turun pemasang penuh untuk sistem anda, tutup klien dan pasang semula.",
+  "出错": "Ralat",
+  "等待你回答": "Menunggu jawapan anda",
+  "运行中 · 调用 {0}": "Sedang berjalan · memanggil {0}",
+  "运行中…": "Sedang berjalan…"
 }

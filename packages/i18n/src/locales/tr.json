@@ -2260,8 +2260,8 @@
   "查看工具": "Araçları görüntüle",
   "连接中…": "Bağlanılıyor…",
   "测试连接": "Bağlantıyı test et",
-  "最小": "En düşük",
-  "极高": "Çok yüksek",
+  "最少": "En düşük",
+  "超高": "Ekstra yüksek",
   "最高": "En yüksek",
   "本地（stdio）": "Yerel (stdio)",
   "远程（Streamable HTTP）": "Uzak (Streamable HTTP)",
@@ -2713,5 +2713,9 @@
   "麦麦云请求失败（HTTP {0}）": "MaiMai Cloud isteği başarısız (HTTP {0})",
   "填写更新清单和安装包所在的目录地址，保存后在关于页检查更新时使用。": "Güncelleme bildirimi ve paketlerinin bulunduğu dizinin URL'sini girin. Hakkında sayfasında güncelleme denetlenirken kullanılır.",
   "尚未配置更新源，请先在开发者选项中填写自定义更新源。": "Güncelleme kaynağı yapılandırılmadı. Önce Geliştirici seçeneklerinde özel bir güncelleme kaynağı girin.",
-  "请下载适合当前系统的完整安装包，关闭客户端后重新安装。": "Sisteminize uygun tam yükleyiciyi indirin, istemciyi kapatın ve yeniden yükleyin."
+  "请下载适合当前系统的完整安装包，关闭客户端后重新安装。": "Sisteminize uygun tam yükleyiciyi indirin, istemciyi kapatın ve yeniden yükleyin.",
+  "出错": "Hata",
+  "等待你回答": "Yanıtınız bekleniyor",
+  "运行中 · 调用 {0}": "Çalışıyor · {0} çağrılıyor",
+  "运行中…": "Çalışıyor…"
 }
