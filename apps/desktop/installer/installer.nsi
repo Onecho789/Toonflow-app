@@ -16,7 +16,8 @@ Name "${appName}"
 Caption "${appName}"
 BrandingText " "
 OutFile "${outputFile}"
-InstallDir "$LOCALAPPDATA\${appIdentifier}\stable"
+; 目录页“浏览”选盘时 NSIS 会追加末级目录名，末级用产品名而不是渠道名。
+InstallDir "$LOCALAPPDATA\MaiMaiStudio"
 ; ACT: SDK 会把 InstallLocation 改成 app 子目录，NSIS 独立保存用户选择的安装根目录。
 InstallDirRegKey HKCU "${uninstallKey}" "maimaiInstallDirectory"
 

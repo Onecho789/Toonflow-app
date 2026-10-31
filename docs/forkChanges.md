@@ -121,6 +121,7 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 | `app.identifier`，以及 `windowsUpdater.ts`、`updateHelper.cs` 的校验 | `local.toonflow.desktop` | `local.maimaistudio.desktop` |
 | URL 协议（`urlSchemes`、注册表 `Software\Classes\…`、`protocol.ts`、`protocolLauncher.cs`、插件安装链接文案与 i18n） | `toonflow://` | `maimai://` |
 | 安装目录标记文件、注册表字段 | `toonflow.ini`、`toonflowInstallDirectory` | `maimai.ini`、`maimaiInstallDirectory` |
+| `installer.nsi` 默认 `InstallDir` | `$LOCALAPPDATA\${appIdentifier}\stable` | `$LOCALAPPDATA\MaiMaiStudio`（“浏览”选盘时 NSIS 追加末级目录名，末级用产品名） |
 | 互斥锁、计划任务名 | `ToonflowProtocol-`、`ToonflowUpdate-`、`ToonflowArchiveTool-`、`ToonflowUpdate_` | `MaiMai…` 同名前缀 |
 | 安装包与 APK 文件名（`packageWindows.ts`、`release.ts`、`.github/workflows/*.yml`、`docs/development.md`） | `toonflow-<版本>-…` | `MaiMaiStudio-<版本>-…` |
 
