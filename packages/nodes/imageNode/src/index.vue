@@ -7,7 +7,7 @@
     topWidth="max-content"
     :downloadUrl="previewUrl"
     :downloadName="outputFile?.url.split(/[\\/]/).at(-1)"
-    @fullscreen="previewVisible = true"
+    @fullscreen="previewVisible = !!previewUrl"
     :style="{ width: previewUrl && imageWidth ? `${imageWidth + 18}px` : undefined }">
     <template v-if="editor?.mode" #top><div ref="paintToolbar" /></template>
     <template #topActions>
@@ -28,7 +28,7 @@
     <template #topRightActions>
       <el-button :icon="IconPencil" :disabled="uploading || lighting?.generating || multiAngle?.generating || panorama?.busy || !previewUrl || gridSplit?.splitting" text title="标记" aria-label="标记" @click.stop="startEditor('mark')" />
     </template>
-    <div class="imageContent nopan" :class="{ empty: !outputFile }">
+    <div class="imageContent nopan" :class="{ empty: !outputFile }" @dblclick.stop="previewVisible = !!previewUrl && !editor?.mode">
       <imageEditor
         v-if="previewUrl"
         ref="editor"
@@ -61,17 +61,14 @@
   <imageMultiAngle v-if="multiAngleVisible" ref="multiAngle" :src="previewUrl" :source="outputFile" :target="multiAngleTarget" :disabled="uploading || gridSplit?.splitting" @close="multiAngleVisible = false" />
   <imagePanorama ref="panorama" :src="previewUrl" :source="outputFile" :disabled="uploading || editor?.busy || lighting?.generating || multiAngle?.generating || gridSplit?.splitting || inpaintPrompt?.creating" @open="openPanorama" />
   <imageGridSplit ref="gridSplit" :src="previewUrl" :disabled="uploading || lighting?.generating || multiAngle?.generating || panorama?.busy" :active="node.selected" />
-  <el-image-viewer
-    v-if="previewVisible && previewUrl"
-    :urlList="[previewUrl]"
-    teleported
-    @close="previewVisible = false" />
+  <mediaPreview v-model="previewVisible" :items="previewUrl ? [{ url: previewUrl, type: 'image', name: outputFile?.url.split(/[\\/]/).at(-1) }] : []" />
 </template>
 
 <script setup lang="ts">
 import { computed, nextTick, ref } from "vue";
 import { IconPhoto, IconUpload, IconTransfer, IconLayoutGrid, IconBrush, IconPencil, IconSun, IconCameraRotate, IconPanoramaHorizontal, IconChevronDown } from "@tabler/icons-vue";
-import { ElButton, ElImageViewer, ElMessage } from "element-plus";
+import { ElButton, ElMessage } from "element-plus";
+import mediaPreview from "@toonflow/node-shared/mediaPreview";
 import { nodeSkeleton, nodeTools, useNode, z, type NodeHandle } from "@toonflow/nodes-scaffold/runtime";
 import imageGridSplit from "./components/imageGridSplit.vue";
 import imageEditor from "./components/imageEditor.vue";

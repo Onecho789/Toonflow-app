@@ -6,7 +6,7 @@
     topWidth="max-content"
     :downloadUrl="previewUrl"
     :downloadName="outputFile?.url.split(/[\\/]/).at(-1)"
-    @fullscreen="player?.enterFullscreen()"
+    @fullscreen="previewVisible = !!previewUrl"
     :bottomWidth="660"
     :style="{ width: previewUrl && videoWidth ? `${videoWidth + 18}px` : undefined }">
     <template #topActions>
@@ -14,6 +14,7 @@
       <el-button :icon="IconLayersSubtract" text :disabled="!outputFile || generating || deleting || uploading || actions?.processing" @click.stop="actions?.open('separate')">分离音视频</el-button>
       <el-button :icon="IconScissors" text :disabled="!outputFile || generating || deleting || uploading || actions?.processing" @click.stop="actions?.open('trim')">截取片段</el-button>
       <el-button :icon="IconMovie" text :loading="actions?.creatingAnalysis" :disabled="!outputFile || generating || deleting || uploading || actions?.processing || actions?.creatingAnalysis" @click.stop="actions?.createFrameAnalysis()">逐帧拉片</el-button>
+      <copyPrompt :text="data.prompt" />
       <mediaHistory mediaType="video" :current="outputFile" :disabled="generating || deleting || uploading" @select="outputs.video = { dataType: 'VIDEO', value: $event }" />
       <el-button :icon="IconTransfer" :loading="uploading" :disabled="generating || deleting" text title="替换视频" aria-label="替换视频" @click.stop="fileInput?.click()">替换视频</el-button>
       <input ref="fileInput" type="file" accept="video/*" hidden aria-label="选择替换视频" :disabled="generating || deleting || uploading" @change="replaceOutput" />
@@ -30,7 +31,7 @@
         </template>
       </el-dropdown>
     </template>
-    <div v-loading="generating || uploading" class="videoContent nopan" :aria-busy="generating || uploading">
+    <div v-loading="generating || uploading" class="videoContent nopan" :aria-busy="generating || uploading" @dblclick.stop="previewVisible = !!previewUrl">
       <videoPlayer
         v-if="previewUrl"
         ref="player"
@@ -100,6 +101,7 @@
     </template>
   </nodeSkeleton>
   <videoActions ref="actions" :file="outputFile" :src="previewUrl" :disabled="generating || deleting || uploading" />
+  <mediaPreview v-model="previewVisible" :items="previewUrl ? [{ url: previewUrl, type: 'video', name: outputFile?.url.split(/[\\/]/).at(-1) }] : []" />
 </template>
 
 <script setup lang="ts">
@@ -120,6 +122,8 @@ import videoActions from "@toonflow/node-video/videoActions";
 import referenceItem from "@toonflow/node-shared/referenceItem";
 import mediaHistory from "@toonflow/node-shared/mediaHistory";
 import mediaPrice from "@toonflow/node-shared/mediaPrice";
+import mediaPreview from "@toonflow/node-shared/mediaPreview";
+import copyPrompt from "@toonflow/node-shared/copyPrompt";
 import generationSettings from "./components/generationSettings.vue";
 
 defineOptions({
@@ -152,6 +156,7 @@ const fileInput = ref<HTMLInputElement>();
 let disposed = false;
 const deleting = ref(false);
 const player = ref<InstanceType<typeof videoPlayer>>();
+const previewVisible = ref(false);
 const actions = ref<InstanceType<typeof videoActions>>();
 const videoWidth = ref(0);
 let generationController: AbortController | undefined;

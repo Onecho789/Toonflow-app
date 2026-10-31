@@ -9,6 +9,8 @@
     "./referenceItem": "./src/components/referenceItem.vue",
     "./mediaHistory": "./src/components/mediaHistory.vue",
     "./mediaPrice": "./src/components/mediaPrice.vue",
+    "./mediaPreview": "./src/components/mediaPreview.vue",
+    "./copyPrompt": "./src/components/copyPrompt.vue",
     "./modelForm": "./src/components/modelForm.vue",
     "./modelOption": "./src/components/modelOption.vue",
     "./showNodeError": "./src/showNodeError.ts",
