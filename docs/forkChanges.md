@@ -293,6 +293,27 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 
 ---
 
+## 设备级 mm- Key
+
+- 提交：见本节所在提交（2026-10-31），分支 `codex/simplifyMediaModels`；配合云端 `maimai-cloud` 的 `71f149f`（分支 `goRewrite`）
+- 目的：取代“登录会话直连网关”。客户端改为只存这台设备的 `mm-` Key，Key 由云端在登录时签发，同一设备只保留一个；Windows 用 DPAPI 加密保存
+- 旧数据：旧版保存的会话令牌按未登录处理，不迁移
+
+### 我们新增的文件
+
+- `apps/server/src/utils/cloud/protect.ts`：DPAPI 加密和解密（`bun:ffi` 调用 crypt32），其他平台原样返回
+
+### 改动了上游文件
+
+| 文件 | 改动 | 冲突时的处理 |
+| --- | --- | --- |
+| `apps/server/src/utils/cloud/index.ts` | 会话改为 `{ user, apiKey }`；登录、注册带 `deviceId`、`deviceName`；删除刷新令牌逻辑；`getAccessToken` 改为 `getApiKey`；401 时清除本地会话 | 我们的文件，保留 |
+| `apps/server/src/utils/ai/index.ts` | provider 的 Key 改用 `getApiKey()` | 保留 |
+| `apps/server/src/utils/conf/index.ts` | 配置类型增加 `cloudDeviceId` | 上游改这行类型时补回 |
+| `docs/cloudModels.md` | 链路改为设备 Key | 我们的文件 |
+
+---
+
 ## 同步记录
 
 | 日期 | 上游提交 | 说明 |

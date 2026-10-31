@@ -6,7 +6,7 @@ import { getSupportedThinkingLevels, type Context, type KnownApi, type Model, ty
 import { defaultThinkingLevels, thinkingLevels, type ThinkingLevel } from "@/lib/modelReasoning";
 import { z } from "zod";
 import conf from "@/utils/conf";
-import { getAccessToken, sessionFetch } from "@/utils/cloud";
+import { getApiKey, sessionFetch } from "@/utils/cloud";
 import { cloudProviderId, gatewayUrl, listCloudModels } from "@/utils/cloud/models";
 import { readReference } from "@/utils/media/generation";
 import { findModelContextLimits } from "@/utils/ai/modelContextLimits";
@@ -91,7 +91,7 @@ export async function getConfiguredModel(_providerId: string, modelId: string) {
   const found = (await cloudTextModels()).find(item => item.model.id === modelId);
   if (!found) throw Object.assign(new Error(conf.get("cloudSession") ? "所选模型已下架或不存在，请重新选择" : "请先登录麦麦云账号"), { status: 400 });
   const { model, protocol } = found;
-  const provider = { apiUrl: gatewayUrl, apiKey: await getAccessToken(), protocol };
+  const provider = { apiUrl: gatewayUrl, apiKey: getApiKey(), protocol };
   const limits = getModelLimits(cloudProviderId, model);
   return { provider, model: { ...model, ...getModelReasoning(cloudProviderId, model, protocol), contextWindow: limits.contextWindow, maxOutputTokens: limits.maxTokens }, baseUrl: gatewayUrl };
 }
