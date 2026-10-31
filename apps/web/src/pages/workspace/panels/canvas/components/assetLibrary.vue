@@ -1,8 +1,9 @@
 <template>
   <assetBrowser v-if="visible && expanded" v-model:folder="folder" v-model:searchQuery="searchQuery" v-model:newFolderName="newFolderName" :entries="entries" :loading="loading" :newFolderParent="newFolderParent" :folderSaving="folderSaving" :mediaKind="mediaKind" :assetUrl="assetUrl" :canSelect="canSelect" :selecting="selecting" @select="emit('select', $event)" @startFolder="startFolder" @saveFolder="saveFolder" @cancelFolder="cancelFolder" @preview="openPreview" @menu="openItemMenu" @drag="startAssetDrag" />
-  <el-card v-else-if="visible" class="assetLibrary" shadow="never" :bodyStyle="{ padding: '8px' }" role="region" aria-label="素材库" @dblclick.stop>
+  <el-card v-else-if="visible" class="assetLibrary" :class="{ dropping }" shadow="never" :bodyStyle="{ padding: '8px' }" role="region" aria-label="素材库" @dblclick.stop @dragover="dragUploadOver" @dragleave.self="dropping = false" @drop="dropUpload">
     <div class="libraryToolbar">
       <el-input v-model="searchQuery" class="searchInput" :prefixIcon="IconSearch" placeholder="搜索素材" aria-label="搜索素材" clearable @keydown.esc.stop="searchQuery = ''" />
+      <el-button class="toolbarButton" text :icon="IconUpload" :loading="uploading" :title="`上传到 ${folderLabel}`" aria-label="上传素材" @click="chooseUpload" />
       <el-button class="toolbarButton" text :icon="IconFolderPlus" title="新建文件夹" aria-label="新建文件夹" :disabled="newFolderParent !== undefined" @click="startFolder" />
       <el-button class="toolbarButton" text :icon="IconX" title="关闭素材库" aria-label="关闭素材库" @click="visible = false" />
     </div>
@@ -22,6 +23,7 @@
             <el-input v-if="data.draft" ref="folderInput" v-model="newFolderName" class="folderNameInput" size="small" aria-label="文件夹名称" :disabled="folderSaving" @click.stop @keydown.stop @keydown.enter.prevent="saveFolder" @keydown.esc.prevent="cancelFolder" @blur="saveFolder" />
             <span v-else class="assetName">{{ data.name }}</span>
             <el-button v-if="mediaKind(data)" class="moreButton" text :icon="IconEye" :aria-label="'预览 ' + data.name" title="预览（也可双击素材）" @click.stop="openPreview(data)" />
+            <el-button v-if="insertAsset && data.type === 'file' && !data.draft" class="moreButton" text :icon="IconPlus" :aria-label="'插入画布 ' + data.name" title="插入到画布中央（也可拖到画布）" @click.stop="insertAsset(data)" />
             <el-button v-if="!data.draft" class="moreButton" text :icon="IconDots" :aria-label="'更多 ' + data.name" title="更多" @click.stop="openItemMenu($event, data)" />
           </div>
         </template>
@@ -39,14 +41,7 @@
 
   <assetMenu v-if="visible" ref="assetMenuRef" :entries="entries" @changed="refreshAssets" />
 
-  <el-image-viewer v-if="previewAsset?.kind === 'image'" :urlList="[previewAsset.url]" teleported @close="previewAsset = undefined" />
-
-  <el-dialog :modelValue="previewAsset?.kind === 'video'" :title="previewAsset?.name" width="min(800px, calc(100vw - 32px))" alignCenter appendToBody destroyOnClose @update:modelValue="previewAsset = undefined">
-    <div v-if="previewAsset?.kind === 'video'" class="assetPreview">
-      <el-alert v-if="previewError" :title="previewError" type="error" :closable="false" showIcon />
-      <video v-else :key="previewAsset.url" class="previewVideo" :src="previewAsset.url" :aria-label="previewAsset.name" controls playsinline preload="metadata" @error="previewError = translate('视频无法播放，文件可能已损坏或当前浏览器不支持其编码。')" />
-    </div>
-  </el-dialog>
+  <mediaPreview v-model="mediaVisible" v-model:index="mediaIndex" :items="mediaItems" />
 
   <el-dialog v-if="expanded" :modelValue="previewAsset?.kind === 'audio'" :title="previewAsset?.name" width="min(560px, calc(100vw - 32px))" alignCenter appendToBody destroyOnClose @update:modelValue="previewAsset = undefined">
     <div v-if="previewAsset?.kind === 'audio'" class="assetPreview">
@@ -97,8 +92,9 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 import axios from "axios";
 import { translate } from "@toonflow/i18n/vue";
 import { ElMessage, ElTree, type InputInstance, type TreeNodeData } from "element-plus";
-import { IconChevronRight, IconDots, IconEye, IconFile, IconFolder, IconFolderOpen, IconFolderPlus, IconMusic, IconPhoto, IconSearch, IconVideo, IconX } from "@tabler/icons-vue";
+import { IconChevronRight, IconDots, IconEye, IconFile, IconFolder, IconFolderOpen, IconFolderPlus, IconMusic, IconPhoto, IconPlus, IconSearch, IconUpload, IconVideo, IconX } from "@tabler/icons-vue";
 import type { NodeOutput } from "@toonflow/nodes-scaffold/values";
+import mediaPreview, { type MediaPreviewItem } from "@toonflow/node-shared/mediaPreview";
 import { mentionAssetType } from "@toonflow/server/agent/mentionSources";
 import mentionThumbnail from "@/components/agent/mentionThumbnail.vue";
 import { startAssetDrag } from "../canvasDrop";
@@ -109,7 +105,11 @@ import assetBrowser from "./assetBrowser.vue";
 type AssetEntry = { name: string; path: string; type: "file" | "directory"; children?: AssetEntry[]; draft?: boolean };
 type AssetOutput = { label: string; output: NodeOutput };
 
-const props = defineProps<{ directory?: string; expanded?: boolean; canSelect?: (entry: AssetEntry) => boolean; selecting?: boolean }>();
+const props = defineProps<{
+  directory?: string; expanded?: boolean; canSelect?: (entry: AssetEntry) => boolean; selecting?: boolean;
+  // 画布宿主提供时显示“插入”按钮
+  insertAsset?: (entry: AssetEntry) => void;
+}>();
 const emit = defineEmits<{ select: [entry: AssetEntry] }>();
 const visible = defineModel<boolean>({ default: false });
 const saveVisible = ref(false);
@@ -132,6 +132,12 @@ const folderSaving = ref(false);
 const assetMenuRef = ref<InstanceType<typeof assetMenu>>();
 const previewAsset = ref<{ name: string; url: string; kind: "image" | "audio" | "video" }>();
 const previewError = ref("");
+const uploading = ref(false);
+const dropping = ref(false);
+const folderLabel = computed(() => folder.value === "." ? "素材库" : `素材库 / ${folder.value.split("/").join(" / ")}`);
+const mediaVisible = ref(false);
+const mediaIndex = ref(0);
+const mediaItems = ref<MediaPreviewItem[]>([]);
 let loadRequest = 0;
 onBeforeUnmount(() => { loadRequest++; });
 
@@ -149,8 +155,27 @@ function mediaKind(entry: AssetEntry) {
 function openPreview(entry: AssetEntry) {
   const kind = mediaKind(entry);
   if (!kind) return;
-  previewError.value = "";
-  previewAsset.value = { name: entry.name, url: assetUrl(entry.path), kind };
+  if (kind === "audio") {
+    previewError.value = "";
+    previewAsset.value = { name: entry.name, url: assetUrl(entry.path), kind };
+    return;
+  }
+  // 图片和视频在同一文件夹内前后切换
+  const parent = entry.path.split("/").slice(0, -1).join("/");
+  const siblings = (parent ? findEntry(entries.value, parent)?.children ?? [] : entries.value)
+    .filter(item => mediaKind(item) === "image" || mediaKind(item) === "video")
+    .toSorted((left, right) => left.name.localeCompare(right.name, "zh-CN", { numeric: true }));
+  mediaItems.value = siblings.map(item => ({ url: assetUrl(item.path), type: mediaKind(item) as "image" | "video", name: item.name, source: parent ? `素材库 / ${parent.split("/").join(" / ")}` : "素材库" }));
+  mediaIndex.value = Math.max(0, siblings.findIndex(item => item.path === entry.path));
+  mediaVisible.value = true;
+}
+
+function findEntry(items: AssetEntry[], path: string): AssetEntry | undefined {
+  for (const item of items) {
+    if (item.path === path) return item;
+    const found = item.children && path.startsWith(item.path + "/") ? findEntry(item.children, path) : undefined;
+    if (found) return found;
+  }
 }
 
 function openItemMenu(event: MouseEvent, entry: AssetEntry) {
@@ -254,6 +279,7 @@ watch(visible, opened => {
   else {
     cancelFolder();
     previewAsset.value = undefined;
+    mediaVisible.value = false;
   }
 }, { immediate: true });
 
@@ -328,6 +354,54 @@ async function saveAsset() {
   }
 }
 
+function chooseUpload() {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.multiple = true;
+  input.onchange = () => void uploadFiles(Array.from(input.files ?? []));
+  input.click();
+}
+
+function dragUploadOver(event: DragEvent) {
+  // 只接收系统文件；素材自身拖动（application/toonflow-asset）不当作上传
+  if (!event.dataTransfer?.types.includes("Files")) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = "copy";
+  dropping.value = true;
+}
+
+function dropUpload(event: DragEvent) {
+  dropping.value = false;
+  if (!event.dataTransfer?.types.includes("Files")) return;
+  event.preventDefault();
+  event.stopPropagation();
+  void uploadFiles(Array.from(event.dataTransfer.files));
+}
+
+// 上传到当前文件夹；同名文件不覆盖，自动追加序号。
+async function uploadFiles(files: File[]) {
+  if (!files.length || uploading.value) return;
+  const directory = folder.value;
+  uploading.value = true;
+  let saved = 0;
+  try {
+    const names = new Set((directory === "." ? entries.value : findEntry(entries.value, directory)?.children ?? []).map(entry => entry.name));
+    for (const file of files) {
+      let name = file.name.replace(/[\\/]/g, "_");
+      for (let index = 2; names.has(name); index++) name = file.name.replace(/(\.[^.]*)?$/, `-${index}$1`);
+      names.add(name);
+      await axios.put("/api/assets/save", file, { params: { path: directory === "." ? name : `${directory}/${name}` }, headers: { "Content-Type": "application/octet-stream" } });
+      saved++;
+    }
+    ElMessage.success(`已上传 ${saved} 个文件`);
+  } catch (error) {
+    showError(error);
+  } finally {
+    uploading.value = false;
+    if (saved) await loadEntries().catch(showError);
+  }
+}
+
 defineExpose({ openSave });
 </script>
 
@@ -335,6 +409,8 @@ defineExpose({ openSave });
 .assetLibrary {
   width: min(320px, calc(100vw - 30px));
   max-height: calc(100dvh - 140px);
+
+  &.dropping { outline: 2px dashed var(--el-color-primary); outline-offset: -4px; }
 
   :deep(.el-card__body) {
     display: flex;

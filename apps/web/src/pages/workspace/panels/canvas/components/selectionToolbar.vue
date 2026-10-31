@@ -422,7 +422,7 @@ async function exportMedia() {
   }
 }
 
-defineExpose({ operate, startDragCopy, busy });
+defineExpose({ operate, startDragCopy, busy, exportMedia });
 </script>
 
 <style scoped lang="scss">

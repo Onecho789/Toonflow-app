@@ -378,6 +378,47 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 | --- | --- | --- |
 | `apps/web/src/components/modelPopover.vue` | 选中值不在云端目录时，按模型 ID 换成云端选项 | 补回 `watch([modelChoices, selectedModel])` 一段 |
 
+## 画布预览工具栏、元素树与资产上传
+
+- 日期：2026-10-31（参考 infinite-canvas 查漏补缺）
+- 目的：放大预览加缩放按钮、百分比（点按在 1:1 与适应窗口间切换）、左右旋转、复原、复制提示词，显示来源、像素尺寸和文件大小；`+ - 0 1 R` 快捷键，方向键在图片和视频间切换
+- 侧栏“画布”页：无筛选时按分组显示为可折叠的树；多选模式下有已选数量、全选、清空、导出所选；预览可在当前列表的全部图片和视频间切换，切到哪项才读取哪项
+- 资产页与素材库：预览统一用 `mediaPreview`（同一文件夹内切换），支持上传按钮和拖入系统文件（重名自动加 `-2`），文件行有“插入画布”按钮，插入到画布视口中心
+
+### 改动了上游文件
+
+| 文件 | 改动 | 冲突时的处理 |
+| --- | --- | --- |
+| `apps/web/src/pages/workspace/panels/canvas/components/assetLibrary.vue` | `el-image-viewer` 和视频弹窗换成 `mediaPreview`；新增上传、拖入上传、`insertAsset` 插入按钮 | 保留上游改动，再补回这三处 |
+| `apps/web/src/pages/workspace/panels/canvas/components/selectionToolbar.vue` | `defineExpose` 增加 `exportMedia` | 补回 |
+| `apps/web/src/pages/workspace/panels/canvas/index.vue` | 侧栏 `@exportSelection`；新增 `insertAsset` 读取素材后导入到视口中心 | 补回 |
+| `apps/web/src/types/components.d.ts` | 自动生成，去掉 `ElImageViewer` | 重新生成即可 |
+| `packages/nodes/{imageGenerationNode,videoGenerationNode}/src/index.vue` | 预览项带上 `prompt` | 补回 |
+
+## 云端提示词库
+
+- 日期：2026-10-31
+- 目的：图片 / 视频提示词库由麦麦云后台配置远程 JSON 源（每 6 小时同步），客户端只读，经设备 Key 调 `GET /v1/prompts`
+- 本地接口：`GET /api/cloud/prompts`，进程内缓存 10 分钟，未登录返回 `[]`，失败不缓存
+- 侧栏“提示词库”页分“图片 / 视频 / 画布已用”；云端条目按来源折叠分组，支持搜索、标签筛选、详情、复制、填入选中的同类生成节点（多选时全部填入）
+- 图片生成、视频生成节点的输入区新增书本按钮，打开对应类型的提示词库弹窗，“使用”后写入 `prompt` 与 `promptModel`
+
+### 我们新增的文件
+
+- `apps/server/src/utils/cloud/prompts.ts`、`apps/server/src/routes/cloud/prompts.ts`
+- `packages/nodeShared/src/cloudPrompts.ts`：`readCloudPrompts`（全局共用一次请求）与 `promptModelOf`，导出为 `@toonflow/node-shared/cloudPrompts`
+- `packages/nodeShared/src/components/promptLibrary.vue`、`promptDetail.vue`：提示词库弹窗与详情弹窗
+
+### 改动了上游文件
+
+| 文件 | 改动 | 冲突时的处理 |
+| --- | --- | --- |
+| `apps/server/src/utils.ts` | 导出 `cloudPrompts` | 补回 |
+| `apps/server/src/router.ts` | 自动生成 | `bun run routes` 重新生成 |
+| `apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue` | 提示词库页改为三个子页签与云端列表 | 我们新增的文件，无上游冲突 |
+| `packages/nodeShared/package.json` | exports 增加 `promptLibrary`、`promptDetail`、`cloudPrompts` | 补回 |
+| `packages/nodes/{imageGenerationNode,videoGenerationNode}/src/index.vue` | 输入区加 `promptLibrary`；`setPrompt` 工具改用共用的 `setPromptText` | 保留上游改动，再补回 |
+
 ---
 
 ## 同步记录

@@ -71,8 +71,8 @@
         :availableNodes="availableNodes"
         @create="createEmptyNode" />
       <canvasMenu ref="canvasMenuRef" v-model:canvasId="canvasId" :directory="project?.directory" :initialCanvasId="initialCanvasId" :activateCanvas="activateCanvas" :flushSave="flushCanvases ?? flushCanvasSave">
-        <canvasSidePanel v-if="canvasId" v-model:open="sidePanelOpen" v-model:tab="sidePanelTab" :directory="project?.directory" :nodeOptions="nodeOptions" :disabled="!active || settingsVisible || !project?.directory">
-          <template #assets><assetLibrary ref="assetLibraryRef" v-model="assetsVisible" :directory="project?.directory" /></template>
+        <canvasSidePanel v-if="canvasId" v-model:open="sidePanelOpen" v-model:tab="sidePanelTab" :directory="project?.directory" :nodeOptions="nodeOptions" :disabled="!active || settingsVisible || !project?.directory" @exportSelection="selectionToolbarRef?.exportMedia()">
+          <template #assets><assetLibrary ref="assetLibraryRef" v-model="assetsVisible" :directory="project?.directory" :insertAsset="insertAsset" /></template>
         </canvasSidePanel>
         <assetLibrary v-else ref="assetLibraryRef" v-model="assetsVisible" :directory="project?.directory" />
       </canvasMenu>
@@ -956,6 +956,18 @@ function pastePosition() {
 async function pasteNodeAtCenter(command?: string) {
   const position = pastePosition();
   if (position) await pasteClipboardNode(position, command);
+}
+
+// 素材库“插入”：读取素材后按类型在画布中央创建节点，走与拖放相同的导入。
+async function insertAsset(entry: { name: string; path: string }) {
+  const rect = canvasElement.value?.getBoundingClientRect();
+  if (!rect || !props.active || props.settingsVisible) return;
+  try {
+    const { data } = await axios.get<Blob>("/api/assets/read", { params: { path: entry.path }, responseType: "blob", signal: canvasController.signal });
+    await importCanvasContent([new File([data], entry.name, { type: data.type })], screenToFlowCoordinate({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }));
+  } catch (error) {
+    if (!canvasController.signal.aborted) ElMessage.error(axios.isAxiosError<{ message: string }>(error) ? error.response?.data.message || error.message : (error as Error).message);
+  }
 }
 
 async function importCanvasContent(files: File[], position: { x: number; y: number }) {

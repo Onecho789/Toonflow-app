@@ -87,6 +87,7 @@
             :sizes="sizeOptions"
             :ratios="ratioOptions"
             :disabled="generating || deleting || !selectedModel" />
+          <promptLibrary v-if="editor?.mode !== 'inpaint'" type="image" :disabled="generating || deleting" @select="setPromptText" />
           <el-button v-if="editor?.mode === 'inpaint'" class="confirmButton" type="primary" :icon="IconCheck" :loading="editor.busy" :disabled="deleting || uploading || !generationPrompt" @click="confirmInpaint().catch(error => showNodeError(error, '重绘节点创建失败'))">确认</el-button>
           <div v-else class="generationActions">
             <mediaPrice v-if="priceInput" :input="{ ...priceInput, mediaType: 'image' }" :supported="selectedModel?.supportsPrice === true" />
@@ -107,7 +108,7 @@
   <imagePanorama ref="panorama" :src="previewUrl" :source="outputFile" :disabled="generating || deleting || uploading || editor?.busy || lighting?.generating || multiAngle?.generating || gridSplit?.splitting" @open="openPanorama" />
   <imageGridSplit ref="gridSplit" :src="previewUrl" :disabled="generating || deleting || uploading || lighting?.generating || multiAngle?.generating || panorama?.busy" :active="node.selected" />
   <el-image-viewer v-if="inpaintPreviewVisible && inpaintGuideUrl" :urlList="[inpaintGuideUrl]" teleported @close="inpaintPreviewVisible = false" />
-  <mediaPreview v-model="previewVisible" :items="previewUrl ? [{ url: previewUrl, type: 'image', name: outputFile?.url.split(/[\\/]/).at(-1) }] : []" />
+  <mediaPreview v-model="previewVisible" :items="previewUrl ? [{ url: previewUrl, type: 'image', name: outputFile?.url.split(/[\\/]/).at(-1), prompt: data.prompt }] : []" />
 </template>
 
 <script setup lang="ts">
@@ -118,6 +119,8 @@ import { nodeSkeleton, nodeTools, useNode, z, type NodeMediaModel, type NodeImag
 import { groupNodeModels } from "@toonflow/node-shared/groupNodeModels";
 import mediaPreview from "@toonflow/node-shared/mediaPreview";
 import copyPrompt from "@toonflow/node-shared/copyPrompt";
+import promptLibrary from "@toonflow/node-shared/promptLibrary";
+import { promptModelOf } from "@toonflow/node-shared/cloudPrompts";
 import { showNodeError } from "@toonflow/node-shared/showNodeError";
 import { useNodeGeneration } from "@toonflow/node-shared/useNodeGeneration";
 import { useNodeReferences } from "@toonflow/node-shared/useNodeReferences";
@@ -466,14 +469,18 @@ nodeTools.register({
   },
 });
 
+function setPromptText(value: string) {
+  data.value.prompt = value;
+  data.value.promptModel = promptModelOf(value);
+}
+
 nodeTools.register({
   name: "setPrompt",
   description: "修改此节点的普通图片生成提示词，支持 {{ref 1}} 等参考标记；不修改局部重绘提示词，不启动生成",
   parameters: z.strictObject({ prompt: z.string() }),
   execute({ prompt: value }) {
     if (deleting.value) throw new Error("节点正在删除，请稍后修改");
-    data.value.prompt = value;
-    data.value.promptModel = value.split("\n").map((text) => [{ type: "Write", text }]);
+    setPromptText(value);
     return { prompt: value };
   },
 });

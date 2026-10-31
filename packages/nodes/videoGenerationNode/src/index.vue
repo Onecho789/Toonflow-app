@@ -86,6 +86,7 @@
             :ratios="ratioOptions"
             :model="selectedModel"
             :disabled="generating || deleting || !selectedModel" />
+          <promptLibrary type="video" :disabled="generating || deleting" @select="setPromptText" />
           <div class="generationActions">
             <mediaPrice v-if="generationInput" :input="{ ...generationInput, mediaType: 'video' }" :supported="selectedModel?.supportsPrice === true" />
             <el-button
@@ -101,7 +102,7 @@
     </template>
   </nodeSkeleton>
   <videoActions ref="actions" :file="outputFile" :src="previewUrl" :disabled="generating || deleting || uploading" />
-  <mediaPreview v-model="previewVisible" :items="previewUrl ? [{ url: previewUrl, type: 'video', name: outputFile?.url.split(/[\\/]/).at(-1) }] : []" />
+  <mediaPreview v-model="previewVisible" :items="previewUrl ? [{ url: previewUrl, type: 'video', name: outputFile?.url.split(/[\\/]/).at(-1), prompt: data.prompt }] : []" />
 </template>
 
 <script setup lang="ts">
@@ -124,6 +125,8 @@ import mediaHistory from "@toonflow/node-shared/mediaHistory";
 import mediaPrice from "@toonflow/node-shared/mediaPrice";
 import mediaPreview from "@toonflow/node-shared/mediaPreview";
 import copyPrompt from "@toonflow/node-shared/copyPrompt";
+import promptLibrary from "@toonflow/node-shared/promptLibrary";
+import { promptModelOf } from "@toonflow/node-shared/cloudPrompts";
 import generationSettings from "./components/generationSettings.vue";
 
 defineOptions({
@@ -490,14 +493,18 @@ nodeTools.register({
   },
 });
 
+function setPromptText(value: string) {
+  data.value.prompt = value;
+  data.value.promptModel = promptModelOf(value);
+}
+
 nodeTools.register({
   name: "setPrompt",
   description: "修改此节点的视频生成提示词，支持 {{ref 1}} 等参考标记；只修改提示词，不启动生成",
   parameters: z.strictObject({ prompt: z.string() }),
   execute({ prompt: value }) {
     if (deleting.value) throw new Error("节点正在删除，请稍后修改");
-    data.value.prompt = value;
-    data.value.promptModel = value.split("\n").map((text) => [{ type: "Write", text }]);
+    setPromptText(value);
     return { prompt: value };
   },
 });

@@ -31,6 +31,7 @@ import * as mentionFiles from "@/agent/mentionFiles";
 import * as network from "@/utils/network";
 import * as cloud from "@/utils/cloud";
 import * as cloudModels from "@/utils/cloud/models";
+import * as cloudPrompts from "@/utils/cloud/prompts";
 
 export default {
   assets,
@@ -68,4 +69,5 @@ export default {
   network,
   cloud,
   cloudModels,
+  cloudPrompts,
 };
