@@ -316,6 +316,32 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 
 ---
 
+## 画布侧栏与媒体预览
+
+- 提交：`9d23c33`、本节提交（2026-10-31），分支 `claude/jolly-ritchie-4cef79`，待合入 `codex/simplifyMediaModels`
+- 目的：画布左侧加入“画布 / 资产 / 提示词库”侧栏（定位、多选、筛选、缩略图、状态点），图片和视频节点支持放大预览，节点工具栏可复制提示词，`Ctrl/Cmd+A` 全选、`Esc` 取消选择，选中节点的媒体可打包成 zip 导出
+- 生成状态：`useNodeGeneration` 把状态写进 `node.data.generationStatus`，保存画布时宿主会去掉 `running`
+
+### 我们新增的文件
+
+- `apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue`：侧栏，宽度保存在 localStorage 的 `toonflow.canvasSidePanel`
+- `packages/nodeShared/src/components/mediaPreview.vue`：全屏预览，支持图片缩放拖动、视频播放和多项切换，导出为 `@toonflow/node-shared/mediaPreview`
+- `packages/nodeShared/src/components/copyPrompt.vue`：复制提示词按钮，导出为 `@toonflow/node-shared/copyPrompt`
+
+### 改动了上游文件
+
+| 文件 | 改动 | 冲突时的处理 |
+| --- | --- | --- |
+| `apps/web/src/pages/workspace/panels/canvas/index.vue` | 有画布时，素材库嵌入侧栏的“资产”页，与底部素材库按钮同步；新增全选和取消选择快捷键；保存时去掉 `generationStatus: "running"` | 保留上游改动，再补回这三处 |
+| `apps/web/src/pages/workspace/panels/canvas/components/selectionToolbar.vue` | 新增“导出”按钮（fflate 打包，不压缩） | 补回按钮和 `exportMedia` |
+| `apps/web/src/lib/canvasShortcuts.ts` | 新增 `selectAll`、`deselect` | 补回两项 |
+| `apps/web/package.json` | 新增依赖 `@toonflow/node-shared`、`fflate` 0.8.3 | 补回 |
+| `packages/nodeShared/package.json` | exports 增加 `mediaPreview`、`copyPrompt` | 补回 |
+| `packages/nodeShared/src/useNodeGeneration.ts` | 状态写入 `node.data.generationStatus` | 补回 watch 一段 |
+| `packages/nodes/{imageNode,imageGenerationNode,videoNode,videoGenerationNode}/src/index.vue` | 双击媒体打开 `mediaPreview`；生成节点工具栏加 `copyPrompt` | 保留上游改动，再补回 |
+
+---
+
 ## 同步记录
 
 | 日期 | 上游提交 | 说明 |

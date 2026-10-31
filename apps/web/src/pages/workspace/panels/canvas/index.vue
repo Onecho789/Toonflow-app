@@ -71,7 +71,10 @@
         :availableNodes="availableNodes"
         @create="createEmptyNode" />
       <canvasMenu ref="canvasMenuRef" v-model:canvasId="canvasId" :directory="project?.directory" :initialCanvasId="initialCanvasId" :activateCanvas="activateCanvas" :flushSave="flushCanvases ?? flushCanvasSave">
-        <assetLibrary ref="assetLibraryRef" v-model="assetsVisible" :directory="project?.directory" />
+        <canvasSidePanel v-if="canvasId" v-model:open="sidePanelOpen" v-model:tab="sidePanelTab" :directory="project?.directory" :nodeOptions="nodeOptions" :disabled="!active || settingsVisible || !project?.directory">
+          <template #assets><assetLibrary ref="assetLibraryRef" v-model="assetsVisible" :directory="project?.directory" /></template>
+        </canvasSidePanel>
+        <assetLibrary v-else ref="assetLibraryRef" v-model="assetsVisible" :directory="project?.directory" />
       </canvasMenu>
       <canvasControls
         v-if="canvasId"
@@ -178,6 +181,7 @@ import assetLibrary from "./components/assetLibrary.vue";
 import groupNode from "./components/groupNode.vue";
 import selectionToolbar from "./components/selectionToolbar.vue";
 import nodeSearch from "./components/nodeSearch.vue";
+import canvasSidePanel from "./components/canvasSidePanel.vue";
 import { finishGroupDrag, getSelectionTree } from "./selectionNodes";
 import type { NodeOutput } from "@toonflow/nodes-scaffold/values";
 import { validateConnection, type NodeConnectionFeedback, type NodeHandle } from "@toonflow/nodes-scaffold/connection";
@@ -238,6 +242,17 @@ let gestureScale: number | undefined;
 let copyingNodes = false;
 const showEdges = ref(true);
 const assetsVisible = ref(false);
+const sidePanelOpen = ref(false);
+const sidePanelTab = ref<"nodes" | "assets" | "prompts">("nodes");
+// 有画布时素材库嵌在侧栏的“资产”页，底部素材库按钮和侧栏标签互相同步
+watch(assetsVisible, visible => {
+  if (!canvasId.value) return;
+  if (visible) {
+    sidePanelOpen.value = true;
+    sidePanelTab.value = "assets";
+  } else if (sidePanelTab.value === "assets") sidePanelTab.value = "nodes";
+});
+watch([sidePanelOpen, sidePanelTab], ([open, tab]) => { assetsVisible.value = open && tab === "assets"; });
 const assetLibraryRef = ref<InstanceType<typeof assetLibrary>>();
 const edgeDisconnect = ref<{ id: string; x: number; y: number }>();
 const flow = useVueFlow(props.runtimeKey);
