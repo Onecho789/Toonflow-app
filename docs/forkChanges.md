@@ -112,6 +112,7 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 
 - 提交：`b3b9053`（2026-10-28），接着第一版做
 - Logo：`packages/assets/` 下的 `logo.svg`、`logo.ico` 和 `logo.iconset/*.png` 全部换成麦麦工坊的徽章。PNG 和 ICO 用彩色原图按尺寸缩放。`logo.svg` 是同一徽章描出来的黑色单色剪影，因为网页里的用法（暗色反色、`mask-image`、加载页按绝对 `M` 轮廓拆分描边动画）都要求单色。上游改 Logo 时一律保留我们的版本。
+- 原生启动动画 `packages/startup/assets/startup.json`：`logo` 图层的路径换成 `logo.svg` 的轮廓（最大轮廓放 `logoPen`，其余放 `logoBody`，填充改为 evenodd），`title` 图层换成 Noto Sans SC（SIL OFL）字重 600 的“麦麦工坊”轮廓，结尾位移按新宽度居中；时长、关键帧节奏和光晕未改。上游改动画时保留我们的 `logo`、`title` 路径，只合并时间轴变化。
 - 安装器和原生程序的提示文字：`installer/installer.nsi`、`installer/checkWebView2.cs`、`native/protocolLauncher.cs`、`native/startupLauncher.cs`、`native/updateHelper.cs`、`scripts/macDmg.ts` 里显示的 Toonflow 改成“麦麦工坊”。User-Agent 改为 `MaiMaiStudio`，协议显示名改为 `URL:MaiMai Studio Protocol`。
 - 桌面标识（改了以后，装过上游 Toonflow 的电脑上会被当成另一个应用，不会互相覆盖或更新）：
 
