@@ -168,7 +168,7 @@ import { loadNodeComponent } from "./loadNodeComponent";
 import { useCanvasHistory } from "./useCanvasHistory";
 import { copyNodeToClipboard, copyNodesToClipboard, nodeClipboardCommand, readClipboardNodes } from "./nodeClipboard";
 import { remapNodeReferences } from "./canvasFiles";
-import { readClipboardFiles, readClipboardText, writeClipboardImage } from "@/lib/clipboard";
+import { readClipboardFiles, readClipboardText, writeClipboardImage, writeClipboardText } from "@/lib/clipboard";
 import nodeMenu from "./components/nodeMenu.vue";
 import remoteNode from "./components/remoteNode.vue";
 import canvasMenu from "./components/canvasMenu.vue";
@@ -278,6 +278,7 @@ provide("copyNodeToClipboard", async (node: Parameters<typeof copyNodeToClipboar
   await copyNodeToClipboard(node, directory);
 });
 provide("retainNodeFiles", true);
+provide("writeClipboardText", writeClipboardText);
 provide("selectionConnection", shallowRef<NodeConnectionFeedback>());
 provide("saveNodeToAssets", (label: string, outputs: { label: string; output: NodeOutput }[]) => assetLibraryRef.value?.openSave(label, outputs));
 let canvasController = new AbortController();
@@ -663,7 +664,9 @@ const saveCanvas = debounce((directory: string, fileName: string) => {
   // ACT: 同页保存按顺序完成，防止慢请求覆盖后续修改；不处理多个客户端的并发编辑。
   saving = saving.then(async () => {
     try {
-      await useWorkspaceFiles(directory).writeJson(fileName, { toonflowCanvas: true, nodes: flow.nodes, edges: flow.edges, viewport: flow.viewport });
+      // 生成中的状态只在本次运行有效，不写入文件
+      const nodes = flow.nodes.map(node => node.data?.generationStatus === "running" ? { ...node, data: { ...node.data, generationStatus: undefined } } : node);
+      await useWorkspaceFiles(directory).writeJson(fileName, { toonflowCanvas: true, nodes, edges: flow.edges, viewport: flow.viewport });
       saveError = undefined;
       canvasSaveError.value = "";
       if (revision === saveRevision) canvasDirty.value = false;
@@ -1078,7 +1081,7 @@ function updateCanvasKeys(event: KeyboardEvent) {
   if (event.type === "keyup" || event.defaultPrevented || event.isComposing || !inCanvas || editing) return;
   const action = ([
     "group", "mergeGroup", "ungroup", "addNode", "moveTool", "handTool", "arrange", "search",
-    "delete", "copy", "paste", "undo", "redo", "zoomIn", "zoomOut", "fitView",
+    "delete", "copy", "paste", "undo", "redo", "zoomIn", "zoomOut", "fitView", "selectAll", "deselect",
   ] as const).find((action) =>
     shortcutMatches(event, shortcuts[action])
   );
@@ -1090,6 +1093,8 @@ function updateCanvasKeys(event: KeyboardEvent) {
   }
   if (!canvasId.value || !project.value?.directory) return;
   if (action === "copy" && (!flow.getSelectedNodes.value.length || window.getSelection()?.toString())) return;
+  // 没有选中项时让 Esc 继续交给弹出层等其他处理
+  if (action === "deselect" && !flow.getSelectedNodes.value.length && !flow.getSelectedEdges.value.length) return;
   // 桌面快捷键直接复用原生剪贴板桥接；浏览器 Ctrl/Cmd+V 保留原生事件，避免额外读取权限。
   if (!actualPlatform.isDesktop && action === "paste" && event.code === "KeyV" && (event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey) return;
   event.preventDefault();
@@ -1114,6 +1119,10 @@ function updateCanvasKeys(event: KeyboardEvent) {
   else if (action === "moveTool" || action === "handTool") selectedTool.value = action === "handTool" ? "hand" : "move";
   else if (action === "arrange") void canvasControlsRef.value?.arrangeNodes();
   else if (action === "search") nodeSearchRef.value?.open();
+  else if (action === "selectAll") {
+    flow.addSelectedNodes(flow.getNodes.value.filter(node => !node.hidden));
+    flow.nodesSelectionActive.value = true;
+  } else if (action === "deselect") flow.removeSelectedElements();
   else void flow[action]();
 }
 

@@ -27,6 +27,8 @@ export const defaultCanvasShortcuts = {
   zoomIn: isMac ? "Meta+Equal / Shift+Meta+Equal" : "Ctrl+Equal / Ctrl+Shift+Equal",
   zoomOut: `${primaryModifier}+Minus`,
   fitView: `${primaryModifier}+Digit0`,
+  selectAll: `${primaryModifier}+KeyA`,
+  deselect: "Escape",
 };
 export type CanvasShortcutAction = keyof typeof defaultCanvasShortcuts;
 export type CanvasShortcuts = Record<CanvasShortcutAction, string>;
@@ -57,6 +59,8 @@ export const canvasShortcutFields: {
   { id: "undo", label: "撤销" },
   { id: "redo", label: "重做" },
   { id: "search", label: "画布节点搜索" },
+  { id: "selectAll", label: "全选节点" },
+  { id: "deselect", label: "取消选择" },
   { id: "delete", label: "删除" },
   { id: "copy", label: "复制到剪贴板" },
   { id: "paste", label: "粘贴" },

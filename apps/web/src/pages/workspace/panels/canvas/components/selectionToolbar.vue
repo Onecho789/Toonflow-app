@@ -65,6 +65,7 @@
       <el-button text :icon="IconCopyPlus" :disabled="busy || disabled" @click="operate('duplicate')">创建副本</el-button>
       <el-button text :icon="IconBoxMultiple" :disabled="busy || disabled" @click="operate('group')">打组</el-button>
       <el-button text :icon="IconDeselect" :disabled="busy || disabled || !hasGroup" @click="operate('ungroup')">解组</el-button>
+      <el-button text :icon="IconFileZip" :loading="exporting" :disabled="busy || disabled || exporting" title="导出选中节点的媒体文件" @click="exportMedia">导出</el-button>
     </div>
   </el-card>
 </template>
@@ -73,14 +74,20 @@
 import { computed, nextTick, ref, watch } from "vue";
 import { getRectOfNodes, useVueFlow, type GraphNode, type Node, type XYPosition } from "@vue-flow/core";
 import { ElButton, ElCard, ElColorPicker, ElMessage, ElPopover } from "element-plus";
+import { storeToRefs } from "pinia";
+import { zipSync } from "fflate";
 import {
-  IconCopyPlus, IconBoxMultiple, IconDeselect,
+  IconCopyPlus, IconBoxMultiple, IconDeselect, IconFileZip,
   IconLayoutGrid, IconLayoutColumns, IconLayoutRows,
 } from "@tabler/icons-vue";
 import { useNodeEvent } from "@toonflow/nodes-scaffold/nodeEvent";
 import { finishGroupDrag, getSelectionRoots, getSelectionTree } from "../selectionNodes";
 import { arrangeSelection, type ArrangeSelectionMode } from "../arrangeSelection";
 import { remapNodeReferences } from "../canvasFiles";
+import useWorkspaceFiles from "@/lib/workspaceFiles";
+import saveFile from "@/lib/saveFile";
+import { useWorkspaceStore } from "@/stores/workspace";
+import type { NodeOutput } from "@toonflow/nodes-scaffold/values";
 
 const props = defineProps<{
   batchHistory: (action: () => Promise<void>) => Promise<void>;
@@ -90,6 +97,8 @@ const props = defineProps<{
 const flow = useVueFlow();
 const toolbar = ref<InstanceType<typeof ElCard>>();
 const busy = ref(false);
+const exporting = ref(false);
+const { project } = storeToRefs(useWorkspaceStore());
 const colorMenuVisible = ref(false);
 const colors = [
   { label: "灰色", value: "#808080" },
@@ -377,6 +386,39 @@ async function operate(command: "duplicate" | "group" | "ungroup" | "mergeGroup"
     if (!signal.aborted) ElMessage.error(error instanceof Error ? error.message : "选区操作失败");
   } finally {
     busy.value = false;
+  }
+}
+
+async function exportMedia() {
+  const directory = project.value?.directory;
+  if (!directory) return ElMessage.error("请先选择工作目录");
+  const nodes = getSelectionTree(flow.getSelectedNodes.value, flow.getNodes.value);
+  const paths = new Map<string, string>();
+  for (const node of nodes) {
+    const outputs = Object.values((node.data?.outputs ?? {}) as Record<string, NodeOutput | undefined>);
+    for (const output of outputs) {
+      if (output?.dataType !== "IMAGE" && output?.dataType !== "VIDEO" && output?.dataType !== "AUDIO") continue;
+      const path = output.value.url.replaceAll("\\", "/");
+      if (paths.has(path)) continue;
+      // 用节点名作为文件名前缀，同名时追加序号
+      const baseName = `${String(node.data?.label || "未命名节点").replace(/[\\/:*?"<>|]/g, "_")}-${path.split("/").at(-1)}`;
+      let name = baseName;
+      for (let index = 2; [...paths.values()].includes(name); index++) name = baseName.replace(/(\.[^.]*)?$/, `-${index}$1`);
+      paths.set(path, name);
+    }
+  }
+  if (!paths.size) return ElMessage.warning("选中的节点没有可导出的图片、视频或音频");
+  exporting.value = true;
+  try {
+    const files = useWorkspaceFiles(directory);
+    const entries = await Promise.all([...paths].map(async ([path, name]) => [name, new Uint8Array(await files.read(path))] as const));
+    // 媒体文件本身已压缩，只打包不再压缩
+    const zip = zipSync(Object.fromEntries(entries), { level: 0 });
+    await saveFile(new Blob([zip], { type: "application/zip" }), `画布导出-${new Date().toISOString().slice(0, 19).replace(/[T:]/g, "-")}.zip`);
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : "导出失败");
+  } finally {
+    exporting.value = false;
   }
 }
 

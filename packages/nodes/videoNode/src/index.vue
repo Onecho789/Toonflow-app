@@ -6,7 +6,7 @@
     :downloadUrl="exporting ? '' : previewUrl"
     :downloadName="outputFile?.url.split(/[\\/]/).at(-1)"
     :style="{ width: previewUrl && videoWidth ? `${videoWidth + 18}px` : undefined }"
-    @fullscreen="player?.enterFullscreen()">
+    @fullscreen="previewVisible = !!previewUrl">
     <template #topActions>
       <el-button :icon="IconMusic" text :disabled="!outputFile || uploading || exporting || actions?.processing" @click.stop="actions?.open('extractAudio')">提取音轨</el-button>
       <el-button :icon="IconLayersSubtract" text :disabled="!outputFile || uploading || exporting || actions?.processing" @click.stop="actions?.open('separate')">分离音视频</el-button>
@@ -33,7 +33,7 @@
         </template>
       </el-dropdown>
     </template>
-    <div class="videoContent nopan">
+    <div class="videoContent nopan" @dblclick.stop="previewVisible = !!previewUrl">
       <div v-if="exporting" class="exportLoading" role="status" aria-label="视频导出中">
         <el-progress type="circle" :percentage="exportProgress" :width="64" :strokeWidth="3" />
         <span>正在导出视频</span>
@@ -57,6 +57,7 @@
     </div>
   </nodeSkeleton>
   <videoActions ref="actions" :file="outputFile" :src="previewUrl" :disabled="uploading || exporting" />
+  <mediaPreview v-model="previewVisible" :items="previewUrl ? [{ url: previewUrl, type: 'video', name: outputFile?.url.split(/[\\/]/).at(-1) }] : []" />
 </template>
 
 <script setup lang="ts">
@@ -66,6 +67,7 @@ import { ElButton, ElMessage, ElProgress, ElDropdown, ElDropdownMenu, ElDropdown
 import { nodeSkeleton, nodeTools, useNode, z, type NodeHandle } from "@toonflow/nodes-scaffold/runtime";
 import videoPlayer from "./components/videoPlayer.vue";
 import videoActions from "./components/videoActions.vue";
+import mediaPreview from "@toonflow/node-shared/mediaPreview";
 
 defineOptions({
   inheritAttrs: false,
@@ -78,6 +80,7 @@ const { node, nodeProps, outputs, nodeEvent, files, updateNodeInternals } = useN
 const fileInput = ref<HTMLInputElement>();
 const uploading = ref(false);
 const player = ref<InstanceType<typeof videoPlayer>>();
+const previewVisible = ref(false);
 const actions = ref<InstanceType<typeof videoActions>>();
 const exportProgress = computed(() => (node.data as typeof node.data & { exportProgress?: number }).exportProgress);
 const exporting = computed(() => typeof exportProgress.value === "number");

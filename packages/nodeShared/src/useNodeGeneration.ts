@@ -1,4 +1,5 @@
-import { computed, ref, type Ref } from "vue";
+import { computed, ref, watch, type Ref } from "vue";
+import { useNode } from "@vue-flow/core";
 import { nodeTools, z } from "@toonflow/nodes-scaffold/nodeTools";
 import type { NodeOutputs } from "@toonflow/nodes-scaffold/values";
 
@@ -6,6 +7,14 @@ export function useNodeGeneration(outputs: Readonly<Ref<NodeOutputs>>, cancel: (
   const status = ref<"idle" | "running" | "succeeded" | "failed">("idle");
   const error = ref("");
   const generating = computed(() => status.value === "running");
+  const { node } = useNode();
+  // 写入 node.data 供画布侧栏显示状态点；历史只记录 label，保存时宿主会去掉 running。
+  // 新实例尚未生成时，残留的 running（例如来自复制的节点）视为无状态。
+  if (node.data.generationStatus === "running") delete node.data.generationStatus;
+  watch(status, value => {
+    if (value === "idle") delete node.data.generationStatus;
+    else node.data.generationStatus = value;
+  });
   const getStatus = () => ({ status: status.value, outputs: outputs.value, ...(error.value ? { error: error.value } : {}) });
 
   nodeTools.register({
