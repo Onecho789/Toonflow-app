@@ -467,6 +467,28 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 | `apps/server/src/utils.ts` | 导出 `cloudPlugins` | 直接补回 |
 | `apps/server/src/router.ts` | `bun run routes` 重新生成 | 不手改，合并后重新生成 |
 
+## 视频工作台
+
+- 日期：2026-11-01
+- 不建项目也能生成视频：左栏选模型、时长 / 分辨率 / 比例 / 音频与模型表单参数，填提示词（可从视频提示词库选），按模型 `mode` 显示首帧 / 尾帧上传，显示预估价格；生成中可取消
+- 首尾帧上传先写进工作台文件夹的 `frames/`，以相对路径作为 `firstFrame` / `lastFrame` 传入；单图参考模式（`singleImage`）放进 `images`；数组形式的参考生视频模式工作台不提供
+- 右栏结果流读取工作台文件夹的 `generated/`，按 `mtimeMs` 新的在前；提交后顶部立即出现进行中卡片，失败卡片显示错误；卡片悬停可下载、加入素材库（`saveToAssets(directory, path, "视频")`）
+- 跨 `await` 的上传、生成、读取在开始时快照文件夹；切换文件夹后清空首尾帧选择
+
+### 我们新增的文件
+
+| 文件 | 说明 |
+| --- | --- |
+| `apps/web/src/pages/videoStudio/videoWorkbench.vue` | 参数栏与结果流，复用 `useNodeAi`、`useModelForm`、`modelForm`、`mediaPrice`、`promptLibrary`，`provide("workspaceDirectory")` 供估价使用 |
+| `apps/web/src/pages/videoStudio/frameSlot.vue` | 首帧 / 尾帧上传槽 |
+| `apps/web/src/pages/videoStudio/videoCard.vue` | 结果卡片：进入视口才读取视频，复用 `components/videoPlayer.vue` |
+
+### 改动了上游文件
+
+| 文件 | 改动 | 冲突时的处理 |
+| --- | --- | --- |
+| `apps/web/src/pages/videoStudio/index.vue` | 在 `workbenchShell` 插槽中渲染 `videoWorkbench` | 我们新增的页面，无上游冲突 |
+
 ---
 
 ## 首页改为分流页，项目列表移到“无限画布”
