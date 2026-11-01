@@ -473,7 +473,7 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 
 - 日期：2026-11-01
 - 左栏选图片模型、分辨率与比例、模型参数、提示词（含云端提示词库）、参考图，显示价格，生成中可停止；右栏按新到旧列出结果
-- 结果写入工作台文件夹的 `generated/`，生成后按时间戳 `YYYYMMDD-HHmmss-xxxxxx` 改名（列表接口没有修改时间，靠文件名排序）；参考图上传到 `references/`
+- 结果写入工作台文件夹的 `generated/`，按列表接口返回的 `mtimeMs` 倒序（新的在前）；参考图以时间戳文件名上传到 `references/`
 - 结果卡悬停可预览、下载、加入素材库（`生图` 文件夹）、用作参考图；提交后立即显示占位卡，失败经 `showNodeError` 提示
 
 ### 我们新增的文件
@@ -483,7 +483,7 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 | `apps/web/src/pages/imageStudio/studioPanel.vue` | 左右两栏主体：模型与参数、参考图上传、生成与取消、结果列表 |
 | `apps/web/src/pages/imageStudio/resultCard.vue` | 结果卡片与悬停操作 |
 | `apps/web/src/pages/imageStudio/studioImage.vue` | 工作区图片缩略图（参考图用） |
-| `apps/web/src/pages/imageStudio/studioFiles.ts` | 图片 MIME/扩展名映射、时间戳文件名、`useImageUrl` |
+| `apps/web/src/pages/imageStudio/studioFiles.ts` | 图片 MIME/扩展名映射、参考图时间戳文件名、`useImageUrl` |
 
 ### 改动了上游文件
 

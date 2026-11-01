@@ -180,10 +180,8 @@ async function loadResults() {
     throw error;
   });
   if (directory !== props.directory) return;
-  // ACT: 列表接口不返回修改时间，生成后改成时间戳文件名，按名称倒序即新的在前；其他文件排在后面。
-  const stamped = (path: string) => /^\d{8}-\d{6}-/.test(path.split("/").at(-1)!);
-  results.value = entries.filter(item => item.type === "file" && imageMimeType(item.name)).map(item => item.path)
-    .sort((left, right) => Number(stamped(right)) - Number(stamped(left)) || right.localeCompare(left));
+  results.value = entries.filter(item => item.type === "file" && imageMimeType(item.name))
+    .sort((left, right) => (right.mtimeMs ?? 0) - (left.mtimeMs ?? 0)).map(item => item.path);
 }
 
 async function ensureDirectory(directory: string, path: string) {
@@ -195,16 +193,12 @@ async function startGeneration() {
   if (!input) return void showNodeError("请先选择图片模型", "图片生成失败");
   if (!input.prompt) return void showNodeError("请输入提示词", "图片生成失败");
   const directory = props.directory;
-  const files = useWorkspaceFiles(directory);
   const current = new AbortController();
   controller.value = current;
   generating.value = true;
   try {
     const [result] = await ai.generateImage({ ...input, directory }, current.signal);
     if (!result) throw new Error("麦麦云未返回图片");
-    const extension = result.path.split(".").at(-1);
-    await files.rename(result.path, `${outputDirectory}/${timestampName()}.${extension}`)
-      .catch(error => showNodeError(error, "图片已生成，但按时间重命名失败"));
   } catch (error) {
     showNodeError(error, "图片生成失败");
   } finally {
