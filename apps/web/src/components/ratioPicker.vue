@@ -10,8 +10,8 @@
       :aria-checked="item === modelValue"
       :disabled="disabled"
       @click="emit('update:modelValue', item)">
-      <span class="ratioShape" :style="shapeStyle(item)" aria-hidden="true" />
-      <span class="ratioText">{{ item }}</span>
+      <span v-if="item !== 'auto'" class="ratioShape" :style="shapeStyle(item)" aria-hidden="true" />
+      <span class="ratioText">{{ item === "auto" ? "自动" : item }}</span>
     </button>
   </div>
 </template>
@@ -20,7 +20,7 @@
 defineProps<{ modelValue: string; options: string[]; label: string; disabled?: boolean }>();
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
 
-// 按比例画出示意框，长边固定 18px；无法解析的写法（如 auto）显示为正方形。
+// 按比例画出示意框，长边固定 18px；auto 只显示“自动”文字，其他无法解析的写法显示为正方形。
 function shapeStyle(ratio: string) {
   const [width, height] = ratio.split(/[:x]/).map(Number);
   if (!width || !height) return { width: "14px", height: "14px" };

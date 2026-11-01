@@ -42,11 +42,13 @@ type VideoMedia = { images?: MediaInput[]; videos?: MediaInput[]; audios?: Media
 const imageAssets = (data?: { b64_json?: string; url?: string }[]) =>
   (data ?? []).flatMap((item): CloudAsset[] => item.b64_json ? [{ type: "base64", data: item.b64_json }] : item.url ? [{ type: "url", url: item.url }] : []);
 
+// other 里的模型参数（如 quality、background）原样转发给云端，固定字段放在后面，不会被覆盖；size、ratio 缺省时由上游决定。
 function imageBody(request: MediaGenerationRequest, images: MediaInput[] | undefined) {
-  return {
+  // model 须保持在请求体第一个字段，选分组时只读请求体开头取模型 ID。
+  return Object.assign({ model: request.modelId, ...request.other }, {
     model: request.modelId, prompt: request.prompt, n: 1, size: request.size, aspect_ratio: request.ratio,
     ...(images?.length ? { images: images.map(dataUrl) } : {}),
-  };
+  });
 }
 
 function videoBody(request: MediaGenerationRequest, media: VideoMedia) {

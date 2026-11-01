@@ -732,6 +732,16 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 
 改动的上游文件：无，均为 Fork 新增的提示词库与工作台文件。
 
+## 工作台参数补全
+
+- 日期：2026-11-01
+- 生图工作台：新增质量（自动/高/中/低）、透明背景开关，作为 `other.quality`、`other.background` 提交；数量扩到 1–10 档并可自定义（上限 20）；分辨率、比例加「自动」（不传 size/ratio，分辨率自动时比例一并自动）；分辨率旁显示 `sizeMap` 换算的输出像素
+- 视频工作台：比例加「自动」（不传 ratio）；分辨率旁按短边与比例估算像素；模型下方显示能力说明（生成方式、参考上限、时长、分辨率、音频）
+- 参考素材区（生图、视频共用的 `referenceList.vue`）加「剪贴板」「上传」按钮
+- 服务端：`utils/media/cloud.ts` 的 `imageBody` 把 `other` 原样转发给麦麦云（`model` 保持第一个字段，分组选择只读请求体开头）；`listMediaModels` 返回图片模型的 `sizeMap`，`NodeMediaModel` 加 `sizeMap` 类型
+
+改动的上游文件：`packages/nodeScaffold/src/nodeAi.ts` 的 `NodeMediaModel` 加 `sizeMap` 字段，冲突时保留该字段；其余为 Fork 新增的工作台与麦麦云文件。
+
 ## 同步记录
 
 | 日期 | 上游提交 | 说明 |

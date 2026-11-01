@@ -42,14 +42,16 @@ function invalid(message: string): never {
 }
 
 // 媒体模型统一来自麦麦云目录，meta 里是节点表单需要的模式、尺寸与时长；isDefault 标出设置里该类型的默认模型。
-export async function listMediaModels(refresh = false): Promise<(MediaModel & { price: string; groups: CloudGroup[]; isDefault: boolean })[]> {
+// 图片的 sizeMap 是档位与比例对应的像素尺寸（如 1K、1:1 → 1024x1024），工作台用来显示输出尺寸。
+type SizeMap = Record<string, Record<string, string>>;
+export async function listMediaModels(refresh = false): Promise<(MediaModel & { price: string; groups: CloudGroup[]; isDefault: boolean; sizeMap?: SizeMap })[]> {
   return (await listCloudModels(refresh)).flatMap(model => {
     if (model.type !== "image" && model.type !== "video") return [];
-    const meta = model.meta as Pick<MediaModel, "mode" | "durationResolutionMap" | "audio" | "imageSizes" | "imageRatios" | "ratios">;
+    const meta = model.meta as Pick<MediaModel, "mode" | "durationResolutionMap" | "audio" | "imageSizes" | "imageRatios" | "ratios"> & { sizeMap?: SizeMap };
     return [{
       providerId: cloudProviderId, providerLabel: "麦麦云", modelId: model.id, label: model.label, vendor: model.vendor, type: model.type, supportsPrice: true, price: cloudPriceText(model), groups: model.groups, isDefault: model.id === getCloudDefault(model.type).model,
       mode: meta.mode, durationResolutionMap: meta.durationResolutionMap, audio: meta.audio,
-      ...(model.type === "image" ? { imageSizes: meta.imageSizes, imageRatios: meta.imageRatios } : { ratios: meta.ratios }),
+      ...(model.type === "image" ? { imageSizes: meta.imageSizes, imageRatios: meta.imageRatios, sizeMap: meta.sizeMap } : { ratios: meta.ratios }),
     }];
   });
 }

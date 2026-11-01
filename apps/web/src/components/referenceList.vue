@@ -34,7 +34,11 @@
         </template>
       </el-dropdown>
     </div>
-    <p class="referenceTip">支持拖入文件、Ctrl+V 粘贴，拖动缩略图调整顺序</p>
+    <div class="referenceFooter">
+      <p class="referenceTip">支持拖入文件、Ctrl+V 粘贴，拖动缩略图调整顺序</p>
+      <el-button size="small" :icon="IconClipboard" :disabled="disabled || uploading" @click="pasteClipboard">剪贴板</el-button>
+      <el-button size="small" :icon="IconUpload" :disabled="disabled || uploading" @click="fileInput?.click()">上传</el-button>
+    </div>
     <input ref="fileInput" type="file" :accept="kinds.map(kind => `${kind}/*`).join(',')" multiple hidden aria-label="选择参考素材" @change="selectFiles" />
     <mediaPickerDialog v-model="pickerVisible" :source="pickerSource" :directory="directory" :kinds="kinds" @pick="add" />
   </div>
@@ -43,10 +47,11 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import axios from "axios";
-import { ElDropdown, ElDropdownItem, ElDropdownMenu, ElIcon, ElMessage } from "element-plus";
-import { IconLibraryPhoto, IconLoader2, IconMovie, IconMusic, IconPhoto, IconPlus, IconUpload, IconX } from "@tabler/icons-vue";
+import { ElButton, ElDropdown, ElDropdownItem, ElDropdownMenu, ElIcon, ElMessage } from "element-plus";
+import { IconClipboard, IconLibraryPhoto, IconLoader2, IconMovie, IconMusic, IconPhoto, IconPlus, IconUpload, IconX } from "@tabler/icons-vue";
 import { showNodeError } from "@toonflow/node-shared/showNodeError";
 import useWorkspaceFiles from "@/lib/workspaceFiles";
+import { readClipboardFiles } from "@/lib/clipboard";
 import studioImage from "@/pages/imageStudio/studioImage.vue";
 import { mediaExtension, mediaKind, timestampName, type MediaKind } from "@/pages/imageStudio/studioFiles";
 import mediaPickerDialog from "./mediaPickerDialog.vue";
@@ -162,6 +167,17 @@ function paste(event: ClipboardEvent) {
   void upload(files);
 }
 onMounted(() => window.addEventListener("paste", paste));
+
+// 点按钮读取剪贴板里的图片或文件（桌面端经本地服务读取系统剪贴板）。
+async function pasteClipboard() {
+  try {
+    const files = await readClipboardFiles();
+    if (!files.length) return void ElMessage.info("剪贴板里没有图片或媒体文件");
+    await upload(files);
+  } catch (error) {
+    showNodeError(error, "读取剪贴板失败");
+  }
+}
 onBeforeUnmount(() => window.removeEventListener("paste", paste));
 </script>
 
@@ -253,6 +269,15 @@ onBeforeUnmount(() => window.removeEventListener("paste", paste));
     }
   }
 
-  .referenceTip { margin: 6px 0 0; color: var(--el-text-color-placeholder); font-size: 11px; }
+  .referenceFooter {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+
+    .referenceTip { flex: 1; min-width: 0; margin: 0; color: var(--el-text-color-placeholder); font-size: 11px; }
+
+    .el-button + .el-button { margin-left: 0; }
+  }
 }
 </style>

@@ -21,6 +21,7 @@
           </el-option>
         </el-option-group>
       </el-select>
+      <p v-if="capabilities.length" class="modelCapability">{{ capabilities.join(" · ") }}</p>
 
       <template v-if="modeOptions.length > 1">
         <div class="fieldLabel">生成方式</div>
@@ -67,7 +68,7 @@
 
       <template v-if="selectedModel">
         <div class="fieldLabel">比例</div>
-        <ratioPicker v-model="data.ratio" :options="ratios" label="视频比例" />
+        <ratioPicker v-model="data.ratio" :options="[...ratios, 'auto']" label="视频比例" />
         <template v-if="durations.length">
           <div class="fieldLabel">时长<span class="fieldHint">{{ data.duration }} 秒</span></div>
           <div v-if="durationRange" class="durationRange">
@@ -78,7 +79,7 @@
           <el-select v-else v-model="data.duration" :options="durationOptions" aria-label="视频时长" />
         </template>
         <template v-if="resolutions.length">
-          <div class="fieldLabel">分辨率</div>
+          <div class="fieldLabel">分辨率<span v-if="pixelSize" class="fieldHint">约 {{ pixelSize }}</span></div>
           <el-segmented v-model="data.resolution" :options="resolutions" block aria-label="视频分辨率" />
         </template>
         <div v-if="selectedModel.audio === 'optional'" class="audioOption">
@@ -232,6 +233,27 @@ const referenceLimits = computed(() => {
 const referenceKinds = computed(() => (["image", "video", "audio"] as MediaKind[]).filter(kind => referenceLimits.value[kind]));
 const referenceCounts = computed(() => Object.fromEntries((["image", "video", "audio"] as MediaKind[])
   .map(kind => [kind, data.value.references.filter(item => mediaKind(item.mimeType) === kind).length])) as Record<MediaKind, number>);
+// ACT: 按“短边 = 480p/720p 等数值”和比例估算像素，取偶数；实际尺寸由上游决定，非 p 档位或比例自动时不显示。
+const pixelSize = computed(() => {
+  const short = Number(/^(\d+)p$/i.exec(data.value.resolution)?.[1]);
+  const [width, height] = data.value.ratio.split(":").map(Number);
+  if (!short || !width || !height) return;
+  const long = Math.round(short * Math.max(width, height) / Math.min(width, height) / 2) * 2;
+  return width >= height ? `${long} × ${short}` : `${short} × ${long}`;
+});
+// 模型能力说明：支持的生成方式、参考上限、时长、分辨率与音频，均来自模型 meta。
+const capabilities = computed(() => {
+  const choice = selectedModel.value;
+  if (!choice) return [];
+  const limits = referenceKinds.value.map(kind => `${kind === "image" ? "图片" : kindNames[kind]}≤${referenceLimits.value[kind]}`).join("、");
+  const list = durations.value;
+  return [
+    modeOptions.value.map(item => item.value === "reference" && limits ? `${item.label}（${limits}）` : item.label).join("、"),
+    list.length ? `时长 ${list.length > 1 ? `${list[0]}–${list.at(-1)}` : list[0]} 秒` : "",
+    [...new Set((choice.durationResolutionMap ?? []).flatMap(item => item.resolution))].join("/"),
+    choice.audio === "optional" ? "可选音频" : choice.audio === true ? "自带音频" : "",
+  ].filter(Boolean);
+});
 const referenceHint = computed(() => referenceKinds.value.map(kind => `${kind === "image" ? "图片" : kind === "video" ? "视频" : "音频"} ${referenceCounts.value[kind]}/${referenceLimits.value[kind]}`).join(" · "));
 
 const selectedMode = computed((): NodeVideoRequest["mode"] => {
@@ -258,7 +280,8 @@ const generationInput = computed((): Omit<NodeVideoRequest, "directory"> | undef
     mode,
     duration: data.value.duration,
     resolution: data.value.resolution || undefined,
-    ratio: data.value.ratio,
+    // 比例“自动”不传，由上游按素材或默认值决定。
+    ratio: data.value.ratio === "auto" ? undefined : data.value.ratio,
     generateAudio: choice.audio === "optional" ? data.value.generateAudio : choice.audio,
     other: Object.keys(data.value.other).length ? { ...data.value.other } : undefined,
     outputDirectory,
@@ -288,7 +311,7 @@ watch([selectedModel, () => data.value.duration], ([choice]) => {
   if (!choice) return;
   if (!durations.value.includes(data.value.duration!)) data.value.duration = durations.value[0];
   if (!resolutions.value.includes(data.value.resolution)) data.value.resolution = resolutions.value[0] ?? "";
-  if (!ratios.value.includes(data.value.ratio)) data.value.ratio = ratios.value.includes("9:16") ? "9:16" : ratios.value[0]!;
+  if (data.value.ratio !== "auto" && !ratios.value.includes(data.value.ratio)) data.value.ratio = ratios.value.includes("9:16") ? "9:16" : ratios.value[0]!;
   if (choice.audio !== "optional") data.value.generateAudio = choice.audio === true;
   if (!modeOptions.value.some(item => item.value === data.value.tab)) data.value.tab = (modeOptions.value[0]?.value ?? "text") as Tab;
 }, { flush: "sync" });
@@ -397,7 +420,7 @@ function fillRecord(record: HistoryRecord) {
   });
   if (input.duration) data.value.duration = input.duration;
   if (input.resolution) data.value.resolution = input.resolution;
-  if (input.ratio) data.value.ratio = input.ratio;
+  data.value.ratio = input.ratio ?? "auto";
   if (typeof input.generateAudio === "boolean") data.value.generateAudio = input.generateAudio;
   if (saved.tab && modeOptions.value.some(item => item.value === saved.tab)) data.value.tab = saved.tab;
   ElMessage.success("已回填这条记录的参数");
@@ -450,6 +473,13 @@ async function removeHistory(record: HistoryRecord) {
     line-height: 22px;
   }
   .frameRow { display: flex; gap: 10px; }
+
+  .modelCapability {
+    margin: 6px 0 0;
+    color: var(--el-text-color-secondary);
+    font-size: 12px;
+    line-height: 1.6;
+  }
 
   .durationRange {
     display: flex;

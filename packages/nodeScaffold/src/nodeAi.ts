@@ -21,6 +21,7 @@ export type NodeAiModel = {
 export type NodeModelGroup = { name: string; label: string; ratio: number };
 export type NodeMediaModel = Omit<MediaModel, "mode"> & {
   mode?: (string | string[])[];
+  sizeMap?: Record<string, Record<string, string>>;
   groups?: NodeModelGroup[];
   isDefault?: boolean;
 };

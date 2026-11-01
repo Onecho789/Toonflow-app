@@ -30,12 +30,21 @@
       </el-select>
 
       <template v-if="selectedModel">
-        <div class="fieldLabel">比例</div>
-        <ratioPicker v-model="ratio" :options="ratioOptions" label="图片比例" />
-        <div class="fieldLabel">分辨率</div>
-        <el-segmented v-model="size" class="sizeSegmented" :options="sizeOptions" block aria-label="图片分辨率" />
+        <div class="fieldLabel">质量<span class="fieldHint">取决于模型是否支持</span></div>
+        <el-segmented v-model="quality" :options="qualityOptions" block aria-label="图片质量" />
+        <div class="fieldLabel">分辨率<span v-if="pixelSize" class="fieldHint">输出 {{ pixelSize }}</span></div>
+        <el-segmented v-model="size" class="sizeSegmented" :options="sizeChoices" block aria-label="图片分辨率" />
+        <div class="fieldLabel">比例<span v-if="size === 'auto'" class="fieldHint">分辨率为自动时由模型决定</span></div>
+        <ratioPicker v-model="ratio" :options="ratioChoices" :disabled="size === 'auto'" label="图片比例" />
+        <div class="switchOption">
+          <span class="switchText">透明背景<span class="fieldHint">生成无背景的透明图，仅部分模型可用</span></span>
+          <el-switch v-model="transparent" aria-label="透明背景" />
+        </div>
         <div class="fieldLabel">数量<span class="fieldHint">每张单独生成、单独计费</span></div>
-        <el-segmented v-model="count" :options="countOptions" block aria-label="生成数量" />
+        <div class="countPicker">
+          <el-segmented v-model="count" :options="countOptions" block aria-label="生成数量" />
+          <el-input-number v-model="count" :min="1" :max="maxCount" :precision="0" controlsPosition="right" size="small" aria-label="自定义生成数量" />
+        </div>
         <modelForm v-model="form.other" :rules="selectedModel.rules" />
       </template>
     </template>
@@ -91,7 +100,7 @@
 
 <script setup lang="ts">
 import { computed, provide, ref, shallowRef, watch } from "vue";
-import { ElButton, ElIcon, ElInput, ElMessage, ElMessageBox, ElOption, ElOptionGroup, ElSegmented, ElSelect } from "element-plus";
+import { ElButton, ElIcon, ElInput, ElInputNumber, ElMessage, ElMessageBox, ElOption, ElOptionGroup, ElSegmented, ElSelect, ElSwitch } from "element-plus";
 import { IconAlertCircle, IconArrowBackUp, IconLoader2, IconRefresh, IconSparkles } from "@tabler/icons-vue";
 import { useNodeAi, type NodeImageRequest, type NodeMediaModel } from "@toonflow/nodes-scaffold/nodeAi";
 import { groupNodeModels } from "@toonflow/node-shared/groupNodeModels";
@@ -114,7 +123,10 @@ import resultCard from "./resultCard.vue";
 const props = defineProps<{ directory: string }>();
 // ACT: 网关单次最多 16 张参考图；模型 meta 没有单独的图片参考上限字段，按 mode 区分单图/多图。
 const maxReferences = 16;
-const countOptions = [1, 2, 3, 4].map(value => ({ label: `${value} 张`, value }));
+// ACT: 每张是一个独立任务并发提交，自定义数量上限 20，避免一次误填提交过多任务。
+const maxCount = 20;
+const countOptions = Array.from({ length: 10 }, (_item, index) => ({ label: `${index + 1}`, value: index + 1 }));
+const qualityOptions = [{ label: "自动", value: "auto" }, { label: "高", value: "high" }, { label: "中", value: "medium" }, { label: "低", value: "low" }];
 const ai = useNodeAi();
 const models = shallowRef<NodeMediaModel[]>([]);
 const modelsLoading = ref(false);
@@ -123,6 +135,8 @@ const size = ref("");
 const ratio = ref("");
 const prompt = ref("");
 const count = ref(1);
+const quality = ref("auto");
+const transparent = ref(false);
 const references = ref<ReferenceFile[]>([]);
 const submitting = ref(false);
 const importing = ref(false);
@@ -136,6 +150,10 @@ const selectedModel = computed(() => models.value.find(item => JSON.stringify([i
 const modelGroups = computed(() => groupNodeModels(models.value));
 const sizeOptions = computed(() => selectedModel.value?.imageSizes?.length ? selectedModel.value.imageSizes : ["2K"]);
 const ratioOptions = computed(() => selectedModel.value?.imageRatios?.length ? selectedModel.value.imageRatios : ["16:9"]);
+// “自动”不传分辨率或比例，由上游决定；云端只在有分辨率档位时按比例换算像素，所以分辨率自动时比例也一并自动。
+const sizeChoices = computed(() => [...sizeOptions.value, { label: "自动", value: "auto" }]);
+const ratioChoices = computed(() => [...ratioOptions.value, "auto"]);
+const pixelSize = computed(() => selectedModel.value?.sizeMap?.[size.value]?.[ratio.value]?.replace("x", " × "));
 // 模型声明 multiReference 时可传多张参考图，只有 singleImage 时限 1 张，未声明则不显示参考图。
 const referenceLimit = computed(() => {
   const modes = selectedModel.value?.mode ?? ["text", "singleImage", "multiReference"];
@@ -148,13 +166,19 @@ const generationInput = computed<Omit<NodeImageRequest, "directory"> | undefined
   const text = prompt.value.trim();
   // 多张参考图时在提示词前说明编号，让模型能对应“图1”“图2”的引用。
   const prefix = usedReferences.value.length > 1 ? `参考图片编号：${usedReferences.value.map((_item, index) => `图${index + 1}`).join("、")}。请按这些编号理解提示词中的图片引用。\n` : "";
+  // 质量与透明背景按 OpenAI 图片接口的字段放进 other，由云端原样转发；“自动”与不透明时不传。
+  const other = {
+    ...form.value.other,
+    ...quality.value === "auto" ? {} : { quality: quality.value },
+    ...transparent.value ? { background: "transparent" } : {},
+  };
   return {
     providerId: choice.providerId,
     modelId: choice.modelId,
     prompt: text && prefix + text,
-    size: size.value,
-    ratio: ratio.value,
-    other: Object.keys(form.value.other).length ? { ...form.value.other } : undefined,
+    size: size.value === "auto" ? undefined : size.value,
+    ratio: size.value === "auto" || ratio.value === "auto" ? undefined : ratio.value,
+    other: Object.keys(other).length ? other : undefined,
     outputDirectory,
     images: usedReferences.value.length ? usedReferences.value.map(item => ({ ...item })) : undefined,
   };
@@ -167,8 +191,8 @@ useModelForm(form, selectedModel);
 watch(selectedModel, choice => {
   if (!choice) return;
   // ACT: 与图片生成节点一致，分辨率默认取数值最小的一档，比例优先 16:9。
-  if (!sizeOptions.value.includes(size.value)) size.value = sizeOptions.value.toSorted((left, right) => (Number.parseFloat(left) || Infinity) - (Number.parseFloat(right) || Infinity))[0]!;
-  if (!ratioOptions.value.includes(ratio.value)) ratio.value = ratioOptions.value.includes("16:9") ? "16:9" : ratioOptions.value[0]!;
+  if (size.value !== "auto" && !sizeOptions.value.includes(size.value)) size.value = sizeOptions.value.toSorted((left, right) => (Number.parseFloat(left) || Infinity) - (Number.parseFloat(right) || Infinity))[0]!;
+  if (ratio.value !== "auto" && !ratioOptions.value.includes(ratio.value)) ratio.value = ratioOptions.value.includes("16:9") ? "16:9" : ratioOptions.value[0]!;
 }, { flush: "sync" });
 
 watch(() => props.directory, () => {
@@ -217,11 +241,14 @@ function fillRecord(record: HistoryRecord) {
   const saved = (record.form ?? {}) as { model?: string; references?: ReferenceFile[] };
   prompt.value = record.prompt;
   if (saved.model && models.value.some(item => JSON.stringify([item.providerId, item.modelId]) === saved.model)) form.value.model = saved.model;
-  if (input.size) size.value = input.size;
-  if (input.ratio) ratio.value = input.ratio;
-  form.value.other = { ...input.other };
+  size.value = input.size ?? "auto";
+  ratio.value = input.ratio ?? "auto";
+  const { quality: savedQuality, background, ...other } = input.other ?? {};
+  quality.value = typeof savedQuality === "string" ? savedQuality : "auto";
+  transparent.value = background === "transparent";
+  form.value.other = other;
   references.value = [...saved.references ?? []];
-  count.value = Math.min(Math.max(record.items.length, 1), 4);
+  count.value = Math.min(Math.max(record.items.length, 1), maxCount);
   ElMessage.success("已回填这条记录的参数");
 }
 
@@ -274,6 +301,34 @@ function addReference(path: string) {
 <style lang="scss" scoped>
 .studioPanel {
   .promptInput :deep(.el-textarea__inner) { padding: 10px 12px; line-height: 1.7; }
+
+  .switchOption {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 10px;
+
+    .switchText {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      color: var(--el-text-color-primary);
+      font-size: 13px;
+      font-weight: 600;
+
+      .fieldHint { color: var(--el-text-color-secondary); font-size: 12px; font-weight: 400; }
+    }
+  }
+
+  .countPicker {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .el-segmented { flex: 1; min-width: 0; }
+    .el-input-number { flex-shrink: 0; width: 76px; }
+  }
 
   .recordPrompt {
     margin: 0 0 14px;
