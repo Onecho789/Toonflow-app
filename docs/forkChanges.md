@@ -469,6 +469,28 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 
 ---
 
+## 首页改为分流页，项目列表移到“无限画布”
+
+- 日期：2026-11-01
+- 首页只留问候、Agent 输入框（选空文件夹→新建项目→进画布，逻辑不变）、三张入口卡（生成图片 `/imageStudio`、生成视频 `/videoStudio`、无限画布 `/projects`）和最多 4 个“最近项目”（无项目时不显示，“查看全部”到 `/projects`）
+- 原首页的项目网格（新建/打开已有项目、导出 ZIP、重命名、移除）整段搬到 `/projects`，行为不变；首页输入框遇到非空文件夹时提示改为到“无限画布”打开
+- 背景点阵的 Logo 缩小并移到右下角，主体与光晕不透明度调低，只做点缀
+
+### 我们新增的文件
+
+| 文件 | 说明 |
+| --- | --- |
+| `apps/web/src/pages/home/projectEntry.ts` | 首页与 `/projects` 共用：打开项目、加载页过渡（`enterWorkspace`）、文件夹丢失时重新选择 |
+
+### 改动了上游文件
+
+| 文件 | 改动 | 冲突时的处理 |
+| --- | --- | --- |
+| `apps/web/src/pages/home/index.vue` | 删掉项目网格及导出/重命名/新建入口；加入口卡与最近项目；打开项目与加载过渡改用 `projectEntry.ts`；`createProject` 只服务输入框 | 上游改项目列表时，把改动合到 `pages/projects/index.vue`；改输入框时正常合并 |
+| `apps/web/src/pages/home/bg.vue` | Logo 尺寸上限 420→280、位置下移到右下，主体透明度 0.5→0.22，光晕 0.9→0.35 | 保留上游改动，再补回这几个数值 |
+
+---
+
 ## 同步记录
 
 | 日期 | 上游提交 | 说明 |
