@@ -32,6 +32,7 @@ import * as network from "@/utils/network";
 import * as cloud from "@/utils/cloud";
 import * as cloudModels from "@/utils/cloud/models";
 import * as cloudPrompts from "@/utils/cloud/prompts";
+import * as cloudPlugins from "@/utils/cloud/plugins";
 
 export default {
   assets,
@@ -70,4 +71,5 @@ export default {
   cloud,
   cloudModels,
   cloudPrompts,
+  cloudPlugins,
 };

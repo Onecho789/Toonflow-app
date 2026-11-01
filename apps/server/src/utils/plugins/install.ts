@@ -6,6 +6,7 @@ import { crc32, inflateRawSync } from "node:zlib";
 import { parseFrontmatter } from "@earendil-works/pi-coding-agent";
 import type { PluginInstallType } from "@/types/desktop";
 import conf from "@/utils/conf";
+import { sessionFetch } from "@/utils/cloud";
 import { parseTool, toolsDirectory } from "@/utils/plugins/tools";
 import { extDirectory, parseExt } from "@/utils/plugins/ext";
 import { isSafeSegment } from "@/utils/skills/files";
@@ -74,7 +75,8 @@ async function download(url: string, limit: number, label: string) {
   const signal = AbortSignal.timeout(30_000);
   try {
     for (let redirects = 0; redirects <= 5; redirects++) {
-      const response = await fetch(address, { signal, redirect: "manual" });
+      // 麦麦云插件市场的下载地址需要设备 Key，sessionFetch 只给麦麦云地址带 Key，其他地址原样请求。
+      const response = await sessionFetch(address, { signal, redirect: "manual" });
       if ([301, 302, 303, 307, 308].includes(response.status)) {
         const location = response.headers.get("location");
         await response.body?.cancel();

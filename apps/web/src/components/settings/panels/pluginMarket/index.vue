@@ -8,12 +8,6 @@
         <button class="navButton" type="button" :aria-pressed="activeTab === 'ffmpeg'" @click="activeTab = 'ffmpeg'">FFmpeg</button>
       </nav>
       <div class="marketActions">
-        <el-button tag="a" href="https://api.toonflow.net/console/plugIn" target="_blank" rel="noopener noreferrer" size="small" text :icon="IconExternalLink">
-          网页版市场
-        </el-button>
-        <el-button tag="a" href="https://qcn7xdsqgc4z.feishu.cn/docx/KNBNd9naqolsy6xjAOCcEAkqnRd" target="_blank" rel="noopener noreferrer" size="small" text :icon="IconBook">
-          开发者文档
-        </el-button>
         <template v-if="activeTab === 'installed'">
           <el-button v-if="selectedType === 'ext' || selectedType === 'all'" size="small" :icon="IconSettings" @click="associationsVisible = true">默认打开方式</el-button>
           <el-button size="small" type="primary" :icon="IconUpload" :loading="installing" aria-label="安装本地插件" @click="pluginFileInput?.click()">
@@ -33,6 +27,7 @@
         </button>
         <button
           v-for="(category, type) in pluginTypes"
+          v-show="type !== 'agent' || activeTab === 'installed'"
           :key="type"
           class="filterButton"
           type="button"
@@ -45,7 +40,6 @@
         </button>
         <div class="personalFilters" role="group" aria-label="我的插件">
           <button class="filterButton" type="button" :aria-pressed="selectedType === 'collection'" @click="selectedType = 'collection'">收藏</button>
-          <button class="filterButton" type="button" :aria-pressed="selectedType === 'my'" @click="selectedType = 'my'">我的</button>
         </div>
       </div>
       <form v-if="isMarketTab || activeTab === 'installed'" class="marketSearch" role="search" @submit.prevent="applySearch">
@@ -60,30 +54,14 @@
       <template v-if="activeTab === 'installed'">
         <el-alert v-for="message in visibleLoadErrors" :key="message" class="loadError" :title="message" type="error" :closable="false" showIcon />
       </template>
-      <el-card v-else-if="marketNeedsKey" class="marketKey" shadow="never">
-        <el-text size="small">{{ marketError }}</el-text>
-        <form class="keyForm" @submit.prevent="saveMarketKey">
-          <el-input
-            v-model="draftKey"
-            type="password"
-            showPassword
-            autocomplete="off"
-            :maxlength="8192"
-            placeholder="填写 TF-Router API Key"
-            aria-label="TF-Router API Key"
-            :disabled="savingKey" />
-          <el-button type="primary" nativeType="submit" :loading="savingKey" :disabled="!draftKey.trim()">保存并继续</el-button>
-        </form>
-        <el-text v-if="keyError" type="danger" size="small" role="alert">{{ keyError }}</el-text>
-        <el-link href="https://api.toonflow.net/" target="_blank" rel="noopener noreferrer" type="primary">前往 TF-Router 获取 API Key</el-link>
-      </el-card>
+      <el-empty v-else-if="!cloudAccount" description="请先在“账号”中登录麦麦云账号" />
       <el-alert v-else-if="marketError" class="loadError" :title="marketError" type="error" :closable="false" showIcon>
         <el-button size="small" @click="marketRefreshKey++">重试</el-button>
       </el-alert>
 
       <div
         class="pluginList"
-        :aria-label="`${selectedType === 'collection' ? '收藏' : selectedType === 'my' ? '我的' : tabs[activeTab]}列表`"
+        :aria-label="`${selectedType === 'collection' ? '收藏' : tabs[activeTab]}列表`"
         :aria-busy="activeTab === 'installed' ? loading : marketLoading">
         <el-card
           v-for="plugin in visiblePlugins"
@@ -225,10 +203,10 @@
       </div>
       <p v-if="activeTab === 'installed' ? loading : marketLoading" class="listStatus" role="status">正在加载插件…</p>
       <p v-else-if="!visiblePlugins.length && (isMarketTab ? !marketError : !visibleLoadErrors.length)" class="listStatus">
-        {{ activeTab === "installed" ? "暂无符合条件的已安装插件" : selectedType === "collection" ? "暂无符合条件的收藏插件" : selectedType === "my" ? "暂无符合条件的已发布插件" : "未找到相关插件" }}
+        {{ activeTab === "installed" ? "暂无符合条件的已安装插件" : selectedType === "collection" ? "暂无符合条件的收藏插件" : "未找到相关插件" }}
       </p>
       <el-pagination
-        v-if="isMarketTab && !marketError"
+        v-if="isMarketTab && cloudAccount && !marketError"
         v-model:currentPage="marketPage"
         class="marketPagination"
         :pageSize="marketPageSize"
@@ -269,10 +247,10 @@ import { translate } from "@toonflow/i18n/vue";
 import axios from "axios";
 import parse from "semver/functions/parse";
 import { computed, defineAsyncComponent, markRaw, onMounted, onBeforeUnmount, ref, watch } from "vue";
-import { IconBox, IconBook, IconTool, IconFileText, IconExternalLink, IconSparkles2, IconUpload, IconShare, IconStar, IconStarFilled, IconLink, IconSettings, IconCopy } from "@tabler/icons-vue";
+import { IconBox, IconBook, IconTool, IconFileText, IconSparkles2, IconUpload, IconShare, IconStar, IconStarFilled, IconLink, IconSettings, IconCopy } from "@tabler/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import tf, { getTfApiKey } from "@/lib/tf";
-import { saveSettings } from "@/stores/settings";
+import type { CloudPlugin } from "@toonflow/server/desktop";
+import { cloudAccount } from "@/stores/cloudAccount";
 import saveFile from "@/lib/saveFile";
 import { writeClipboardText } from "@/lib/clipboard";
 import pluginConfigDialog from "./pluginConfigDialog.vue";
@@ -303,12 +281,12 @@ const isMarketTab = computed(() => activeTab.value === "discover");
 const marketPage = ref(1);
 const marketPageSize = 20;
 const marketTotal = ref(0);
-const selectedTypes = ref<{ discover: PluginType | "all" | "collection" | "my"; installed: PluginType | "all" }>({ discover: "all", installed: "all" });
+const selectedTypes = ref<{ discover: PluginType | "all" | "collection"; installed: PluginType | "all" }>({ discover: "all", installed: "all" });
 const selectedType = computed({
   get: () => selectedTypes.value[activeTab.value === "installed" ? "installed" : "discover"],
-  set: (type: PluginType | "all" | "collection" | "my") => {
+  set: (type: PluginType | "all" | "collection") => {
     if (activeTab.value !== "discover" && activeTab.value !== "installed") return;
-    if (type === "collection" || type === "my") {
+    if (type === "collection") {
       activeTab.value = "discover";
       selectedTypes.value.discover = type;
     } else {
@@ -323,12 +301,6 @@ const installedByKey = computed(() => new Map(installedPlugins.value.map((plugin
 const marketPlugins = ref<Plugin[]>([]);
 const marketLoading = ref(false);
 const marketError = ref("");
-const apiKey = computed(getTfApiKey);
-const marketNeedsKey = ref(false);
-const draftKey = ref("");
-const savingKey = ref(false);
-const keyError = ref("");
-let keyController: AbortController | undefined;
 const marketRefreshKey = ref(0);
 const loading = ref(false);
 const loadErrors = ref<Partial<Record<PluginType, string>>>({});
@@ -348,11 +320,6 @@ const refreshInstalled = () => {
 };
 onMounted(() => window.addEventListener("toonflow:plugin-installed", refreshInstalled));
 onBeforeUnmount(() => window.removeEventListener("toonflow:plugin-installed", refreshInstalled));
-onBeforeUnmount(() => keyController?.abort());
-watch(
-  () => [visible, activeTab.value],
-  () => keyController?.abort()
-);
 const selectedConfigPlugin = ref<Plugin>();
 const configVisible = ref(false);
 const selectedPlugin = ref<Plugin>();
@@ -427,79 +394,46 @@ function hasMissingConfig(plugin: Plugin) {
 watch(activeTab, () => { marketPage.value = 1; });
 
 watch(
-  () => [visible, activeTab.value, selectedTypes.value.discover, marketPage.value, appliedQuery.value, marketRefreshKey.value, apiKey.value],
+  () => [visible, activeTab.value, selectedTypes.value.discover, marketPage.value, appliedQuery.value, marketRefreshKey.value, cloudAccount.value?.id],
   async (_value, _previous, onCleanup) => {
     if (!visible || !isMarketTab.value) return;
     const controller = new AbortController();
     onCleanup(() => controller.abort());
-    marketLoading.value = true;
     marketError.value = "";
     marketPlugins.value = [];
-    marketNeedsKey.value = !apiKey.value;
-    if (marketNeedsKey.value) {
-      marketTotal.value = 0;
-      marketError.value = "填写 TF-Router API Key 后即可浏览插件市场";
-      marketLoading.value = false;
-      return;
-    }
+    marketTotal.value = 0;
+    if (!cloudAccount.value) return;
+    marketLoading.value = true;
     try {
-      const pageData = await tf.getPlugIn(
-        {
-          page: marketPage.value,
-          limit: marketPageSize,
-          type: selectedTypes.value.discover,
-          ...(appliedQuery.value ? { searchKeyword: appliedQuery.value } : {}),
-        },
-        { signal: controller.signal }
-      );
+      const { data } = await axios.get<{ data: { list: CloudPlugin[]; total: number } }>("/api/cloud/plugins/list", {
+        params: { page: marketPage.value, size: marketPageSize, type: selectedTypes.value.discover, ...(appliedQuery.value ? { keyword: appliedQuery.value } : {}) },
+        headers: requestHeaders,
+        signal: controller.signal,
+      });
       if (controller.signal.aborted) return;
-      if (
-        !pageData ||
-        !Number.isSafeInteger(pageData.total) ||
-        pageData.total < 0 ||
-        !Array.isArray(pageData.list) ||
-        pageData.list.some(
-          (item) =>
-            !item ||
-            !Number.isSafeInteger(item.id) ||
-            !Object.hasOwn(pluginTypes, item.type) ||
-            typeof item.identifier !== "string" ||
-            !item.identifier.trim() ||
-            typeof item.name !== "string" ||
-            typeof item.link !== "string" ||
-            !item.link.trim() ||
-            typeof item.fileName !== "string" ||
-            !item.fileName.trim()
-        )
-      )
-        throw new Error("插件市场列表格式错误");
-      marketTotal.value = pageData.total;
-      const lastPage = Math.max(1, Math.ceil(pageData.total / marketPageSize));
+      const { list, total } = data.data;
+      marketTotal.value = total;
+      const lastPage = Math.max(1, Math.ceil(total / marketPageSize));
       if (marketPage.value > lastPage) {
         marketPage.value = lastPage;
         return;
       }
-      marketPlugins.value = pageData.list.map((item) => ({
+      marketPlugins.value = list.map((item) => ({
         key: `market:${item.id}`,
         id: item.id,
-        isCollected: item.isCollected,
-        type: item.type as PluginType,
-        name: item.identifier.trim(),
-        displayName: item.name.trim() || item.identifier.trim(),
-        author: typeof item.supplier === "string" ? item.supplier : "",
-        description: typeof item.desc === "string" ? item.desc : "",
-        url: item.link,
-        fileName: item.fileName.trim(),
+        isCollected: item.collected,
+        type: item.type,
+        name: item.identifier,
+        displayName: item.name || item.identifier,
+        author: item.author,
+        description: item.description,
+        readme: item.readme,
+        url: item.url,
+        fileName: item.fileName,
         version: item.version,
       }));
     } catch (error) {
-      if (!controller.signal.aborted) {
-        marketTotal.value = 0;
-        marketError.value = errorMessage(error, "加载插件市场失败，请重试");
-        marketNeedsKey.value =
-          marketError.value.includes("用户信息错误") || (axios.isAxiosError(error) && [401, 403].includes(error.response?.status ?? 0));
-        if (marketNeedsKey.value) marketError.value = "TF-Router 用户信息错误，请重新填写 API Key";
-      }
+      if (!controller.signal.aborted) marketError.value = errorMessage(error, "加载插件市场失败，请重试");
     } finally {
       if (!controller.signal.aborted) marketLoading.value = false;
     }
@@ -552,35 +486,6 @@ watch(
   { immediate: true }
 );
 
-async function saveMarketKey() {
-  const key = draftKey.value
-    .trim()
-    .replace(/^Bearer(?:\s+|$)/i, "")
-    .trim();
-  if (savingKey.value) return;
-  if (!key) {
-    keyError.value = "请输入有效的 TF-Router API Key";
-    return;
-  }
-  const previousKey = apiKey.value;
-  const controller = new AbortController();
-  keyController = controller;
-  savingKey.value = true;
-  keyError.value = "";
-  try {
-    await tf.getPlugIn({ page: 1, limit: 1, type: "all" }, { apiKey: key, signal: controller.signal });
-    if (controller.signal.aborted) return;
-    await saveSettings(() => controller.signal.aborted ? undefined : { tfApiKey: key });
-    if (controller.signal.aborted) return;
-    draftKey.value = "";
-    if (apiKey.value === previousKey) marketRefreshKey.value++;
-  } catch (error) {
-    if (!controller.signal.aborted) keyError.value = errorMessage(error, "验证或保存失败，请重试");
-  } finally {
-    savingKey.value = false;
-  }
-}
-
 function applySearch() {
   appliedQuery.value = searchQuery.value.trim();
   marketPage.value = 1;
@@ -621,17 +526,16 @@ function installLabel(plugin: Plugin) {
 
 async function toggleCollection(plugin: Plugin) {
   if (plugin.id === undefined || collectingPlugins.value.has(plugin.key)) return;
-  const key = apiKey.value;
   collectingPlugins.value.add(plugin.key);
   try {
-    const { collected } = await tf.toggleCollection(plugin.id, { apiKey: key });
-    if (apiKey.value !== key) return;
+    const { data } = await axios.post<{ data: { collected: boolean } }>("/api/cloud/plugins/collection", { id: plugin.id }, { headers: requestHeaders });
+    const { collected } = data.data;
     const current = marketPlugins.value.find(item => item.id === plugin.id);
     if (current) current.isCollected = collected;
     if (selectedType.value === "collection" || marketLoading.value) marketRefreshKey.value++;
     ElMessage.success(collected ? "收藏成功" : "已取消收藏");
   } catch (error) {
-    if (apiKey.value === key) ElMessage.error(errorMessage(error, "修改收藏失败，请重试"));
+    ElMessage.error(errorMessage(error, "修改收藏失败，请重试"));
   } finally {
     collectingPlugins.value.delete(plugin.key);
   }
@@ -766,23 +670,6 @@ async function updatePlugin(plugin: Plugin, action: "setEnabled" | "uninstall", 
 
 <style lang="scss" scoped>
 .pluginMarket {
-  .marketKey {
-    margin-bottom: 12px;
-
-    :deep(.el-card__body) {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 12px;
-    }
-
-    .keyForm {
-      display: flex;
-      width: 100%;
-      gap: 8px;
-    }
-  }
-
   .marketToolbar {
     position: sticky;
     top: 0;

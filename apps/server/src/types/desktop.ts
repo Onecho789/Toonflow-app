@@ -1,6 +1,23 @@
 export type PluginInstallType = "node" | "tool" | "skill" | "agent" | "ext";
 export type PluginInstallRequest = { type: PluginInstallType; url: string; fileName: string };
 export type CloudUser = { id: number; email: string; role: number; mustChangePassword: boolean };
+// 麦麦云插件市场条目；url 是安装时交给 installRemotePlugin 的下载地址，下载请求由 sessionFetch 带上设备 Key。
+export type CloudPlugin = {
+  id: number;
+  type: "node" | "ext" | "skill" | "tool";
+  identifier: string;
+  name: string;
+  author: string;
+  description: string;
+  readme: string;
+  version: string;
+  fileName: string;
+  fileSize: number;
+  downloads: number;
+  collected: boolean;
+  updatedAt: string;
+  url: string;
+};
 
 export type desktopUpdateAttempt = {
   attemptId: string;
