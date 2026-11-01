@@ -1,5 +1,6 @@
 <template>
   <div class="projects" :inert="creating || opening || workspaceStore.projectLoadingVisible">
+    <bg class="pageBackground" still />
     <el-scrollbar class="pageScroll">
       <el-main class="pageContent">
         <section class="projectList" aria-labelledby="projectListTitle">
@@ -50,6 +51,7 @@ import { useWorkspaceStore, type Project } from "@/stores/workspace";
 import useWorkspaceFiles from "@/lib/workspaceFiles";
 import saveFile from "@/lib/saveFile";
 import projectCover from "@/pages/home/projectCover.vue";
+import bg from "@/pages/home/bg.vue";
 import workspacePicker from "@/pages/home/workspacePicker.vue";
 import useProjectEntry from "@/pages/home/projectEntry";
 
@@ -111,11 +113,18 @@ async function createProject() {
 
 <style lang="scss" scoped>
 .projects {
+  position: relative;
   display: flex;
   height: 100%;
   overflow: hidden;
 
+  .pageBackground {
+    position: absolute;
+    inset: 0;
+  }
+
   .pageScroll {
+    position: relative;
     flex: 1;
     min-width: 0;
     height: 100%;

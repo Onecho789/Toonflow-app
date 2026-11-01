@@ -11,7 +11,8 @@ import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 type Particle = { x: number; y: number; depth: number; size: number; hue: number; phase: number; speed: number };
 type Streak = { x: number; y: number; length: number; speed: number; life: number; hue: number };
 
-const props = defineProps<{ scrollTop: number }>();
+// still：工作台等页面只要静态星云底色与颗粒，不画粒子、光束和流光，也不跑动画。
+const props = withDefaults(defineProps<{ scrollTop?: number; still?: boolean }>(), { scrollTop: 0, still: false });
 const sceneCanvas = ref<HTMLCanvasElement>();
 const grainUrl = ref("");
 const events = new AbortController();
@@ -206,9 +207,11 @@ function draw(delta = 0) {
   // 暗色下用加色混合，光与光叠加会更亮；浅色下正常混合，避免发灰。
   context.globalCompositeOperation = isDark ? "lighter" : "source-over";
   drawNebula();
-  drawBeams();
-  drawParticles(delta);
-  drawStreaks(delta);
+  if (!props.still) {
+    drawBeams();
+    drawParticles(delta);
+    drawStreaks(delta);
+  }
   context.globalCompositeOperation = "source-over";
 }
 
@@ -236,7 +239,7 @@ function syncAnimation() {
   animationFrame = 0;
   lastFrame = 0;
   draw();
-  if (width && height && !document.hidden && !reducedMotion.matches && !events.signal.aborted) {
+  if (!props.still && width && height && !document.hidden && !reducedMotion.matches && !events.signal.aborted) {
     animationFrame = requestAnimationFrame(tick);
   }
 }

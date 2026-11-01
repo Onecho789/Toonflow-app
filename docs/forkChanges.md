@@ -454,6 +454,17 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 | --- | --- | --- |
 | `apps/web/src/pages/home/bg.vue` | 整体替换为星云粒子背景 | 上游改此文件时保留我们的版本，只合并 `scrollTop` 等接口变化 |
 
+### 其他页面的静态氛围底
+
+- 日期：2026-11-01
+- `bg.vue` 加 `still` 属性（`scrollTop` 改为可选，默认 0）：只画星云光晕和颗粒，不画光束、光子、流光，不启动动画循环，仅在尺寸或主题变化时重画
+- 接入：无限画布项目列表（`pages/projects/index.vue`）、生图与视频工作台（共用的 `components/workbenchShell.vue`，一处接入两个页面生效）
+- 画布编辑页、素材库与插件市场弹窗不加背景
+
+| 文件 | 改动 | 冲突时的处理 |
+| --- | --- | --- |
+| `apps/web/src/pages/projects/index.vue` | 根节点下加 `<bg still>`，根节点与滚动区补 `position: relative` | 保留上游改动，再补回背景与定位 |
+
 ---
 
 ## 插件市场改由麦麦云提供（第一期）

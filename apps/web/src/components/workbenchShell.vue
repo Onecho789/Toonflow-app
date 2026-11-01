@@ -1,5 +1,6 @@
 <template>
   <section class="workbenchShell" :aria-label="title">
+    <bg class="shellBackground" still />
     <header class="shellHeader">
       <span class="titleIcon"><component :is="type === 'image' ? IconPhotoAi : IconMovie" :size="20" aria-hidden="true" /></span>
       <div class="titleText">
@@ -38,6 +39,7 @@ import { ElMessage } from "element-plus";
 import { IconDeviceFloppy, IconFolder, IconFolderHeart, IconInfinity, IconLibraryPhoto, IconMovie, IconPhotoAi, IconSwitchHorizontal } from "@tabler/icons-vue";
 import { useWorkbenchStore, type WorkbenchType } from "@/stores/workbench";
 import workspacePicker from "@/pages/home/workspacePicker.vue";
+import bg from "@/pages/home/bg.vue";
 
 const props = defineProps<{ type: WorkbenchType; title: string }>();
 const workbenchStore = useWorkbenchStore();
@@ -58,10 +60,18 @@ defineExpose({ chooseDirectory });
 
 <style lang="scss" scoped>
 .workbenchShell {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100%;
   min-height: 0;
+
+  .shellBackground {
+    position: absolute;
+    inset: 0;
+  }
+
+  .shellHeader, .shellBody, .shellEmpty { position: relative; }
 
   .shellHeader {
     display: flex;
