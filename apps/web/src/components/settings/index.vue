@@ -36,7 +36,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineAsyncComponent, shallowRef } from "vue";
+import { defineAsyncComponent, shallowRef, watch } from "vue";
 import { hasDesktopUpdate } from "@/stores/desktopUpdate";
 import { isMobile } from "@/lib/platform";
 import {
@@ -88,8 +88,14 @@ const settingsPanels = [
   { id: "developer", label: "开发者选项", icon: IconCode, component: defineAsyncComponent(() => import("./panels/developer/index.vue")) },
   { id: "about", label: "关于", icon: IconInfoCircle, component: defineAsyncComponent(() => import("./panels/about.vue")) },
 ];
+const props = defineProps<{ panel?: string }>();
 const activePanel = shallowRef(settingsPanels[0]!);
 const visible = defineModel<boolean>({ default: false });
+// 外部指定面板时，每次打开都切到该面板。
+watch(visible, value => {
+  const target = props.panel && settingsPanels.find(item => item.id === props.panel);
+  if (value && target) activePanel.value = target;
+}, { immediate: true });
 </script>
 
 <style lang="scss" scoped>

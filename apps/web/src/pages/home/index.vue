@@ -1,46 +1,7 @@
 <template>
-  <div class="home" :class="{ sidebarCollapsed }" :inert="creating || opening || workspaceStore.projectLoadingVisible">
+  <div class="home" :inert="creating || opening || workspaceStore.projectLoadingVisible">
     <bg class="pageBackground" :scrollTop="backgroundScrollTop" />
-    <aside id="homeSidebar" class="homeSidebar" aria-label="首页侧栏">
-      <div class="sidebarHeader">
-        <div class="sidebarBrand">
-          <el-image class="sidebarLogo" :src="logoUrl" fit="contain" alt="麦麦工坊" />
-          <span class="brandName">麦麦工坊</span>
-        </div>
-        <button class="sidebarToggle" type="button" :aria-label="sidebarCollapsed ? '展开侧栏' : '收起侧栏'" :title="sidebarCollapsed ? '展开侧栏' : '收起侧栏'" :aria-expanded="!sidebarCollapsed" aria-controls="homeSidebar" @click="sidebarCollapsed = !sidebarCollapsed">
-          <icon-layout-sidebar-left-expand v-if="sidebarCollapsed" :size="18" aria-hidden="true" />
-          <icon-layout-sidebar-left-collapse v-else :size="18" aria-hidden="true" />
-        </button>
-      </div>
-      <nav class="sidebarNav" aria-label="首页导航">
-        <button v-for="section in homeSections" :key="section.id" class="sidebarItem" :class="{ active: activeSection === section.id }" type="button" :aria-current="activeSection === section.id ? 'location' : undefined" :aria-label="translate(section.label)" :title="translate(section.label)" @click="scrollToSection(section.id)">
-          <component :is="section.icon" :size="18" aria-hidden="true" />
-          <span class="sidebarText">{{ translate(section.label) }}</span>
-        </button>
-        <hr class="sidebarDivider" />
-        <button class="sidebarItem" :class="{ active: assetsVisible }" type="button" aria-label="素材库" title="素材库" aria-haspopup="dialog" :aria-expanded="assetsVisible" @click="assetsVisible = true">
-          <icon-library-photo :size="18" aria-hidden="true" />
-          <span class="sidebarText">素材库</span>
-        </button>
-      </nav>
-      <div class="sidebarFooter">
-        <button class="sidebarItem deviceButton" :class="{ connected: deviceHubEnabled || mobileConnection.online === true }" type="button" :aria-label="mobileConnectionLabel" :title="mobileConnectionLabel" @click="mobileConnectVisible = true">
-          <span class="sidebarIcon">
-            <component :is="deviceHubEnabled || mobileConnection.mode === 'remote' ? IconDeviceDesktop : IconQrcode" :size="18" aria-hidden="true" />
-            <span v-if="deviceHubEnabled || mobileConnection.online === true" class="connectionDot" />
-          </span>
-          <span class="sidebarText">{{ mobileConnectionLabel }}</span>
-        </button>
-        <button class="sidebarItem" type="button" :aria-label="hasDesktopUpdate ? '设置，有新版本可用' : '设置'" :title="hasDesktopUpdate ? '设置，有新版本可用' : '设置'" @click="settingsVisible = true">
-          <span class="sidebarIcon">
-            <icon-settings :size="18" aria-hidden="true" />
-            <span v-if="hasDesktopUpdate" class="updateDot" />
-          </span>
-          <span class="sidebarText">设置</span>
-        </button>
-      </div>
-    </aside>
-    <el-scrollbar ref="pageScroll" class="pageScroll" @scroll="updateActiveSection">
+    <el-scrollbar ref="pageScroll" class="pageScroll" @scroll="backgroundScrollTop = pageScroll?.wrapRef?.scrollTop ?? 0">
       <div class="pageBody">
         <el-main class="pageContent">
           <section class="creationPanel" data-home-section="home" aria-label="创建项目">
@@ -110,9 +71,6 @@
         </el-main>
       </div>
     </el-scrollbar>
-    <assetLibraryDialog v-model="assetsVisible" />
-    <settings v-model="settingsVisible" />
-    <mobileConnect v-model="mobileConnectVisible" />
     <workspacePicker ref="relocationPicker" hideTrigger />
   </div>
 </template>
@@ -121,45 +79,26 @@
 import { locale, translate } from "@toonflow/i18n/vue";
 import axios from "axios";
 import { storeToRefs } from "pinia";
-import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox, type InputInstance, type ScrollbarInstance } from "element-plus";
 import { getReadableFileMimeType, readableFileAccept } from "@toonflow/server/documentFormats";
-import {
-  IconQrcode, IconDeviceDesktop, IconHome,
-  IconArrowUp, IconPlus, IconLoader2,
-  IconFolder, IconEdit, IconFileZip,
-  IconTrash, IconPaperclip,
-} from "@tabler/icons-vue";
+import { IconArrowUp, IconFolder, IconEdit, IconFileZip, IconTrash, IconPaperclip } from "@tabler/icons-vue";
 import modelPopover from "@/components/modelPopover.vue";
 import attachmentList from "@/components/agent/attachmentList.vue";
 import { createPastedTextFile, readTextAttachment } from "@/components/agent/textAttachments";
 import type { AgentAttachment } from "@/components/agent/types";
 import logoUrl from "@toonflow/assets/logo.png";
 import { useWorkspaceStore, type Project } from "@/stores/workspace";
-import { hasDesktopUpdate } from "@/stores/desktopUpdate";
-import { deviceHubEnabled, mobileConnection, mobileConnectionLabel } from "@/lib/mobile";
 import useWorkspaceFiles from "@/lib/workspaceFiles";
 import saveFile from "@/lib/saveFile";
 import { waitForControlValue } from "@/lib/mcpControl";
-import settings from "@/components/settings/index.vue";
-import assetLibraryDialog from "./assetLibraryDialog.vue";
 import bg from "./bg.vue";
 import projectCover from "./projectCover.vue";
 import workspacePicker from "./workspacePicker.vue";
 
-const settingsVisible = ref(false);
-const assetsVisible = ref(false);
-const mobileConnectVisible = ref(false);
-const sidebarCollapsed = ref(false);
 const pageScroll = ref<ScrollbarInstance>();
 const backgroundScrollTop = ref(0);
-const activeSection = ref("home");
-const homeSections = [
-  { id: "home", label: "首页", icon: IconHome },
-  { id: "projects", label: "项目", icon: IconFolder },
-];
-const mobileConnect = defineAsyncComponent(() => import("@/components/mobileConnect.vue"));
 const router = useRouter();
 const pageLifetime = new AbortController();
 const creating = ref(false);
@@ -251,31 +190,6 @@ watch([creating, opening], ([creating, opening]) => {
 const selectedModel = ref("");
 const reasoningEffort = ref("");
 const sortedProjects = computed(() => [...projectList.value].sort((left, right) => right.lastOpenedAt - left.lastOpenedAt));
-
-function scrollToSection(section: string) {
-  const wrap = pageScroll.value?.wrapRef;
-  const target = wrap?.querySelector<HTMLElement>(`[data-home-section="${section}"]`);
-  if (!wrap || !target) return;
-  activeSection.value = section;
-  pageScroll.value?.scrollTo({
-    top: section === "home" ? 0 : wrap.scrollTop + target.getBoundingClientRect().top - wrap.getBoundingClientRect().top - 32,
-    behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
-  });
-}
-
-function updateActiveSection() {
-  const wrap = pageScroll.value?.wrapRef;
-  if (!wrap) return;
-  backgroundScrollTop.value = wrap.scrollTop;
-  if (wrap.scrollTop > 0 && wrap.scrollTop + wrap.clientHeight >= wrap.scrollHeight - 2) {
-    activeSection.value = "projects";
-    return;
-  }
-  const top = wrap.getBoundingClientRect().top + 120;
-  for (const section of wrap.querySelectorAll<HTMLElement>("[data-home-section]")) {
-    if (section.getBoundingClientRect().top <= top) activeSection.value = section.dataset.homeSection!;
-  }
-}
 
 function pasteAttachments(event: ClipboardEvent) {
   if (creating.value || opening.value) return;
@@ -472,193 +386,14 @@ async function createProject(fromPrompt = true) {
 
 <style lang="scss" scoped>
 .home {
-  --sidebarWidth: 240px;
-  --sidebarMotion: 220ms;
-  --sidebarFade: 140ms;
   position: relative;
   display: flex;
-  height: 100dvh;
+  height: 100%;
   overflow: hidden;
-  color: var(--el-text-color-primary);
-  background: color-mix(in srgb, var(--el-bg-color) 96%, var(--el-text-color-primary));
 
   .pageBackground {
     position: absolute;
-    inset-block: 0;
-    inset-inline-start: var(--sidebarWidth);
-    width: calc(100% - var(--sidebarWidth));
-    transition: inset-inline-start var(--sidebarMotion) ease, width var(--sidebarMotion) ease;
-
-    @media (prefers-reduced-motion: reduce) { transition: none; }
-  }
-
-  &.sidebarCollapsed {
-    --sidebarWidth: 72px;
-
-    .homeSidebar {
-      .sidebarHeader {
-        .sidebarBrand {
-          gap: 0;
-
-          .brandName { max-width: 0; opacity: 0; }
-        }
-
-        .sidebarToggle { inset-inline-start: 9px; opacity: 0; }
-
-        @media (min-width: 901px) {
-          &:hover, &:has(.sidebarToggle:focus-visible) {
-            .sidebarLogo { opacity: 0; }
-            .sidebarToggle { opacity: 1; }
-          }
-        }
-      }
-
-      .sidebarItem {
-        gap: 0;
-        padding-inline: 14px;
-
-        .sidebarText { max-width: 0; opacity: 0; }
-      }
-    }
-  }
-
-  .homeSidebar {
-    display: flex;
-    flex: 0 0 var(--sidebarWidth);
-    flex-direction: column;
-    width: var(--sidebarWidth);
-    padding: 20px 12px 16px;
-    overflow-x: hidden;
-    overflow-y: auto;
-    border-inline-end: 1px solid var(--el-border-color-lighter);
-    background: inherit;
-    transition: flex-basis var(--sidebarMotion) ease, width var(--sidebarMotion) ease;
-
-    .sidebarHeader {
-      position: relative;
-      display: flex;
-      align-items: center;
-      flex-shrink: 0;
-      height: 30px;
-      gap: 8px;
-      margin-bottom: 24px;
-      padding: 0 8px;
-
-      .sidebarBrand {
-        display: flex;
-        align-items: center;
-        min-width: 0;
-        gap: 9px;
-        overflow: hidden;
-        transition: gap var(--sidebarMotion) ease;
-
-        .sidebarLogo {
-          flex-shrink: 0;
-          width: 30px;
-          height: 30px;
-          transition: opacity var(--sidebarFade) ease;
-        }
-
-        .brandName {
-          max-width: 150px;
-          overflow: hidden;
-          font-size: 20px;
-          font-weight: 600;
-          letter-spacing: -0.5px;
-          white-space: nowrap;
-          transition: max-width var(--sidebarMotion) ease, opacity var(--sidebarFade) ease;
-        }
-      }
-
-      .sidebarToggle {
-        position: absolute;
-        top: 1px;
-        inset-inline-start: calc(100% - 32px);
-        display: grid;
-        flex-shrink: 0;
-        place-items: center;
-        width: 28px;
-        height: 28px;
-        padding: 0;
-        border: 0;
-        border-radius: var(--ui-radius);
-        background: transparent;
-        color: var(--el-text-color-secondary);
-        cursor: pointer;
-        transition: inset-inline-start var(--sidebarMotion) ease, opacity var(--sidebarFade) ease;
-
-        &:hover { background: var(--el-fill-color); color: var(--el-text-color-primary); }
-        &:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: 2px; }
-        &:dir(rtl) svg { transform: scaleX(-1); }
-      }
-    }
-
-    .sidebarItem {
-      display: flex;
-      align-items: center;
-      flex-shrink: 0;
-      min-height: 42px;
-      width: 100%;
-      gap: 10px;
-      padding: 10px 12px;
-      border: 0;
-      border-radius: var(--ui-radius);
-      background: transparent;
-      color: var(--el-text-color-regular);
-      font: inherit;
-      font-size: 14px;
-      line-height: 1.5;
-      text-align: start;
-      text-decoration: none;
-      cursor: pointer;
-      transition: gap var(--sidebarMotion) ease, padding var(--sidebarMotion) ease;
-
-      > svg { flex-shrink: 0; }
-      .sidebarText {
-        min-width: 0;
-        max-width: 180px;
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-        transition: max-width var(--sidebarMotion) ease, opacity var(--sidebarFade) ease;
-      }
-
-      .sidebarIcon {
-        position: relative;
-        display: inline-flex;
-        flex-shrink: 0;
-
-        .connectionDot, .updateDot {
-          position: absolute;
-          top: -2px;
-          inset-inline-end: -3px;
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: var(--el-color-success);
-          box-shadow: 0 0 0 2px var(--el-bg-color);
-        }
-
-        .updateDot { background: var(--el-color-danger); }
-      }
-
-      &:hover:not(:disabled) { background: var(--el-fill-color); color: var(--el-text-color-primary); }
-      &:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: 2px; }
-      &:disabled { cursor: wait; opacity: 0.6; }
-      &.active { background: var(--el-fill-color-darker); color: var(--el-text-color-primary); font-weight: 500; }
-      &.connected { color: var(--el-color-success); }
-    }
-
-    .sidebarNav, .sidebarFooter { display: flex; flex-direction: column; gap: 4px; }
-    .sidebarNav {
-      .sidebarDivider { margin: 12px 8px; border: 0; border-top: 1px solid var(--el-border-color-lighter); }
-    }
-    .sidebarFooter { margin-top: auto; padding-top: 24px; }
-
-    @media (prefers-reduced-motion: reduce) {
-      --sidebarMotion: 0ms;
-      --sidebarFade: 0ms;
-    }
+    inset: 0;
   }
 
   .pageScroll {
@@ -671,7 +406,7 @@ async function createProject(fromPrompt = true) {
 
     .pageBody {
       position: relative;
-      min-height: 100dvh;
+      min-height: 100%;
 
       .pageContent {
         padding: 24px clamp(20px, 4vw, 56px) 56px;
@@ -994,32 +729,8 @@ async function createProject(fromPrompt = true) {
     }
   }
 
-  @media (max-width: 900px) {
-    --sidebarWidth: 72px;
-
-    .homeSidebar {
-      .sidebarHeader {
-        .sidebarBrand {
-          gap: 0;
-
-          .brandName { max-width: 0; opacity: 0; }
-        }
-
-        .sidebarToggle { display: none; }
-      }
-
-      .sidebarItem {
-        gap: 0;
-        padding-inline: 14px;
-
-        .sidebarText { max-width: 0; opacity: 0; }
-      }
-    }
-  }
-
   @media (max-width: 560px) {
     .pageScroll .pageBody .pageContent { padding: 24px 16px 40px; }
-    .homeSidebar .sidebarItem { min-height: 44px; }
   }
 }
 @keyframes launchSpin {
