@@ -1,5 +1,8 @@
 <template>
-  <el-button class="promptLibraryButton" :icon="IconBook" :disabled="disabled" text title="提示词库" aria-label="提示词库" @click.stop="openLibrary" />
+  <!-- 传入默认插槽时显示文字并用主色，画布节点工具栏不传、只显示图标。 -->
+  <el-button class="promptLibraryButton" :icon="IconBook" :type="$slots.default ? 'primary' : undefined" :disabled="disabled" text title="提示词库" aria-label="提示词库" @click.stop="openLibrary">
+    <template v-if="$slots.default" #default><slot /></template>
+  </el-button>
   <el-dialog v-model="visible" :title="`${type === 'image' ? '图片' : '视频'}提示词库`" width="min(1080px, calc(100vw - 32px))" appendToBody>
     <div v-loading="loading" class="promptLibrary nodrag nopan nowheel" @pointerdown.stop @mousedown.stop @dblclick.stop @keydown.stop>
       <el-alert v-if="loadError" :title="loadError" type="error" :closable="false" />
@@ -179,6 +182,8 @@ function choose(item: CloudPromptItem) {
       display: grid;
       flex: 1;
       grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      // 卡片 overflow: hidden 时最小高度为 0，行高须按内容撑开，否则会被压扁去适配容器高度。
+      grid-auto-rows: max-content;
       align-content: start;
       gap: 12px;
       min-height: 0;

@@ -5,7 +5,7 @@
     </template>
 
     <template #settings>
-      <div class="fieldLabel">提示词<promptLibrary type="image" :disabled="importing" @select="usePrompt" /></div>
+      <div class="fieldLabel">提示词<promptLibrary type="image" :disabled="importing" @select="usePrompt">提示词库</promptLibrary></div>
       <el-input v-model="prompt" class="promptInput" type="textarea" :autosize="{ minRows: 5, maxRows: 14 }" placeholder="描述你想要的画面，例如：清晨薄雾中的江南小镇，石桥与乌篷船，电影感光影；有参考图时可写“参考图1的人物”" aria-label="提示词" />
 
       <template v-if="referenceLimit">

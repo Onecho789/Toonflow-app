@@ -27,7 +27,7 @@
         <el-segmented v-model="data.tab" :options="modeOptions" block aria-label="生成方式" />
       </template>
 
-      <div class="fieldLabel">提示词<promptLibrary type="video" :disabled="importing" @select="usePrompt" /></div>
+      <div class="fieldLabel">提示词<promptLibrary type="video" :disabled="importing" @select="usePrompt">提示词库</promptLibrary></div>
       <el-input
         v-model="data.prompt"
         class="promptInput"

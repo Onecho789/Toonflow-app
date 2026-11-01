@@ -52,6 +52,10 @@
 import { ref } from "vue";
 import { ElButton, ElDrawer, ElScrollbar, vLoading } from "element-plus";
 import { IconHistory, IconMovie, IconPhotoSpark } from "@tabler/icons-vue";
+// 共享的提示词库在脚本里直接导入 Element Plus 组件，按需引入插件不会为它加载样式；画布页引入了完整样式，工作台在这里补齐。
+import "element-plus/es/components/check-tag/style/css";
+import "element-plus/es/components/pagination/style/css";
+import "element-plus/es/components/loading/style/css";
 
 defineProps<{ type: "image" | "video"; count: number; historyCount: number; empty: boolean; loading?: boolean }>();
 // 窄屏隐藏左侧记录栏，改从结果区按钮打开抽屉；点选记录后自动收起。

@@ -724,6 +724,14 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 
 改动的上游文件：`apps/server/src/utils/network/index.ts` 的 `prepareNetwork` 处理未保存的情况，`apps/web/src/components/settings/panels/network.vue` 改默认选中项。
 
+## 工作台提示词库排版与入口
+
+- 日期：2026-11-01
+- 生图、视频工作台打开提示词库时分页、标签没有样式，卡片被压扁成一条：`workbenchLayout.vue` 补引分页、标签、加载的样式（共享组件直接导入 Element Plus，按需引入插件不会带样式，画布页是因为引了完整样式才正常）；卡片网格加 `grid-auto-rows: max-content`
+- 工作台的提示词库入口从小图标改为主色「提示词库」文字按钮（`promptLibrary` 传默认插槽时显示文字），画布节点仍只显示图标
+
+改动的上游文件：无，均为 Fork 新增的提示词库与工作台文件。
+
 ## 同步记录
 
 | 日期 | 上游提交 | 说明 |
