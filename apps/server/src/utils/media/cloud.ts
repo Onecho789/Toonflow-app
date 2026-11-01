@@ -37,47 +37,78 @@ export async function getPrice(mediaType: "image" | "video" | "audio", request: 
   return { price: `¥${(estimateCost(model, request) / 10000).toFixed(2)}`, tips: "预估费用，以麦麦云实际扣费为准" };
 }
 
-export async function generateImage(request: MediaGenerationRequest, images: MediaInput[] | undefined, signal: AbortSignal): Promise<CloudAsset[]> {
-  await findCloudModel(request.modelId, "image");
-  const result = await postJson<{ data?: { b64_json?: string; url?: string }[] }>("/images/generations", {
+type VideoMedia = { images?: MediaInput[]; videos?: MediaInput[]; audios?: MediaInput[]; firstFrame?: MediaInput; lastFrame?: MediaInput };
+
+const imageAssets = (data?: { b64_json?: string; url?: string }[]) =>
+  (data ?? []).flatMap((item): CloudAsset[] => item.b64_json ? [{ type: "base64", data: item.b64_json }] : item.url ? [{ type: "url", url: item.url }] : []);
+
+function imageBody(request: MediaGenerationRequest, images: MediaInput[] | undefined) {
+  return {
     model: request.modelId, prompt: request.prompt, n: 1, size: request.size, aspect_ratio: request.ratio,
     ...(images?.length ? { images: images.map(dataUrl) } : {}),
-  }, signal);
-  return (result.data ?? []).flatMap((item): CloudAsset[] => item.b64_json ? [{ type: "base64", data: item.b64_json }] : item.url ? [{ type: "url", url: item.url }] : []);
+  };
 }
 
-export async function generateVideo(request: MediaGenerationRequest, media: {
-  images?: MediaInput[]; videos?: MediaInput[]; audios?: MediaInput[]; firstFrame?: MediaInput; lastFrame?: MediaInput;
-}, signal: AbortSignal): Promise<CloudAsset[]> {
-  await findCloudModel(request.modelId, "video");
-  if (media.videos?.length) throw Object.assign(new Error("当前视频模型不支持参考视频"), { status: 400 });
+function videoBody(request: MediaGenerationRequest, media: VideoMedia) {
   if (!request.duration || !Number.isInteger(request.duration)) throw Object.assign(new Error("请选择整数秒的视频时长"), { status: 400 });
   const body: Record<string, unknown> = {
     model: request.modelId, prompt: request.prompt, duration: request.duration,
     resolution: request.resolution, aspect_ratio: request.ratio, generate_audio: request.generateAudio,
   };
-  // 参考模式（mode 为数组）传参考图和参考音频，其余模式传首尾帧。
+  // 参考模式（mode 为数组）传参考图、参考视频和参考音频，其余模式传首尾帧。
   if (Array.isArray(request.mode)) {
     if (media.images?.length) body.reference_images = media.images.map(dataUrl);
+    if (media.videos?.length) body.reference_videos = media.videos.map(dataUrl);
     if (media.audios?.length) body.reference_audios = media.audios.map(dataUrl);
   } else {
-    if (media.audios?.length) throw Object.assign(new Error("参考音频需要选择参考生视频模式"), { status: 400 });
+    if (media.videos?.length || media.audios?.length) throw Object.assign(new Error("参考视频与参考音频需要选择全能参考模式"), { status: 400 });
     const first = media.firstFrame ?? media.images?.[0];
     if (first) body.first_frame = dataUrl(first);
     if (media.lastFrame) body.last_frame = dataUrl(media.lastFrame);
   }
-  const task = await postJson<{ id: string }>("/videos", body, signal);
+  return body;
+}
+
+export async function generateImage(request: MediaGenerationRequest, images: MediaInput[] | undefined, signal: AbortSignal): Promise<CloudAsset[]> {
+  await findCloudModel(request.modelId, "image");
+  const result = await postJson<{ data?: { b64_json?: string; url?: string }[] }>("/images/generations", imageBody(request, images), signal);
+  return imageAssets(result.data);
+}
+
+// 提交云端任务后立即返回任务 ID，结果由 taskState 查询；页面刷新或应用重启后可凭 ID 继续查询。
+export async function submitTask(mediaType: "image" | "video", request: MediaGenerationRequest, media: VideoMedia, signal: AbortSignal) {
+  await findCloudModel(request.modelId, mediaType);
+  const task = mediaType === "image"
+    ? await postJson<{ id: string }>("/images/tasks", imageBody(request, media.images), signal)
+    : await postJson<{ id: string }>("/videos", videoBody(request, media), signal);
+  if (!task.id) throw new Error("麦麦云未返回任务编号");
+  return task.id;
+}
+
+export type TaskState = { status: "in_progress" } | { status: "failed"; error: string } | { status: "completed"; assets: CloudAsset[] };
+
+export async function taskState(mediaType: "image" | "video", id: string, signal: AbortSignal): Promise<TaskState> {
+  const path = `/${mediaType === "image" ? "images/tasks" : "videos"}/${encodeURIComponent(id)}`;
+  const response = await gatewayFetch(path, { signal });
+  if (!response.ok) throw await gatewayError(response);
+  const state = await response.json() as { status: string; error?: { message?: string } | null; data?: { b64_json?: string; url?: string }[] };
+  if (state.status === "failed") return { status: "failed", error: state.error?.message || "生成失败，费用已退回" };
+  if (state.status !== "completed") return { status: "in_progress" };
+  if (mediaType === "image") return { status: "completed", assets: imageAssets(state.data) };
+  const content = await gatewayFetch(`${path}/content`, { signal });
+  if (!content.ok) throw await gatewayError(content);
+  return { status: "completed", assets: [{ type: "binary", data: new Uint8Array(await content.arrayBuffer()), mimeType: content.headers.get("content-type") ?? "video/mp4" }] };
+}
+
+export async function generateVideo(request: MediaGenerationRequest, media: VideoMedia, signal: AbortSignal): Promise<CloudAsset[]> {
+  await findCloudModel(request.modelId, "video");
+  const task = await postJson<{ id: string }>("/videos", videoBody(request, media), signal);
   // ACT: 每 5 秒查询一次，最多等 30 分钟；云端轮询上游并负责结算，客户端断开不影响扣费结果。
   const deadline = AbortSignal.any([signal, AbortSignal.timeout(30 * 60_000)]);
   while (true) {
     await wait(5000, deadline);
-    const response = await gatewayFetch(`/videos/${encodeURIComponent(task.id)}`, { signal: deadline });
-    if (!response.ok) throw await gatewayError(response);
-    const state = await response.json() as { status: string; error?: { message?: string } | null };
-    if (state.status === "failed") throw new Error(state.error?.message || "视频生成失败，费用已退回");
-    if (state.status !== "completed") continue;
-    const content = await gatewayFetch(`/videos/${encodeURIComponent(task.id)}/content`, { signal: deadline });
-    if (!content.ok) throw await gatewayError(content);
-    return [{ type: "binary", data: new Uint8Array(await content.arrayBuffer()), mimeType: content.headers.get("content-type") ?? "video/mp4" }];
+    const state = await taskState("video", task.id, deadline);
+    if (state.status === "failed") throw new Error(state.error);
+    if (state.status === "completed") return state.assets;
   }
 }

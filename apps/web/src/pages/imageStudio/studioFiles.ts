@@ -4,6 +4,12 @@ import useWorkspaceFiles from "@/lib/workspaceFiles";
 const imageTypes: Record<string, string> = {
   png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp", gif: "image/gif", avif: "image/avif", bmp: "image/bmp", tiff: "image/tiff",
 };
+const mediaTypes: Record<string, string> = {
+  ...imageTypes, mp4: "video/mp4", webm: "video/webm", mov: "video/quicktime", ogv: "video/ogg",
+  mp3: "audio/mpeg", wav: "audio/wav", ogg: "audio/ogg", flac: "audio/flac", aac: "audio/aac", m4a: "audio/mp4", opus: "audio/opus",
+};
+
+export type MediaKind = "image" | "video" | "audio";
 
 // 按扩展名识别图片，非图片返回 undefined。
 export function imageMimeType(path: string) {
@@ -12,6 +18,20 @@ export function imageMimeType(path: string) {
 
 export function imageExtension(mimeType: string) {
   return Object.keys(imageTypes).find(extension => imageTypes[extension] === mimeType);
+}
+
+// 按扩展名识别图片、视频、音频，其余返回 undefined。
+export function mediaMimeType(path: string) {
+  return mediaTypes[path.split(".").at(-1)?.toLowerCase() ?? ""];
+}
+
+export function mediaExtension(mimeType: string) {
+  return Object.keys(mediaTypes).find(extension => mediaTypes[extension] === mimeType);
+}
+
+export function mediaKind(mimeType: string) {
+  const kind = mimeType.split("/")[0];
+  return kind === "image" || kind === "video" || kind === "audio" ? kind as MediaKind : undefined;
 }
 
 // 本地时间加随机后缀，例如 20261101-153012-a1b2c3；定长前缀按名称倒序即新的在前。

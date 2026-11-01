@@ -1,5 +1,17 @@
 <template>
   <div class="workbenchLayout">
+    <aside class="historyCard" aria-labelledby="workbenchHistoryTitle">
+      <header class="historyHeader">
+        <h2 id="workbenchHistoryTitle">生成记录</h2>
+        <span v-if="historyCount" class="resultCount">{{ historyCount }}</span>
+      </header>
+      <el-scrollbar class="historyScroll">
+        <slot name="history" />
+      </el-scrollbar>
+    </aside>
+    <el-drawer v-model="historyVisible" title="生成记录" direction="ltr" size="min(320px, 86vw)" appendToBody>
+      <div @click="historyVisible = false"><slot name="history" /></div>
+    </el-drawer>
     <aside class="settingsCard" aria-label="生成参数">
       <el-scrollbar class="settingsScroll">
         <div class="settingsBody">
@@ -12,6 +24,7 @@
     </aside>
     <section class="resultCard" aria-labelledby="workbenchResultTitle">
       <header class="resultHeader">
+        <el-button class="historyToggle" size="small" round :icon="IconHistory" @click="historyVisible = true">生成记录</el-button>
         <h2 id="workbenchResultTitle">生成结果</h2>
         <span v-if="count" class="resultCount">{{ count }}</span>
         <div class="resultExtra"><slot name="resultExtra" /></div>
@@ -36,10 +49,13 @@
 </template>
 
 <script setup lang="ts">
-import { vLoading } from "element-plus";
-import { IconMovie, IconPhotoSpark } from "@tabler/icons-vue";
+import { ref } from "vue";
+import { ElButton, ElDrawer, ElScrollbar, vLoading } from "element-plus";
+import { IconHistory, IconMovie, IconPhotoSpark } from "@tabler/icons-vue";
 
-defineProps<{ type: "image" | "video"; count: number; empty: boolean; loading?: boolean }>();
+defineProps<{ type: "image" | "video"; count: number; historyCount: number; empty: boolean; loading?: boolean }>();
+// 窄屏隐藏左侧记录栏，改从结果区按钮打开抽屉；点选记录后自动收起。
+const historyVisible = ref(false);
 </script>
 
 <style lang="scss" scoped>
@@ -51,6 +67,7 @@ defineProps<{ type: "image" | "video"; count: number; empty: boolean; loading?: 
   padding: 16px;
   box-sizing: border-box;
 
+  .historyCard,
   .settingsCard,
   .resultCard {
     display: flex;
@@ -63,9 +80,39 @@ defineProps<{ type: "image" | "video"; count: number; empty: boolean; loading?: 
     box-shadow: var(--el-box-shadow-lighter);
   }
 
+  .resultCount {
+    min-width: 22px;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: var(--el-fill-color);
+    color: var(--el-text-color-secondary);
+    font-size: 12px;
+    line-height: 22px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .historyCard {
+    flex-shrink: 0;
+    width: 260px;
+
+    .historyHeader {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+      padding: 16px 16px 12px;
+      border-bottom: 1px solid var(--el-border-color-lighter);
+
+      h2 { margin: 0; font-size: 15px; font-weight: 600; line-height: 1.5; }
+    }
+
+    .historyScroll { flex: 1; min-height: 0; }
+  }
+
   .settingsCard {
     flex-shrink: 0;
-    width: 380px;
+    width: 360px;
 
     .settingsScroll { flex: 1; min-height: 0; }
 
@@ -117,17 +164,7 @@ defineProps<{ type: "image" | "video"; count: number; empty: boolean; loading?: 
 
       h2 { margin: 0; font-size: 16px; font-weight: 600; line-height: 1.5; }
 
-      .resultCount {
-        min-width: 22px;
-        padding: 0 8px;
-        border-radius: 999px;
-        background: var(--el-fill-color);
-        color: var(--el-text-color-secondary);
-        font-size: 12px;
-        line-height: 22px;
-        text-align: center;
-        font-variant-numeric: tabular-nums;
-      }
+      .historyToggle { display: none; margin: 0; }
 
       .resultExtra {
         display: flex;
@@ -211,6 +248,11 @@ defineProps<{ type: "image" | "video"; count: number; empty: boolean; loading?: 
         }
       }
     }
+  }
+
+  @media (max-width: 1280px) {
+    .historyCard { display: none; }
+    .resultCard .resultHeader .historyToggle { display: inline-flex; }
   }
 
   @media (max-width: 900px) {

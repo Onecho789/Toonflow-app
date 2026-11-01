@@ -465,6 +465,16 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 | --- | --- | --- |
 | `apps/web/src/pages/projects/index.vue` | 根节点下加 `<bg still>`，根节点与滚动区补 `position: relative` | 保留上游改动，再补回背景与定位 |
 
+### 侧栏选中态与品牌光晕
+
+- 日期：2026-11-01
+- 侧栏不加背景，只把选中项从灰底改为麦穗金：12% 金色底、左侧 3px 金色竖条、图标染金；Logo 背后加一团 22% 的淡暖光
+- 颜色变量 `--brandGold` 定义在 `.appLayout`：暗色 `#f0a52a`，浅色压暗为 `#b86e00` 保证对比度
+
+| 文件 | 改动 | 冲突时的处理 |
+| --- | --- | --- |
+| `apps/web/src/components/appLayout.vue` | 加 `--brandGold`；`.sidebarItem.active` 改金色底、竖条与图标色；`.sidebarBrand::before` 光晕，Logo 与名称 `position: relative` 盖在光晕上 | 保留上游改动，再补回这几段样式 |
+
 ---
 
 ## 插件市场改由麦麦云提供（第一期）
@@ -628,6 +638,24 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 | `apps/web/src/pages/feedback/index.vue` | 问题反馈页 |
 
 改动的上游文件：`apps/server/src/utils.ts` 导出 `cloudTickets`，`router.ts` 由 `bun run routes` 生成；`apps/web/src/router/index.ts` 加 `/feedback`；`apps/web/src/components/appLayout.vue` 加侧栏入口与红点。冲突时保留上游改动再补回这几行。
+
+## 工作台生成记录与任务续查
+
+- 日期：2026-11-01
+- 生图、视频工作台改为三栏：生成记录 | 参数 | 结果；窄屏时记录收进左侧抽屉。记录按文件夹存为 `imageHistory.json`、`videoHistory.json`，点一条看结果，可回填参数、删除记录（文件保留）
+- 生图：一次 1–4 张，每张单独提交、单独计费，失败可单张重试；参考图支持本地上传、拖入、粘贴、从本文件夹作品或素材库挑选，可拖动排序，按“图1、图2”编号，2 张以上时在提示词前说明编号
+- 视频：文生视频 / 首尾帧 / 全能参考三种方式，按模型 `mode` 显示；全能参考可放图片、视频、音频，上限读 `imageReference:N` 等并显示“已选/上限”
+- 续查：提交只拿麦麦云任务 ID（图片走新的 `/v1/images/tasks`，视频走 `/v1/videos`）写进记录，前端每 5 秒查一次；刷新、切页或重启应用后接着查，结果按 `${类型}${任务ID}_${序号}` 命名写到 `generated/`，重复领取不会重复写文件。云端返回 404/410 时标为失败
+
+### 我们新增的文件
+
+| 文件 | 说明 |
+| --- | --- |
+| `apps/server/src/routes/workbench/{submit,collect}.ts` | 提交任务、查询并领取结果 |
+| `apps/web/src/stores/workbenchHistory.ts` | 记录读写、提交、重试、轮询 |
+| `apps/web/src/components/{historyList,referenceList,mediaPickerDialog}.vue` | 记录列表、参考素材列表、作品/素材库挑选 |
+
+改动的上游文件：`apps/server/src/utils/media/{cloud,generation}.ts` 拆出提交与查询函数，原同步生成接口不变；`router.ts` 由 `bun run routes` 生成。其余改动在我们自己的工作台文件里（`workbenchLayout.vue`、`imageStudio/*`、`videoStudio/*`）。
 
 ---
 

@@ -1,5 +1,5 @@
 import { t } from "@/lib/i18n";
-import { mkdir, readFile, realpath, stat, unlink } from "@toonflow/file";
+import { mkdir, readdir, readFile, realpath, stat, unlink } from "@toonflow/file";
 import { join, relative } from "node:path";
 import type { GeneratedMedia, MediaGenerationRequest, MediaModel, MediaReference } from "@toonflow/tools-scaffold/runtime";
 import { lockWorkspaceFiles, resolveWorkspacePath, writeWorkspaceFile } from "@/utils/workspace/files";
@@ -147,26 +147,34 @@ export async function generateMedia(
   await resolveWorkspacePath(directory, outputDirectory, true);
   const media = await readReferences(directory, request, signal);
   const generationSignal = signal ?? new AbortController().signal;
+  const assets = mediaType === "image"
+    ? await cloud.generateImage(request, media.images, generationSignal)
+    : await cloud.generateVideo(request, media, generationSignal);
+  return writeAssets(directory, outputDirectory, mediaType, assets, () => crypto.randomUUID(), signal);
+}
+
+// names 返回不含扩展名的文件名；任务结果用固定名称，重复领取时已存在的文件直接沿用。
+async function writeAssets(directory: string, outputDirectory: string, mediaType: "image" | "video", assets: cloud.CloudAsset[], names: (index: number) => string, signal?: AbortSignal) {
+  if (!assets.length) invalid("麦麦云未返回生成结果");
   const written: string[] = [];
   const result: GeneratedMedia[] = [];
   try {
-    const assets = mediaType === "image"
-      ? await cloud.generateImage(request, media.images, generationSignal)
-      : await cloud.generateVideo(request, media, generationSignal);
-    if (!assets.length) invalid("麦麦云未返回生成结果");
-    for (const asset of assets) {
+    for (const [index, asset] of assets.entries()) {
       signal?.throwIfAborted();
       const { bytes, mimeType } = await assetBytes(asset, mediaType, signal);
       signal?.throwIfAborted();
       const output = await resolveWorkspacePath(directory, outputDirectory, true);
-      const release = lockWorkspaceFiles([output.path]);
+      const { path } = await resolveWorkspacePath(directory, join(outputDirectory, `${mediaType}${names(index)}.${mediaExtensions[mimeType]}`), true);
+      // 只锁要写的文件，多个任务同时完成时可以并发写入同一输出目录；改名或删除该目录时仍会冲突。
+      const release = lockWorkspaceFiles([path]);
       try {
         await mkdir(output.path, { recursive: true });
-        const file = join(outputDirectory, `${mediaType}${crypto.randomUUID()}.${mediaExtensions[mimeType]}`);
-        const { path } = await resolveWorkspacePath(directory, file);
         signal?.throwIfAborted();
-        await writeWorkspaceFile(path, bytes, true);
-        written.push(path);
+        const created = await writeWorkspaceFile(path, bytes, true).then(() => true, (error: NodeJS.ErrnoException) => {
+          if (error.code === "EEXIST") return false;
+          throw error;
+        });
+        if (created) written.push(path);
         result.push({ path: relative(directory, path).replace(/\\/g, "/"), mimeType, mediaType });
       } finally { release(); }
     }
@@ -177,4 +185,28 @@ export async function generateMedia(
     await Promise.all(written.map(path => unlink(path).catch((error: NodeJS.ErrnoException) => { if (error.code !== "ENOENT") throw error; })));
     throw err;
   }
+}
+
+export async function submitMediaTask(cwd: string, mediaType: "image" | "video", request: MediaGenerationRequest, signal: AbortSignal) {
+  if (!request.prompt.trim()) invalid("请输入生成提示词");
+  const directory = await realpath(cwd);
+  const media = await readReferences(directory, request, signal);
+  return cloud.submitTask(mediaType, request, media, signal);
+}
+
+// 查询云端任务；完成后把结果写入 outputDirectory，文件名带任务编号，已领取过的直接返回本地文件。
+export async function collectMediaTask(cwd: string, mediaType: "image" | "video", taskId: string, outputDirectory: string, signal: AbortSignal) {
+  const directory = await realpath(cwd);
+  const output = await resolveWorkspacePath(directory, outputDirectory, true);
+  const prefix = `${mediaType}${taskId}_`;
+  const existing = await readdir(output.path).catch((error: NodeJS.ErrnoException) => {
+    if (error.code === "ENOENT") return [];
+    throw error;
+  });
+  const files = existing.filter(name => name.startsWith(prefix)).sort();
+  if (files.length) return { status: "completed" as const, files: files.map(name => `${outputDirectory}/${name}`.replace(/\\/g, "/")) };
+  const state = await cloud.taskState(mediaType, taskId, signal);
+  if (state.status !== "completed") return state;
+  const media = await writeAssets(directory, outputDirectory, mediaType, state.assets, index => `${taskId}_${index}`, signal);
+  return { status: "completed" as const, files: media.map(item => item.path) };
 }

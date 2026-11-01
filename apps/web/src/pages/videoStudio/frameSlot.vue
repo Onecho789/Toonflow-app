@@ -1,7 +1,7 @@
 <template>
   <div class="frameSlot">
-    <div v-if="previewUrl" class="slotPreview">
-      <img :src="previewUrl" :alt="label" />
+    <div v-if="path" class="slotPreview">
+      <studioImage :directory="directory" :path="path" :alt="label" />
       <span class="slotTag">{{ label }}</span>
       <button type="button" class="removeButton" :disabled="disabled" :aria-label="`移除${label}`" @click="emit('remove')"><icon-x :size="12" /></button>
     </div>
@@ -17,8 +17,9 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { IconLoader2, IconPhotoPlus, IconX } from "@tabler/icons-vue";
+import studioImage from "@/pages/imageStudio/studioImage.vue";
 
-defineProps<{ label: string; previewUrl?: string; uploading?: boolean; disabled?: boolean }>();
+defineProps<{ label: string; directory: string; path?: string; uploading?: boolean; disabled?: boolean }>();
 const emit = defineEmits<{ select: [file: File]; remove: [] }>();
 const input = ref<HTMLInputElement>();
 
@@ -49,7 +50,7 @@ function selectFile(event: Event) {
     border: 1px solid var(--el-border-color-lighter);
     background: var(--el-fill-color-light);
 
-    img { width: 100%; height: 100%; object-fit: contain; }
+    .studioImage { object-fit: contain; }
 
     .slotTag {
       position: absolute;

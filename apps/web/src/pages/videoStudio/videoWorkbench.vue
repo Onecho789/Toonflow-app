@@ -1,42 +1,15 @@
 <template>
-  <workbenchLayout class="videoWorkbench" type="video" :count="results.length" :empty="!results.length && !currentTasks.length" :loading="resultsLoading">
+  <workbenchLayout class="videoWorkbench" type="video" :count="activeFiles.length" :historyCount="history.records.length" :empty="!activeRecord" :loading="!history.loaded && !history.error">
+    <template #history>
+      <historyList :records="history.records" type="video" :directory="directory" :activeId="activeRecord?.id" :error="history.error" @select="activeId = $event.id" @remove="removeHistory" />
+    </template>
+
     <template #settings>
-      <div class="fieldLabel">提示词<promptLibrary type="video" :disabled="generating" @select="data.prompt = $event" /></div>
-      <el-input
-        v-model="data.prompt"
-        class="promptInput"
-        type="textarea"
-        :autosize="{ minRows: 5, maxRows: 14 }"
-        :disabled="generating"
-        placeholder="描述镜头内容与运动，例如：镜头缓缓推近，少女在樱花树下回眸微笑，花瓣随风飘落"
-        aria-label="提示词" />
-      <template v-if="frameSupport.first || frameSupport.last">
-        <div class="fieldLabel">首尾帧<span class="fieldHint">可选，上传后按图生成</span></div>
-        <div class="frameRow">
-          <frameSlot
-            v-if="frameSupport.first"
-            label="首帧"
-            :previewUrl="frames.first?.previewUrl"
-            :uploading="uploading === 'first'"
-            :disabled="generating || !!uploading"
-            @select="uploadFrame('first', $event)"
-            @remove="removeFrame('first')" />
-          <frameSlot
-            v-if="frameSupport.last"
-            label="尾帧"
-            :previewUrl="frames.last?.previewUrl"
-            :uploading="uploading === 'last'"
-            :disabled="generating || !!uploading"
-            @select="uploadFrame('last', $event)"
-            @remove="removeFrame('last')" />
-        </div>
-      </template>
       <div class="fieldLabel">模型</div>
       <el-select
         v-model="data.model"
         filterable
         :loading="modelsLoading"
-        :disabled="generating"
         placeholder="选择模型"
         aria-label="视频模型"
         noDataText="暂无可用的视频模型"
@@ -48,22 +21,66 @@
           </el-option>
         </el-option-group>
       </el-select>
+
+      <template v-if="modeOptions.length > 1">
+        <div class="fieldLabel">生成方式</div>
+        <el-segmented v-model="data.tab" :options="modeOptions" block aria-label="生成方式" />
+      </template>
+
+      <div class="fieldLabel">提示词<promptLibrary type="video" @select="data.prompt = $event" /></div>
+      <el-input
+        v-model="data.prompt"
+        class="promptInput"
+        type="textarea"
+        :autosize="{ minRows: 5, maxRows: 14 }"
+        :placeholder="data.tab === 'reference' ? '描述镜头内容，可用“图1”“视频1”“音频1”引用下方素材，例如：图1的人物在图2的场景里跳舞，配乐参考音频1' : '描述镜头内容与运动，例如：镜头缓缓推近，少女在樱花树下回眸微笑，花瓣随风飘落'"
+        aria-label="提示词" />
+
+      <template v-if="data.tab === 'frames'">
+        <div class="fieldLabel">首尾帧<span class="fieldHint">{{ frameHint }}</span></div>
+        <div class="frameRow">
+          <frameSlot
+            v-if="frameSupport.first"
+            label="首帧"
+            :directory="directory"
+            :path="data.firstFrame?.path"
+            :uploading="uploading === 'first'"
+            :disabled="!!uploading"
+            @select="uploadFrame('first', $event)"
+            @remove="data.firstFrame = undefined" />
+          <frameSlot
+            v-if="frameSupport.last"
+            label="尾帧"
+            :directory="directory"
+            :path="data.lastFrame?.path"
+            :uploading="uploading === 'last'"
+            :disabled="!!uploading"
+            @select="uploadFrame('last', $event)"
+            @remove="data.lastFrame = undefined" />
+        </div>
+      </template>
+
+      <template v-if="data.tab === 'reference'">
+        <div class="fieldLabel">参考素材<span class="fieldHint">{{ referenceHint }}</span></div>
+        <referenceList v-model="data.references" :directory="directory" :kinds="referenceKinds" :limits="referenceLimits" />
+      </template>
+
       <template v-if="selectedModel">
         <div class="fieldLabel">比例</div>
-        <ratioPicker v-model="data.ratio" :options="ratios" label="视频比例" :disabled="generating" />
+        <ratioPicker v-model="data.ratio" :options="ratios" label="视频比例" />
         <template v-if="durations.length">
           <div class="fieldLabel">时长</div>
-          <el-segmented v-model="data.duration" :options="durationOptions" :disabled="generating" block aria-label="视频时长" />
+          <el-segmented v-model="data.duration" :options="durationOptions" block aria-label="视频时长" />
         </template>
         <template v-if="resolutions.length">
           <div class="fieldLabel">分辨率</div>
-          <el-segmented v-model="data.resolution" :options="resolutions" :disabled="generating" block aria-label="视频分辨率" />
+          <el-segmented v-model="data.resolution" :options="resolutions" block aria-label="视频分辨率" />
         </template>
         <div v-if="selectedModel.audio === 'optional'" class="audioOption">
           <span class="audioText"><icon-volume :size="16" aria-hidden="true" />生成音频</span>
-          <el-switch v-model="data.generateAudio" :disabled="generating" aria-label="生成音频" />
+          <el-switch v-model="data.generateAudio" aria-label="生成音频" />
         </div>
-        <modelForm v-model="data.other" :rules="selectedModel.rules" :disabled="generating" />
+        <modelForm v-model="data.other" :rules="selectedModel.rules" />
       </template>
     </template>
 
@@ -72,45 +89,56 @@
         <span>预估费用</span>
         <mediaPrice v-if="generationInput" :input="{ ...generationInput, mediaType: 'video' }" :supported="selectedModel?.supportsPrice === true" />
       </div>
-      <el-button v-if="generating" class="generateButton stopButton" size="large" :icon="IconPlayerStop" @click="controller?.abort()">取消生成</el-button>
       <el-button
-        v-else
         class="generateButton"
         type="primary"
         size="large"
         :icon="IconSparkles"
-        :disabled="!!uploading || !selectedModel || !data.prompt.trim()"
+        :loading="submitting"
+        :disabled="!!uploading || !selectedModel || !data.prompt.trim() || !history.loaded"
         @click="startGeneration">
         生成视频
       </el-button>
     </template>
 
+    <template #resultExtra>
+      <template v-if="activeRecord">
+        <span v-if="activeRecord.items.some(item => item.status === 'pending')" class="generatingTag" role="status"><el-icon class="is-loading"><icon-loader-2 /></el-icon>生成中，通常需要几分钟</span>
+        <el-button size="small" round :icon="IconArrowBackUp" @click="fillRecord(activeRecord)">回填参数</el-button>
+      </template>
+    </template>
+
     <template #results>
-      <div class="resultGrid">
-        <article v-for="task in currentTasks" :key="task.id" class="taskCard" :class="{ failed: task.error }" :aria-busy="!task.error">
-          <template v-if="task.error">
-            <icon-alert-circle :size="28" aria-hidden="true" />
-            <p class="taskTitle">生成失败</p>
-            <p class="taskError" role="alert">{{ task.error }}</p>
-            <el-button size="small" round @click="tasks = tasks.filter(item => item !== task)">关闭</el-button>
+      <template v-if="activeRecord">
+        <p class="recordPrompt">{{ activeRecord.prompt }}</p>
+        <div class="resultGrid">
+          <template v-for="(item, index) in activeRecord.items" :key="index">
+            <article v-if="item.status !== 'completed'" class="taskCard" :class="{ failed: item.status === 'failed' }" :aria-busy="item.status === 'pending'">
+              <template v-if="item.status === 'failed'">
+                <icon-alert-circle :size="28" aria-hidden="true" />
+                <p class="taskTitle">生成失败</p>
+                <p class="taskError" role="alert">{{ item.error }}</p>
+                <el-button size="small" round :icon="IconRefresh" @click="retry(activeRecord, item)">重试</el-button>
+              </template>
+              <template v-else>
+                <span class="taskShine" aria-hidden="true" />
+                <icon-loader-2 class="spinIcon" :size="28" aria-hidden="true" />
+                <p class="taskTitle">{{ item.taskId ? "视频生成中，关闭应用后也会继续，回来自动领取" : "正在提交…" }}</p>
+              </template>
+            </article>
+            <videoCard v-for="path in item.files" v-else :key="path" :directory="directory" :path="path" :name="path.split('/').at(-1)!" />
           </template>
-          <template v-else>
-            <span class="taskShine" aria-hidden="true" />
-            <icon-loader-2 class="spinIcon" :size="28" aria-hidden="true" />
-            <p class="taskTitle">视频生成中，通常需要几分钟</p>
-          </template>
-          <p class="taskPrompt">{{ task.prompt }}</p>
-        </article>
-        <videoCard v-for="item in results" :key="item.path" :directory="directory" :path="item.path" :name="item.name" />
-      </div>
+        </div>
+      </template>
     </template>
   </workbenchLayout>
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, provide, reactive, ref, shallowRef, watch } from "vue";
+import { computed, onMounted, provide, ref, shallowRef, watch } from "vue";
 import axios from "axios";
-import { IconAlertCircle, IconLoader2, IconPlayerStop, IconSparkles, IconVolume } from "@tabler/icons-vue";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { IconAlertCircle, IconArrowBackUp, IconLoader2, IconRefresh, IconSparkles, IconVolume } from "@tabler/icons-vue";
 import { useNodeAi, type NodeMediaModel, type NodeVideoRequest } from "@toonflow/nodes-scaffold/nodeAi";
 import { groupNodeModels } from "@toonflow/node-shared/groupNodeModels";
 import { showNodeError } from "@toonflow/node-shared/showNodeError";
@@ -121,32 +149,37 @@ import mediaPrice from "@toonflow/node-shared/mediaPrice";
 import promptLibrary from "@toonflow/node-shared/promptLibrary";
 import useWorkspaceFiles from "@/lib/workspaceFiles";
 import workbenchLayout from "@/components/workbenchLayout.vue";
+import historyList from "@/components/historyList.vue";
+import referenceList, { type ReferenceFile } from "@/components/referenceList.vue";
 import ratioPicker from "@/components/ratioPicker.vue";
+import { outputDirectory, removeRecord, retryItem, submitRecord, useHistory, type HistoryItem, type HistoryRecord } from "@/stores/workbenchHistory";
+import { mediaKind, type MediaKind } from "@/pages/imageStudio/studioFiles";
 import frameSlot from "./frameSlot.vue";
 import videoCard from "./videoCard.vue";
 
 type FrameKey = "first" | "last";
-type Frame = { path: string; mimeType: string; previewUrl: string };
-type Task = { id: string; directory: string; prompt: string; error: string };
+type Tab = "text" | "frames" | "reference";
 
 const props = defineProps<{ directory: string }>();
-const outputDirectory = "generated";
 const frameDirectory = "frames";
 // ACT: 后台未配置 meta.ratios 时沿用通用比例，与视频生成节点一致，具体支持范围由云端校验。
 const defaultRatios = ["16:9", "9:16", "1:1"];
+const frameModes = ["singleImage", "startEndRequired", "endFrameOptional", "startFrameOptional"];
+const kindNames: Record<MediaKind, string> = { image: "图", video: "视频", audio: "音频" };
 const ai = useNodeAi();
 provide("workspaceDirectory", () => props.directory);
-const data = ref({ model: "", prompt: "", duration: undefined as number | undefined, resolution: "", ratio: "9:16", generateAudio: true, other: {} as Record<string, unknown> });
+const data = ref({
+  model: "", tab: "text" as Tab, prompt: "", duration: undefined as number | undefined, resolution: "", ratio: "9:16", generateAudio: true, other: {} as Record<string, unknown>,
+  firstFrame: undefined as ReferenceFile | undefined, lastFrame: undefined as ReferenceFile | undefined, references: [] as ReferenceFile[],
+});
 const models = shallowRef<NodeMediaModel[]>([]);
 const modelsLoading = ref(false);
-const frames = reactive<Partial<Record<FrameKey, Frame>>>({});
 const uploading = ref<FrameKey>();
-const results = ref<{ name: string; path: string }[]>([]);
-const resultsLoading = ref(false);
-const tasks = ref<Task[]>([]);
-const controller = shallowRef<AbortController>();
-const generating = computed(() => !!controller.value);
-const currentTasks = computed(() => tasks.value.filter(item => item.directory === props.directory));
+const submitting = ref(false);
+const activeId = ref<string>();
+const history = computed(() => useHistory("video", props.directory));
+const activeRecord = computed(() => history.value.records.find(item => item.id === activeId.value) ?? history.value.records[0]);
+const activeFiles = computed(() => activeRecord.value?.items.flatMap(item => item.files) ?? []);
 
 const modelKey = (item: NodeMediaModel) => JSON.stringify([item.providerId, item.modelId]);
 const selectedModel = computed(() => models.value.find(item => modelKey(item) === data.value.model));
@@ -158,28 +191,57 @@ const durationOptions = computed(() => durations.value.map(item => ({ label: `${
 const resolutions = computed(() => [...new Set((selectedModel.value?.durationResolutionMap ?? [])
   .filter(item => data.value.duration !== undefined && item.duration.includes(data.value.duration)).flatMap(item => item.resolution))]
   .sort((left, right) => (Number.parseFloat(left) || Infinity) - (Number.parseFloat(right) || Infinity)));
-// 首尾帧按模型 mode 显示；数组形式的参考生视频模式不在工作台提供。
+
+// 生成方式按模型 mode 显示：字符串是文生与首尾帧，数组是全能参考的一组上限（如 ["imageReference:9","audioReference:3"]）。
 const modes = computed(() => (selectedModel.value?.mode ?? []).filter((item): item is string => typeof item === "string"));
+const referenceGroups = computed(() => (selectedModel.value?.mode ?? []).filter((item): item is string[] => Array.isArray(item))
+  .map(group => Object.fromEntries(group.flatMap(item => {
+    const [, type, limit] = /^(image|video|audio)Reference:(\d+)$/.exec(item) ?? [];
+    return type ? [[type, Number(limit)]] : [];
+  })) as Partial<Record<MediaKind, number>>));
+const modeOptions = computed(() => [
+  ...modes.value.includes("text") ? [{ label: "文生视频", value: "text" }] : [],
+  ...modes.value.some(item => frameModes.includes(item)) ? [{ label: "首尾帧", value: "frames" }] : [],
+  ...referenceGroups.value.length ? [{ label: "全能参考", value: "reference" }] : [],
+]);
 const frameSupport = computed(() => ({
-  first: modes.value.some(item => ["singleImage", "startEndRequired", "endFrameOptional", "startFrameOptional"].includes(item)),
+  first: modes.value.some(item => frameModes.includes(item)),
   last: modes.value.some(item => ["startEndRequired", "endFrameOptional", "startFrameOptional"].includes(item)),
 }));
-const first = computed(() => frameSupport.value.first ? frames.first : undefined);
-const last = computed(() => frameSupport.value.last ? frames.last : undefined);
-const selectedMode = computed(() => {
-  const candidates = first.value && last.value ? ["startEndRequired", "endFrameOptional", "startFrameOptional"]
-    : first.value ? ["endFrameOptional", "singleImage"] : last.value ? ["startFrameOptional"] : ["text"];
+const frameHint = computed(() => modes.value.includes("startEndRequired") && !modes.value.some(item => ["endFrameOptional", "startFrameOptional"].includes(item))
+  ? "首帧和尾帧都需要上传" : frameSupport.value.last ? "上传首帧，尾帧可选" : "上传一张首帧图");
+// 多组上限时取各类型的最大值显示，提交时再找一组能容纳已选数量的。
+const referenceLimits = computed(() => {
+  const limits: Partial<Record<MediaKind, number>> = {};
+  for (const group of referenceGroups.value) for (const [type, limit] of Object.entries(group) as [MediaKind, number][]) limits[type] = Math.max(limits[type] ?? 0, limit);
+  return limits;
+});
+const referenceKinds = computed(() => (["image", "video", "audio"] as MediaKind[]).filter(kind => referenceLimits.value[kind]));
+const referenceCounts = computed(() => Object.fromEntries((["image", "video", "audio"] as MediaKind[])
+  .map(kind => [kind, data.value.references.filter(item => mediaKind(item.mimeType) === kind).length])) as Record<MediaKind, number>);
+const referenceHint = computed(() => referenceKinds.value.map(kind => `${kind === "image" ? "图片" : kind === "video" ? "视频" : "音频"} ${referenceCounts.value[kind]}/${referenceLimits.value[kind]}`).join(" · "));
+
+const selectedMode = computed((): NodeVideoRequest["mode"] => {
+  if (data.value.tab === "reference") {
+    const counts = referenceCounts.value;
+    if (!counts.image && !counts.video && !counts.audio) return;
+    const index = referenceGroups.value.findIndex(group => (Object.keys(counts) as MediaKind[]).every(kind => counts[kind] <= (group[kind] ?? 0)));
+    return index < 0 ? undefined : (selectedModel.value?.mode ?? []).filter(item => Array.isArray(item))[index] as NodeVideoRequest["mode"];
+  }
+  const first = data.value.tab === "frames" && frameSupport.value.first ? data.value.firstFrame : undefined;
+  const last = data.value.tab === "frames" && frameSupport.value.last ? data.value.lastFrame : undefined;
+  const candidates = first && last ? ["startEndRequired", "endFrameOptional", "startFrameOptional"]
+    : first ? ["endFrameOptional", "singleImage"] : last ? ["startFrameOptional"] : ["text"];
   return candidates.find(item => modes.value.includes(item)) as NodeVideoRequest["mode"];
 });
 const generationInput = computed((): Omit<NodeVideoRequest, "directory"> | undefined => {
   const choice = selectedModel.value;
   if (!choice) return;
   const mode = selectedMode.value;
-  const reference = (frame?: Frame) => frame && { path: frame.path, mimeType: frame.mimeType };
-  return {
+  const text = data.value.prompt.trim();
+  const base = {
     providerId: choice.providerId,
     modelId: choice.modelId,
-    prompt: data.value.prompt.trim(),
     mode,
     duration: data.value.duration,
     resolution: data.value.resolution || undefined,
@@ -187,9 +249,24 @@ const generationInput = computed((): Omit<NodeVideoRequest, "directory"> | undef
     generateAudio: choice.audio === "optional" ? data.value.generateAudio : choice.audio,
     other: Object.keys(data.value.other).length ? { ...data.value.other } : undefined,
     outputDirectory,
-    images: mode === "singleImage" && first.value ? [reference(first.value)!] : undefined,
-    firstFrame: mode === "singleImage" ? undefined : reference(first.value),
-    lastFrame: reference(last.value),
+  };
+  if (Array.isArray(mode)) {
+    const pick = (kind: MediaKind) => data.value.references.filter(item => mediaKind(item.mimeType) === kind).map(item => ({ ...item }));
+    const [images, videos, audios] = [pick("image"), pick("video"), pick("audio")];
+    // 在提示词前说明素材编号，让模型能对应“图1”“视频1”“音频1”的引用。
+    const labels = [...images.map((_item, index) => `${kindNames.image}${index + 1}`), ...videos.map((_item, index) => `${kindNames.video}${index + 1}`), ...audios.map((_item, index) => `${kindNames.audio}${index + 1}`)];
+    return {
+      ...base, prompt: text && `参考素材编号：${labels.join("、")}。请按这些编号理解提示词中的素材引用。\n${text}`,
+      images: images.length ? images : undefined, videos: videos.length ? videos : undefined, audios: audios.length ? audios : undefined,
+    };
+  }
+  const first = mode && mode !== "text" ? data.value.firstFrame : undefined;
+  const last = mode && mode !== "text" && mode !== "singleImage" ? data.value.lastFrame : undefined;
+  return {
+    ...base, prompt: text,
+    images: mode === "singleImage" && first ? [{ ...first }] : undefined,
+    firstFrame: mode === "singleImage" || !first ? undefined : { ...first },
+    lastFrame: last && { ...last },
   };
 });
 
@@ -200,58 +277,26 @@ watch([selectedModel, () => data.value.duration], ([choice]) => {
   if (!resolutions.value.includes(data.value.resolution)) data.value.resolution = resolutions.value[0] ?? "";
   if (!ratios.value.includes(data.value.ratio)) data.value.ratio = ratios.value.includes("9:16") ? "9:16" : ratios.value[0]!;
   if (choice.audio !== "optional") data.value.generateAudio = choice.audio === true;
+  if (!modeOptions.value.some(item => item.value === data.value.tab)) data.value.tab = (modeOptions.value[0]?.value ?? "text") as Tab;
 }, { flush: "sync" });
 
-// 首尾帧文件属于所选文件夹，切换文件夹后清空并重新读取结果。
-// ACT: 进行中的任务不随切换取消（取消不保证退费），同一时间只允许一个任务，切换后参数仍保持禁用直到任务结束。
+// 首尾帧与参考素材是所选文件夹里的相对路径，切换文件夹后清空。
 watch(() => props.directory, () => {
-  results.value = [];
-  removeFrame("first");
-  removeFrame("last");
-  void loadResults();
+  Object.assign(data.value, { firstFrame: undefined, lastFrame: undefined, references: [] });
+  activeId.value = undefined;
 });
-onMounted(() => {
-  void loadModels();
-  void loadResults();
-});
-onBeforeUnmount(() => {
-  removeFrame("first");
-  removeFrame("last");
-});
-
-function errorMessage(error: unknown, fallback: string) {
-  if (axios.isAxiosError<{ message?: string }>(error)) return error.response?.data?.message || error.message || fallback;
-  return error instanceof Error ? error.message || fallback : fallback;
-}
+onMounted(() => void loadModels());
 
 async function loadModels() {
   if (modelsLoading.value) return;
   modelsLoading.value = true;
   try {
     models.value = (await ai.getMediaModels()).filter(item => item.type === "video");
-    if (!selectedModel.value && !generating.value) data.value.model = models.value[0] ? modelKey(models.value[0]) : "";
+    if (!selectedModel.value) data.value.model = models.value[0] ? modelKey(models.value[0]) : "";
   } catch (error) {
     showNodeError(error, "模型读取失败");
   } finally {
     modelsLoading.value = false;
-  }
-}
-
-async function loadResults() {
-  const directory = props.directory;
-  resultsLoading.value = true;
-  try {
-    const { entries } = await useWorkspaceFiles(directory).list(outputDirectory).catch(error => {
-      if (axios.isAxiosError(error) && error.response?.status === 404) return { entries: [] };
-      throw error;
-    });
-    if (directory !== props.directory) return;
-    results.value = entries.filter(item => item.type === "file" && /\.(mp4|webm|mov|ogv)$/i.test(item.name))
-      .sort((a, b) => (b.mtimeMs ?? 0) - (a.mtimeMs ?? 0));
-  } catch (error) {
-    if (directory === props.directory) showNodeError(error, "生成结果读取失败");
-  } finally {
-    if (directory === props.directory) resultsLoading.value = false;
   }
 }
 
@@ -268,8 +313,7 @@ async function uploadFrame(key: FrameKey, file: File) {
     const path = `${frameDirectory}/${crypto.randomUUID()}${extension}`;
     await files.write(path, file, true);
     if (directory !== props.directory) return;
-    removeFrame(key);
-    frames[key] = { path, mimeType: file.type, previewUrl: URL.createObjectURL(file) };
+    data.value[key === "first" ? "firstFrame" : "lastFrame"] = { path, mimeType: file.type };
   } catch (error) {
     showNodeError(error, "上传失败");
   } finally {
@@ -277,33 +321,59 @@ async function uploadFrame(key: FrameKey, file: File) {
   }
 }
 
-// 只移除当前选择，已写入文件夹的图片保留，避免误删用户文件。
-function removeFrame(key: FrameKey) {
-  const frame = frames[key];
-  if (frame) URL.revokeObjectURL(frame.previewUrl);
-  delete frames[key];
-}
-
 async function startGeneration() {
-  const directory = props.directory;
   const input = generationInput.value;
   if (!input) return void showNodeError("请先选择视频模型", "视频生成失败");
   if (!input.prompt) return void showNodeError("请输入生成提示词", "视频生成失败");
-  if (modes.value.length && !input.mode) return void showNodeError("当前模型不支持这种首尾帧组合，请调整首尾帧或更换模型", "视频生成失败");
-  const current = new AbortController();
-  const task = reactive<Task>({ id: crypto.randomUUID(), directory, prompt: input.prompt, error: "" });
-  controller.value = current;
-  tasks.value.unshift(task);
+  if (data.value.tab === "reference" && !data.value.references.length) return void showNodeError("请至少添加一个参考素材", "视频生成失败");
+  if (modes.value.length + referenceGroups.value.length && !input.mode) {
+    return void showNodeError(data.value.tab === "reference" ? "当前模型不支持这种参考素材组合，请调整素材数量" : "当前模型不支持这种首尾帧组合，请调整首尾帧或更换模型", "视频生成失败");
+  }
+  submitting.value = true;
   try {
-    const [result] = await ai.generateVideo({ ...input, directory }, current.signal);
-    if (!result) throw new Error("供应商未返回视频");
-    tasks.value = tasks.value.filter(item => item !== task);
-    if (directory === props.directory) await loadResults();
+    const { model, tab, firstFrame, lastFrame, references } = data.value;
+    const record = await submitRecord("video", props.directory, data.value.prompt.trim(), input, { model, tab, firstFrame, lastFrame, references }, 1);
+    activeId.value = record.id;
   } catch (error) {
-    if (current.signal.aborted) tasks.value = tasks.value.filter(item => item !== task);
-    else task.error = errorMessage(error, "视频生成失败");
+    showNodeError(error, "视频生成失败");
   } finally {
-    controller.value = undefined;
+    submitting.value = false;
+  }
+}
+
+// 回填提示词、模型、生成方式与素材；素材文件已删除时生成会提示读取失败。
+function fillRecord(record: HistoryRecord) {
+  const input = record.input as Partial<NodeVideoRequest>;
+  const saved = (record.form ?? {}) as Partial<Pick<typeof data.value, "model" | "tab" | "firstFrame" | "lastFrame" | "references">>;
+  if (saved.model && models.value.some(item => modelKey(item) === saved.model)) data.value.model = saved.model;
+  Object.assign(data.value, {
+    prompt: record.prompt, other: { ...input.other }, firstFrame: saved.firstFrame, lastFrame: saved.lastFrame, references: [...saved.references ?? []],
+  });
+  if (input.duration) data.value.duration = input.duration;
+  if (input.resolution) data.value.resolution = input.resolution;
+  if (input.ratio) data.value.ratio = input.ratio;
+  if (typeof input.generateAudio === "boolean") data.value.generateAudio = input.generateAudio;
+  if (saved.tab && modeOptions.value.some(item => item.value === saved.tab)) data.value.tab = saved.tab;
+  ElMessage.success("已回填这条记录的参数");
+}
+
+async function retry(record: HistoryRecord, item: HistoryItem) {
+  try {
+    await retryItem("video", props.directory, record, item);
+  } catch (error) {
+    showNodeError(error, "重试失败");
+  }
+}
+
+async function removeHistory(record: HistoryRecord) {
+  const pending = record.items.some(item => item.status === "pending");
+  try {
+    await ElMessageBox.confirm(pending ? "这条记录还在生成中，删除后结果不会再写入记录（云端仍会扣费）。生成的视频文件保留在文件夹里。" : "只删除记录，已生成的视频文件保留在文件夹里。", "删除生成记录", { type: "warning", confirmButtonText: "删除", cancelButtonText: "取消" });
+  } catch { return; }
+  try {
+    await removeRecord("video", props.directory, record.id);
+  } catch (error) {
+    showNodeError(error, "删除记录失败");
   }
 }
 </script>
@@ -312,6 +382,27 @@ async function startGeneration() {
 .videoWorkbench {
   .promptInput :deep(.el-textarea__inner) { padding: 10px 12px; line-height: 1.7; }
 
+
+  .recordPrompt {
+    margin: 0 0 14px;
+    color: var(--el-text-color-regular);
+    font-size: 13px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .generatingTag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: var(--el-color-primary-light-9);
+    color: var(--el-color-primary);
+    font-size: 12px;
+    line-height: 22px;
+  }
   .frameRow { display: flex; gap: 10px; }
 
   .audioOption {
