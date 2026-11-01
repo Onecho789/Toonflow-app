@@ -115,7 +115,11 @@ function openSettings(panel?: string) {
   height: 100dvh;
   overflow: hidden;
   color: var(--el-text-color-primary);
+  // 麦穗金，取自 Logo，用于侧栏选中态与品牌光晕；浅色下压暗以保证对比度。
+  --brandGold: #f0a52a;
   background: color-mix(in srgb, var(--el-bg-color) 96%, var(--el-text-color-primary));
+
+  :root:not(.dark) & { --brandGold: #b86e00; }
 
   &.sidebarCollapsed {
     --sidebarWidth: 72px;
@@ -170,12 +174,29 @@ function openSettings(panel?: string) {
       padding: 0 8px;
 
       .sidebarBrand {
+        position: relative;
         display: flex;
         align-items: center;
         min-width: 0;
         gap: 9px;
         overflow: hidden;
         transition: gap var(--sidebarMotion) ease;
+
+        // Logo 背后的一团淡暖光。
+        &::before {
+          position: absolute;
+          top: 50%;
+          left: 15px;
+          width: 96px;
+          height: 64px;
+          border-radius: 50%;
+          background: radial-gradient(closest-side, color-mix(in srgb, var(--brandGold) 22%, transparent), transparent);
+          content: "";
+          pointer-events: none;
+          transform: translate(-50%, -50%);
+        }
+
+        .sidebarLogo, .brandName { position: relative; }
 
         .sidebarLogo {
           flex-shrink: 0;
@@ -269,7 +290,24 @@ function openSettings(panel?: string) {
 
       &:hover { background: var(--el-fill-color); color: var(--el-text-color-primary); }
       &:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: 2px; }
-      &.active { background: var(--el-fill-color-darker); color: var(--el-text-color-primary); font-weight: 500; }
+      &.active {
+        position: relative;
+        background: color-mix(in srgb, var(--brandGold) 12%, transparent);
+        color: var(--el-text-color-primary);
+        font-weight: 500;
+
+        > svg, .sidebarIcon { color: var(--brandGold); }
+
+        &::before {
+          position: absolute;
+          inset-block: 10px;
+          inset-inline-start: 0;
+          width: 3px;
+          border-radius: 3px;
+          background: var(--brandGold);
+          content: "";
+        }
+      }
       &.connected { color: var(--el-color-success); }
     }
 
