@@ -33,6 +33,7 @@ import * as cloud from "@/utils/cloud";
 import * as cloudModels from "@/utils/cloud/models";
 import * as cloudPrompts from "@/utils/cloud/prompts";
 import * as cloudPlugins from "@/utils/cloud/plugins";
+import * as cloudTickets from "@/utils/cloud/tickets";
 
 export default {
   assets,
@@ -72,4 +73,5 @@ export default {
   cloudModels,
   cloudPrompts,
   cloudPlugins,
+  cloudTickets,
 };

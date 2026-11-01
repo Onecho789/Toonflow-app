@@ -27,6 +27,15 @@
           <icon-building-store :size="18" aria-hidden="true" />
           <span class="sidebarText">插件市场</span>
         </button>
+        <router-link v-slot="{ href, navigate, isActive }" to="/feedback" custom>
+          <a class="sidebarItem" :class="{ active: isActive }" :href="href" :aria-current="isActive ? 'page' : undefined" :aria-label="ticketUnread ? `问题反馈，${ticketUnread} 条新回复` : '问题反馈'" :title="ticketUnread ? `问题反馈，${ticketUnread} 条新回复` : '问题反馈'" @click="navigate">
+            <span class="sidebarIcon">
+              <icon-message-report :size="18" aria-hidden="true" />
+              <span v-if="ticketUnread" class="updateDot" />
+            </span>
+            <span class="sidebarText">问题反馈</span>
+          </a>
+        </router-link>
       </nav>
       <div class="sidebarFooter">
         <button v-if="cloudBalance" class="sidebarItem" type="button" :aria-label="`麦麦云余额 ¥${balanceText}，打开账号设置`" :title="cloudBalanceError || '麦麦云余额，点击打开账号设置'" @click="openSettings('account')">
@@ -59,12 +68,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineAsyncComponent, ref } from "vue";
+import { computed, defineAsyncComponent, ref, watch } from "vue";
 import { IconQrcode, IconDeviceDesktop, IconHome, IconInfinity, IconPhotoAi, IconMovie } from "@tabler/icons-vue";
 import logoUrl from "@toonflow/assets/logo.png";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { hasDesktopUpdate } from "@/stores/desktopUpdate";
-import { cloudBalance, cloudBalanceError, useCloudBalanceRefresh } from "@/stores/cloudAccount";
+import { cloudAccount, cloudBalance, cloudBalanceError, useCloudBalanceRefresh } from "@/stores/cloudAccount";
+import { loadTickets, ticketUnread } from "@/stores/feedback";
 import { deviceHubEnabled, mobileConnection, mobileConnectionLabel } from "@/lib/mobile";
 import settings from "@/components/settings/index.vue";
 import assetLibraryDialog from "@/pages/home/assetLibraryDialog.vue";
@@ -84,6 +94,11 @@ const settingsVisible = ref(false);
 const settingsPanel = ref<string>();
 const balanceText = computed(() => ((cloudBalance.value?.balance ?? 0) / 10000).toFixed(2));
 useCloudBalanceRefresh();
+// ACT: 小红点只在登录状态就绪（打开应用或切换账号）时拉一次工单列表，不做轮询或推送。
+watch(() => cloudAccount.value?.id, id => {
+  if (id) loadTickets().catch(() => {});
+  else ticketUnread.value = 0;
+}, { immediate: true });
 
 function openSettings(panel?: string) {
   settingsPanel.value = panel;

@@ -336,7 +336,7 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 | `apps/server/src/agent/runtime/model.ts` | `compat` 直接用模型自身的配置，不再强制设置 `supportsMidConvoEffort` | 保留 |
 | `apps/server/src/agent/runtime/index.ts`、`types.ts` | 工具事件带上 `label`（工具显示名） | 上游改 `send` 时补回注入 label 的逻辑 |
 | `apps/web/src/components/agent/conversation.vue` | 新增 `runStatus` 状态行和样式 | 保留 |
-| `apps/web/src/components/modelPopover.vue` | 档位名改为 关闭/最少/低/中/高/超高/最高 | 保留 |
+| `apps/web/src/components/modelPopover.vue` | 思考强度改为下拉框，档位显示英文 Default/Off/Minimal/Low/Medium/High/XHigh/Max（与 OpenAI 档位名对应，不走 i18n）；Default 不发思考参数（2026-11-01 由按钮网格改来） | 保留我们的版本 |
 | `packages/i18n/src/**` | 新增 超高、最少、出错、等待你回答、运行中 · 调用 {0}、运行中…；删除 极高、最小 | 先跑 extract，再手工补另外 20 种语言 |
 
 注意：本次 extract 还发现了与本次改动无关的漂移，是设备 Key 提交后云端相关的文案（3 个新增，4 个已废弃），本次没有处理，下次补字典时一起处理。
@@ -585,6 +585,27 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 | `.github/workflows/release.yml`、`debug.yml` | 发布标题、下载摘要用“麦麦工坊” | 采用上游内容再换名 |
 
 - 影响：导出过旧 Skill 的外部 Agent 需要重新导出；外部 Agent 自己配置里的 `toonflow` 键不改也能连。内置插件在构建版本变化时自动覆盖到 `data/`，作者名会随之更新。
+
+---
+
+## 问题反馈工单
+
+- 日期：2026-11-01
+- 侧栏“插件市场”下新增“问题反馈”页：6 类反馈卡片（Bug、功能优化、插件、模型与生成效果、账号与计费、其他），点开填标题与描述提交，自动附带版本与系统信息
+- “我的反馈”列表显示状态与新回复红点；抽屉里查看对话、继续回复、关闭工单；已解决的工单用户回复后自动重新打开
+- 第一版不支持截图，后台“系统设置”填写客服邮箱后页面提示用户把截图发到邮箱
+- 红点只在登录状态就绪时拉一次工单列表，不做轮询或推送；工单数据存在麦麦云，后台“问题反馈”页处理
+
+### 我们新增的文件
+
+| 文件 | 说明 |
+| --- | --- |
+| `apps/server/src/utils/cloud/tickets.ts` | 带设备 Key 转发麦麦云 `/api/tickets` |
+| `apps/server/src/routes/cloud/tickets/{list,create,detail,reply,close}.ts` | 本地代理接口 |
+| `apps/web/src/stores/feedback.ts` | 工单请求、列表与未读数 |
+| `apps/web/src/pages/feedback/index.vue` | 问题反馈页 |
+
+改动的上游文件：`apps/server/src/utils.ts` 导出 `cloudTickets`，`router.ts` 由 `bun run routes` 生成；`apps/web/src/router/index.ts` 加 `/feedback`；`apps/web/src/components/appLayout.vue` 加侧栏入口与红点。冲突时保留上游改动再补回这几行。
 
 ---
 
