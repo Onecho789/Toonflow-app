@@ -1,186 +1,232 @@
 <template>
-  <canvas ref="fogCanvas" class="pixelFog" aria-hidden="true" />
+  <div class="cosmicBg" aria-hidden="true">
+    <canvas ref="sceneCanvas" class="scene" />
+    <div class="grain" :style="{ backgroundImage: grainUrl }" />
+  </div>
 </template>
 
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
-import logoUrl from "@toonflow/assets/logo.png";
 
-type FogPoint = { x: number; y: number; nx: number; ny: number; ink: number; halo: number; variation: number; pixelIndex: number };
-type LogoMask = { pixels: Uint8ClampedArray; halo: Uint8ClampedArray };
+type Particle = { x: number; y: number; depth: number; size: number; hue: number; phase: number; speed: number };
+type Streak = { x: number; y: number; length: number; speed: number; life: number; hue: number };
 
 const props = defineProps<{ scrollTop: number }>();
-const fogCanvas = ref<HTMLCanvasElement>();
+const sceneCanvas = ref<HTMLCanvasElement>();
+const grainUrl = ref("");
 const events = new AbortController();
-const maskSize = 320;
-const fogPixelSize = 2;
-const step = 6;
+// 麦穗金、晨光橙、青蓝、星紫，作为星云与粒子的色相池。
+const palette = [42, 28, 192, 262];
+// 粒子整体沿此方向缓慢穿梭（左下 → 右上）。
+const flow = { x: 0.86, y: -0.5 };
 const pointer = { x: -1000, y: -1000, targetX: -1000, targetY: -1000, strength: 0, targetStrength: 0 };
 let context: CanvasRenderingContext2D | null = null;
-let fogLayer: HTMLCanvasElement;
-let fogContext: CanvasRenderingContext2D | null = null;
-let fogPixels: ImageData;
-let image: HTMLImageElement;
-let logo: LogoMask | undefined;
-let points: FogPoint[] = [];
+let particles: Particle[] = [];
+let streaks: Streak[] = [];
 let resizeObserver: ResizeObserver;
 let themeObserver: MutationObserver;
 let reducedMotion: MediaQueryList;
 let animationFrame = 0;
-let elapsed = 9;
+let elapsed = 0;
 let lastFrame = 0;
+let nextStreakAt = 1.2;
 let width = 0;
 let height = 0;
-let pixelRatio = 1;
-let inkColor = "";
-let inkRgb = [0, 0, 0];
+let isDark = true;
 
-function sampleLogo(): LogoMask | undefined {
-  const mask = document.createElement("canvas");
-  mask.width = mask.height = maskSize;
-  const maskContext = mask.getContext("2d", { willReadFrequently: true });
-  if (!maskContext) return;
-  maskContext.drawImage(image, 0, 0, maskSize, maskSize);
-  let pixels = maskContext.getImageData(0, 0, maskSize, maskSize).data;
-  let left = maskSize;
-  let top = maskSize;
-  let right = 0;
-  let bottom = 0;
-  for (let y = 0; y < maskSize; y++) {
-    for (let x = 0; x < maskSize; x++) {
-      if (pixels[(y * maskSize + x) * 4 + 3]! < 96) continue;
-      left = Math.min(left, x);
-      top = Math.min(top, y);
-      right = Math.max(right, x);
-      bottom = Math.max(bottom, y);
-    }
+function random(min: number, max: number) {
+  return min + Math.random() * (max - min);
+}
+
+function pickHue() {
+  return palette[Math.floor(Math.random() * palette.length)]! + random(-8, 8);
+}
+
+function createGrain() {
+  // 一次性生成 128px 噪点贴图，交给 CSS 平铺做胶片颗粒，不占用每帧绘制。
+  const tile = document.createElement("canvas");
+  tile.width = tile.height = 128;
+  const tileContext = tile.getContext("2d");
+  if (!tileContext) return;
+  const noise = tileContext.createImageData(128, 128);
+  for (let index = 0; index < noise.data.length; index += 4) {
+    const value = Math.random() * 255;
+    noise.data[index] = noise.data[index + 1] = noise.data[index + 2] = value;
+    noise.data[index + 3] = 22;
   }
-  if (right < left || bottom < top) return;
-  const scale = Math.min((maskSize - 44) / (right - left + 1), (maskSize - 44) / (bottom - top + 1));
-  const logoWidth = (right - left + 1) * scale;
-  const logoHeight = (bottom - top + 1) * scale;
-  maskContext.clearRect(0, 0, maskSize, maskSize);
-  maskContext.drawImage(image, left / maskSize * image.naturalWidth, top / maskSize * image.naturalHeight,
-    (right - left + 1) / maskSize * image.naturalWidth, (bottom - top + 1) / maskSize * image.naturalHeight,
-    (maskSize - logoWidth) / 2, (maskSize - logoHeight) / 2, logoWidth, logoHeight);
-  pixels = maskContext.getImageData(0, 0, maskSize, maskSize).data;
-  const blurred = document.createElement("canvas");
-  blurred.width = blurred.height = maskSize;
-  const blurredContext = blurred.getContext("2d");
-  if (!blurredContext) return;
-  blurredContext.filter = "blur(7px)";
-  blurredContext.drawImage(mask, 0, 0);
-  return { pixels, halo: blurredContext.getImageData(0, 0, maskSize, maskSize).data };
+  tileContext.putImageData(noise, 0, 0);
+  grainUrl.value = `url(${tile.toDataURL()})`;
 }
 
 function resize() {
-  const canvas = fogCanvas.value;
-  if (!canvas || !context || !logo) return;
+  const canvas = sceneCanvas.value;
+  if (!canvas || !context) return;
   width = canvas.clientWidth;
   height = canvas.clientHeight;
   if (!width || !height) return syncAnimation();
-  pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
+  const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
   canvas.width = Math.round(width * pixelRatio);
   canvas.height = Math.round(height * pixelRatio);
   context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-  context.imageSmoothingEnabled = false;
-  fogLayer.width = Math.ceil(width / fogPixelSize);
-  fogLayer.height = Math.ceil(height / fogPixelSize);
-  fogPixels = fogContext!.createImageData(fogLayer.width, fogLayer.height);
-  // ACT: 颗粒和点距都按 CSS 像素固定，点数随可视面积变化，避免窗口大小改变疏密。
-  points = [];
-  for (let x = step / 2; x < width; x += step) {
-    for (let y = step / 2; y < height; y += step) {
-      const seed = Math.sin(x * 18.23 + y * 73.17) * 43758.55;
-      points.push({ x, y, nx: x / width, ny: y / height, ink: 0,
-        halo: 0, variation: 0.82 + (seed - Math.floor(seed)) * 0.18,
-        pixelIndex: (Math.floor(y / fogPixelSize) * fogLayer.width + Math.floor(x / fogPixelSize)) * 4 + 3 });
-    }
-  }
-  updateScrollPoints();
+  // ACT: 粒子数按面积估算并封顶 260，大屏也只做 O(n) 绘制；指针连线只在指针附近的粒子间计算。
+  const count = Math.min(260, Math.round(width * height / 7000));
+  particles = Array.from({ length: count }, () => ({
+    x: Math.random() * width, y: Math.random() * height, depth: Math.random() ** 1.6,
+    size: random(0.5, 1.6), hue: pickHue(), phase: random(0, Math.PI * 2), speed: random(0.6, 1.4),
+  }));
   syncAnimation();
 }
 
-function updateScrollPoints() {
-  if (!logo || !fogPixels || !width || !height) return;
-  // Logo 只做背景点缀：尺寸与不透明度都压低，避免抢首页内容的视觉。
-  const logoSize = Math.min(height * 0.4, width * (width < 600 ? 0.5 : 0.24), 280);
-  const logoX = width * (width < 600 ? 0.53 : 0.84);
-  const logoY = height * 0.7;
-  for (const point of points) {
-    const contentY = point.y + props.scrollTop;
-    point.ny = contentY / height;
-    const maskX = Math.floor((point.x - logoX) / logoSize * maskSize + maskSize / 2);
-    const maskY = Math.floor((contentY - logoY) / logoSize * maskSize + maskSize / 2);
-    const index = (maskY * maskSize + maskX) * 4;
-    const inMask = maskX >= 0 && maskX < maskSize && maskY >= 0 && maskY < maskSize;
-    point.ink = inMask ? logo.pixels[index + 3]! / 255 : 0;
-    point.halo = inMask ? logo.halo[index + 3]! / 255 : 0;
-    // Logo 内的点取原图颜色，光晕处按模糊图颜色向墨色过渡，其余点保持墨色。
-    const source = point.ink > 0 ? logo.pixels : logo.halo;
-    const tint = Math.min(1, point.ink + point.halo * 2);
-    for (let channel = 0; channel < 3; channel++) {
-      fogPixels.data[point.pixelIndex - 3 + channel] = inkRgb[channel]! + ((inMask ? source[index + channel]! : 0) - inkRgb[channel]!) * tint;
+function drawNebula() {
+  // 三团缓慢漂移的星云光晕，叠加后形成底色的冷暖层次。
+  const clouds = [
+    { x: 0.78 + Math.sin(elapsed * 0.05) * 0.06, y: 0.22 + Math.cos(elapsed * 0.04) * 0.05, r: 0.55, hue: 38, alpha: 0.3 },
+    { x: 0.12 + Math.cos(elapsed * 0.035) * 0.05, y: 0.78 + Math.sin(elapsed * 0.045) * 0.05, r: 0.6, hue: 200, alpha: 0.24 },
+    { x: 0.45 + Math.sin(elapsed * 0.03 + 2) * 0.08, y: 0.55 + Math.cos(elapsed * 0.025) * 0.06, r: 0.45, hue: 265, alpha: 0.16 },
+  ];
+  const size = Math.max(width, height);
+  for (const cloud of clouds) {
+    const x = cloud.x * width;
+    const y = cloud.y * height - props.scrollTop * 0.15;
+    const gradient = context!.createRadialGradient(x, y, 0, x, y, cloud.r * size);
+    const alpha = isDark ? cloud.alpha : cloud.alpha * 0.55;
+    gradient.addColorStop(0, `hsla(${cloud.hue}, 85%, ${isDark ? 55 : 62}%, ${alpha})`);
+    gradient.addColorStop(0.5, `hsla(${cloud.hue}, 80%, 50%, ${alpha * 0.35})`);
+    gradient.addColorStop(1, `hsla(${cloud.hue}, 80%, 50%, 0)`);
+    context!.fillStyle = gradient;
+    context!.fillRect(0, 0, width, height);
+  }
+}
+
+function drawBeams() {
+  // 两道从右上斜切的宽光束，亮度缓慢呼吸。
+  for (const [index, offset] of [0.32, 0.62].entries()) {
+    const pulse = 0.5 + Math.sin(elapsed * 0.4 + index * 2.1) * 0.5;
+    const centerX = width * (offset + Math.sin(elapsed * 0.06 + index) * 0.04);
+    context!.save();
+    context!.translate(centerX, height * 0.5);
+    context!.rotate(-0.52);
+    const beamWidth = Math.max(width, height) * (0.09 + index * 0.04);
+    const gradient = context!.createLinearGradient(-beamWidth, 0, beamWidth, 0);
+    const hue = index ? 205 : 40;
+    const alpha = (isDark ? 0.1 : 0.06) * (0.5 + pulse * 0.5);
+    gradient.addColorStop(0, `hsla(${hue}, 90%, 60%, 0)`);
+    gradient.addColorStop(0.5, `hsla(${hue}, 90%, 65%, ${alpha})`);
+    gradient.addColorStop(1, `hsla(${hue}, 90%, 60%, 0)`);
+    context!.fillStyle = gradient;
+    context!.fillRect(-beamWidth, -height * 1.2, beamWidth * 2, height * 2.4);
+    context!.restore();
+  }
+}
+
+function drawParticles(delta: number) {
+  const lightness = isDark ? 72 : 45;
+  const near: Particle[] = [];
+  for (const particle of particles) {
+    // 越近的粒子越大、越快，滚动时视差也越明显，形成纵深穿梭感。
+    const velocity = (6 + particle.depth * 34) * particle.speed * delta;
+    particle.x += flow.x * velocity;
+    particle.y += flow.y * velocity;
+    const parallax = props.scrollTop * (0.2 + particle.depth * 0.5);
+    if (particle.x > width + 20 || particle.y - parallax < -20) {
+      // 从左侧或底部重新进场，保持粒子分布均匀。
+      const fromBottom = Math.random() < width / (width + height);
+      particle.x = fromBottom ? random(-20, width) : -20;
+      particle.y = (fromBottom ? height + 20 : random(0, height + 20)) + parallax;
+    }
+    const x = particle.x;
+    const y = particle.y - parallax;
+    if (y < -20 || y > height + 20) continue;
+    const twinkle = 0.55 + Math.sin(elapsed * 2.2 * particle.speed + particle.phase) * 0.45;
+    const distance = pointer.strength > 0.01 ? Math.hypot(x - pointer.x, y - pointer.y) : Infinity;
+    const glow = distance < 160 ? (1 - distance / 160) * pointer.strength : 0;
+    const radius = particle.size * (0.6 + particle.depth * 1.4) * (1 + glow * 0.8);
+    const alpha = Math.min(1, (0.25 + particle.depth * 0.6) * twinkle + glow * 0.6) * (isDark ? 1 : 0.75);
+    if (particle.depth > 0.55 || glow > 0.2) {
+      const halo = context!.createRadialGradient(x, y, 0, x, y, radius * 5);
+      halo.addColorStop(0, `hsla(${particle.hue}, 95%, ${lightness}%, ${alpha * 0.5})`);
+      halo.addColorStop(1, `hsla(${particle.hue}, 95%, ${lightness}%, 0)`);
+      context!.fillStyle = halo;
+      context!.fillRect(x - radius * 5, y - radius * 5, radius * 10, radius * 10);
+    }
+    context!.fillStyle = `hsla(${particle.hue}, 90%, ${isDark ? 85 : 40}%, ${alpha})`;
+    context!.beginPath();
+    context!.arc(x, y, radius, 0, Math.PI * 2);
+    context!.fill();
+    if (glow > 0.05) near.push({ ...particle, y });
+  }
+  // 指针附近的粒子相互连线，像灵感被串联起来。
+  context!.lineWidth = 0.6;
+  for (let first = 0; first < near.length; first++) {
+    for (let second = first + 1; second < near.length; second++) {
+      const a = near[first]!, b = near[second]!;
+      const gap = Math.hypot(a.x - b.x, a.y - b.y);
+      if (gap > 90) continue;
+      context!.strokeStyle = `hsla(${a.hue}, 90%, ${lightness}%, ${(1 - gap / 90) * 0.35 * pointer.strength})`;
+      context!.beginPath();
+      context!.moveTo(a.x, a.y);
+      context!.lineTo(b.x, b.y);
+      context!.stroke();
     }
   }
+}
+
+function drawStreaks(delta: number) {
+  if (elapsed >= nextStreakAt) {
+    // 每隔 2.5–6 秒划过一道流光，沿粒子穿梭方向飞出。
+    nextStreakAt = elapsed + random(2.5, 6);
+    const fromLeft = Math.random() < 0.5;
+    streaks.push({ x: fromLeft ? -100 : random(0, width * 0.6), y: fromLeft ? random(height * 0.3, height) : height + 60,
+      length: random(120, 260), speed: random(520, 820), life: 0, hue: pickHue() });
+  }
+  streaks = streaks.filter((streak) => streak.x < width + streak.length && streak.y > -streak.length);
+  for (const streak of streaks) {
+    streak.x += flow.x * streak.speed * delta;
+    streak.y += flow.y * streak.speed * delta;
+    streak.life += delta;
+    const tailX = streak.x - flow.x * streak.length;
+    const tailY = streak.y - flow.y * streak.length;
+    const gradient = context!.createLinearGradient(tailX, tailY, streak.x, streak.y);
+    const fade = Math.min(1, streak.life * 3);
+    gradient.addColorStop(0, `hsla(${streak.hue}, 95%, 70%, 0)`);
+    gradient.addColorStop(1, `hsla(${streak.hue}, 95%, ${isDark ? 85 : 50}%, ${0.75 * fade})`);
+    context!.strokeStyle = gradient;
+    context!.lineWidth = 1.4;
+    context!.lineCap = "round";
+    context!.beginPath();
+    context!.moveTo(tailX, tailY);
+    context!.lineTo(streak.x, streak.y);
+    context!.stroke();
+  }
+}
+
+function draw(delta = 0) {
+  if (!context || !width || !height) return;
+  context.clearRect(0, 0, width, height);
+  // 暗色下用加色混合，光与光叠加会更亮；浅色下正常混合，避免发灰。
+  context.globalCompositeOperation = isDark ? "lighter" : "source-over";
+  drawNebula();
+  drawBeams();
+  drawParticles(delta);
+  drawStreaks(delta);
+  context.globalCompositeOperation = "source-over";
 }
 
 watch(() => props.scrollTop, () => {
-  updateScrollPoints();
-  draw();
+  if (!animationFrame) draw();
 });
-
-function draw() {
-  if (!context || !fogContext || !fogPixels || !width || !height) return;
-  context.clearRect(0, 0, width, height);
-  const time = elapsed * 0.7;
-  const radius = width < 600 ? 78 : 112;
-  let columnX = -1;
-  let waveA = 0;
-  let waveB = 0;
-  let waveC = 0;
-  let bandWidth = 0;
-  let modulation = 0;
-  for (const { x, y, nx, ny, ink, halo, variation, pixelIndex } of points) {
-    if (ink > 0.65) {
-      fogPixels.data[pixelIndex] = ink * 0.22 * 255;
-      continue;
-    }
-    if (x !== columnX) {
-      columnX = x;
-      const flowX = 0.7 - nx;
-      const amplitude = 0.08 + Math.abs(flowX) * 0.09;
-      waveA = 0.46 + Math.sin(nx * 7.5 - time) * amplitude + Math.sin(nx * 15 + time * 0.7) * 0.018;
-      waveB = 0.61 + Math.sin(nx * 6.3 - time * 0.79 + 1.7) * amplitude;
-      waveC = 0.24 + Math.sin(nx * 8.1 + time * 0.63 + 3.1) * amplitude;
-      bandWidth = 0.036 + Math.max(0, flowX) * 0.032;
-      modulation = 0.65 + Math.sin(nx * 15 - time * 1.3) * 0.35;
-    }
-    const fog = ny < 1 ? Math.exp(-(((ny - waveA) / bandWidth) ** 2)) * 0.77
-      + Math.exp(-(((ny - waveB) / bandWidth) ** 2)) * 0.53
-      + Math.exp(-(((ny - waveC) / (bandWidth * 0.8)) ** 2)) * 0.42 : 0;
-    const haloStrength = Math.min(1, halo * 2.4) * (0.77 + Math.sin(elapsed * 0.34 * 1.9 + nx * 10 - ny * 6) * 0.12);
-    const hover = pointer.strength > 0.001 ? Math.max(0, 1 - Math.hypot(x - pointer.x, y - pointer.y) / radius) ** 2 * pointer.strength : 0;
-    const mist = Math.min(1, fog * modulation);
-    const size = Math.min(fogPixelSize, (0.55 + step * (mist * 0.49 + haloStrength * 0.75 + hover * 0.47)) * variation);
-    fogPixels.data[pixelIndex] = Math.min(0.95, (ny < 1 ? 0.05 : 0) + mist * 0.18 + haloStrength * 0.35 + hover * 0.2)
-      * (1 - ink) * Math.min(1, (size / fogPixelSize) ** 2) * 255;
-  }
-  // ACT: 点阵统一写入离屏掩膜后批量绘制，避免逐点调用 Canvas fillRect。
-  fogContext.putImageData(fogPixels, 0, 0);
-  context.drawImage(fogLayer, 0, 0, fogLayer.width * fogPixelSize, fogLayer.height * fogPixelSize);
-}
 
 function tick(timestamp: number) {
   animationFrame = 0;
   if (events.signal.aborted || document.hidden || reducedMotion.matches || !width || !height) return;
-  if (!lastFrame || timestamp - lastFrame >= 1000 / 30) {
-    elapsed += lastFrame ? Math.min((timestamp - lastFrame) / 1000, 0.07) : 0;
+  if (!lastFrame || timestamp - lastFrame >= 1000 / 40) {
+    const delta = lastFrame ? Math.min((timestamp - lastFrame) / 1000, 0.07) : 0;
+    elapsed += delta;
     lastFrame = timestamp;
-    pointer.x += (pointer.targetX - pointer.x) * 0.22;
-    pointer.y += (pointer.targetY - pointer.y) * 0.22;
-    pointer.strength += (pointer.targetStrength - pointer.strength) * 0.18;
-    draw();
+    pointer.x += (pointer.targetX - pointer.x) * 0.2;
+    pointer.y += (pointer.targetY - pointer.y) * 0.2;
+    pointer.strength += (pointer.targetStrength - pointer.strength) * 0.15;
+    draw(delta);
   }
   animationFrame = requestAnimationFrame(tick);
 }
@@ -190,50 +236,40 @@ function syncAnimation() {
   animationFrame = 0;
   lastFrame = 0;
   draw();
-  if (logo && width && height && !document.hidden && !reducedMotion.matches && !events.signal.aborted) {
+  if (width && height && !document.hidden && !reducedMotion.matches && !events.signal.aborted) {
     animationFrame = requestAnimationFrame(tick);
   }
 }
 
-function updateColor() {
-  const color = getComputedStyle(fogCanvas.value!).color;
-  if (color === inkColor) return;
-  inkColor = color;
-  inkRgb = color.match(/[\d.]+/g)!.slice(0, 3).map(Number);
-  updateScrollPoints();
+function updateTheme() {
+  const dark = document.documentElement.classList.contains("dark");
+  if (dark === isDark) return;
+  isDark = dark;
   draw();
 }
 
 onMounted(() => {
-  const canvas = fogCanvas.value!;
+  const canvas = sceneCanvas.value!;
   context = canvas.getContext("2d");
   if (!context) return;
-  fogLayer = document.createElement("canvas");
-  fogContext = fogLayer.getContext("2d");
-  if (!fogContext) return;
   reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  isDark = document.documentElement.classList.contains("dark");
+  createGrain();
   const options = { passive: true, signal: events.signal };
-  updateColor();
-  image = new Image();
-  image.onload = () => {
-    if (events.signal.aborted) return;
-    logo = sampleLogo();
-    resize();
-  };
-  image.src = logoUrl;
   resizeObserver = new ResizeObserver(resize);
   resizeObserver.observe(canvas);
-  themeObserver = new MutationObserver(updateColor);
-  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "style"] });
-  canvas.parentElement!.addEventListener("pointermove", (event) => {
+  themeObserver = new MutationObserver(updateTheme);
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+  const host = canvas.parentElement!.parentElement!;
+  host.addEventListener("pointermove", (event) => {
     if (event.pointerType === "touch" || reducedMotion.matches) return;
     const bounds = canvas.getBoundingClientRect();
     pointer.targetX = event.clientX - bounds.left;
     pointer.targetY = event.clientY - bounds.top;
-    pointer.targetStrength = +(pointer.targetX >= 0 && pointer.targetX <= bounds.width && pointer.targetY >= 0 && pointer.targetY <= bounds.height);
+    pointer.targetStrength = 1;
     if (pointer.strength < 0.01) { pointer.x = pointer.targetX; pointer.y = pointer.targetY; }
   }, options);
-  canvas.parentElement!.addEventListener("pointerleave", () => { pointer.targetStrength = 0; }, options);
+  host.addEventListener("pointerleave", () => { pointer.targetStrength = 0; }, options);
   window.addEventListener("blur", () => { pointer.targetStrength = 0; }, options);
   document.addEventListener("visibilitychange", syncAnimation, options);
   reducedMotion.addEventListener("change", () => {
@@ -247,17 +283,26 @@ onBeforeUnmount(() => {
   cancelAnimationFrame(animationFrame);
   resizeObserver?.disconnect();
   themeObserver?.disconnect();
-  if (image) image.onload = null;
 });
 </script>
 
 <style lang="scss" scoped>
-.pixelFog {
-  display: block;
-  width: 100%;
-  height: 100%;
+.cosmicBg {
+  position: relative;
+  overflow: hidden;
   pointer-events: none;
-  color: var(--el-text-color-primary);
-  opacity: 0.6;
+
+  .scene {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .grain {
+    position: absolute;
+    inset: 0;
+    opacity: 0.5;
+    mix-blend-mode: overlay;
+  }
 }
 </style>

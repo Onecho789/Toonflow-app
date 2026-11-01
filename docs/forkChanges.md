@@ -443,6 +443,17 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 - 只替换资源，引用位置不变：`logo.png`、`logo.ico`、`logo.iconset/*.png` 换图；`logo.svg` 重新生成为徽章外形剪影；`startup.json` 的 `logo` 图层按新图重新量化成 12 个色块，`tr` 与时间轴不动
 - 上一版资源备份在 `D:\2api-codes\maimaiLogo\oldAssets3`
 
+### 首页背景改为“星云粒子穿梭”
+
+- 日期：2026-11-01
+- `apps/web/src/pages/home/bg.vue` 整体重写，不再用 Logo 取样点阵：三团缓慢漂移的星云光晕（麦穗金、青蓝、星紫）、两道斜切呼吸光束、按面积生成（上限 260）的彩色光子沿左下→右上穿梭并闪烁、每 2.5–6 秒一道流光，叠一层 CSS 平铺的噪点颗粒
+- 鼠标附近光子放大发光并相互连线；滚动按粒子深度做视差；暗色用加色混合，浅色降低透明度；`prefers-reduced-motion` 时只画一帧静态画面，页面隐藏时停帧
+- 组件接口不变（`scrollTop` 属性），`home/index.vue` 无需改动
+
+| 文件 | 改动 | 冲突时的处理 |
+| --- | --- | --- |
+| `apps/web/src/pages/home/bg.vue` | 整体替换为星云粒子背景 | 上游改此文件时保留我们的版本，只合并 `scrollTop` 等接口变化 |
+
 ---
 
 ## 插件市场改由麦麦云提供（第一期）
