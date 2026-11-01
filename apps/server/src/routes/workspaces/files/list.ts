@@ -1,4 +1,4 @@
-import { readdir } from "@toonflow/file";
+import { readdir, stat } from "@toonflow/file";
 import { join, relative, sep } from "node:path";
 import { Router } from "express";
 import { z } from "zod";
@@ -11,11 +11,14 @@ const router = Router();
 export default router.get("/", validateFields({ directory: z.string().min(1).max(4096), path: z.string().max(4096).optional() }, "query"), async (req, res) => {
   const { directory, path } = await u.workspaceFile.resolveWorkspaceFile(req, req.query.directory as string, (req.query.path as string | undefined) ?? "");
   const entries = await readdir(path, { withFileTypes: true });
+  // ACT: 每项单独 stat 取修改时间供工作台按新旧排序；单层目录上千项时才明显变慢，届时改为按需返回。
+  const items = await Promise.all(entries.filter(entry => entry.isFile() || entry.isDirectory()).map(async entry => ({
+    name: entry.name, path: relative(directory, join(path, entry.name)).split(sep).join("/"), type: entry.isDirectory() ? "directory" : "file",
+    mtimeMs: (await stat(join(path, entry.name)).catch(() => null))?.mtimeMs ?? 0,
+  })));
   res.set("Cache-Control", "no-store").json(success({
     directory,
     empty: entries.length === 0,
-    entries: entries.filter(entry => entry.isFile() || entry.isDirectory()).map(entry => ({
-      name: entry.name, path: relative(directory, join(path, entry.name)).split(sep).join("/"), type: entry.isDirectory() ? "directory" : "file",
-    })).sort((a, b) => a.name.localeCompare(b.name, "zh-CN", { numeric: true })),
+    entries: items.sort((a, b) => a.name.localeCompare(b.name, "zh-CN", { numeric: true })),
   }));
 });
