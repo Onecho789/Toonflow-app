@@ -742,6 +742,14 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 
 改动的上游文件：`packages/nodeScaffold/src/nodeAi.ts` 的 `NodeMediaModel` 加 `sizeMap` 字段，冲突时保留该字段；其余为 Fork 新增的工作台与麦麦云文件。
 
+## 背景样式三选一
+
+- 日期：2026-11-01
+- 首页、项目页、工作台背景提供三种样式：晨曦麦浪（暖阳、光芒、上飘花粉）、流星许愿（星空、银河、流星与星尘，指针移动留下星尘）、星云穿梭（原粒子穿梭换成粉紫蓝金配色，默认）。界面设置新增「背景样式」，存为 `ui.background`（`dawn` / `meteor` / `nebula`）
+- 场景代码在新增的 `pages/home/bgScenes.ts`；`bg.vue` 改为柔光层（1/4 分辨率画布 + CSS 模糊）与清晰层两张画布，每个场景自带深浅两套底色。`still`、滚动视差（仅柔光层）、40fps 上限、减少动态效果、页面隐藏暂停等行为保留
+
+改动的上游文件：`stores/settings.ts` 的 `defaultUiSettings`、`uiSettings` 加 `background`；`components/settings/panels/ui.vue` 加「背景样式」一节。`pages/home/bg.vue` 为 Fork 文件。冲突时保留上游改动并补回 `background` 字段与该节。
+
 ## 同步记录
 
 | 日期 | 上游提交 | 说明 |

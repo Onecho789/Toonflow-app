@@ -47,6 +47,26 @@
       </el-radio-group>
     </section>
 
+    <section class="settingSection" aria-labelledby="backgroundTitle">
+      <h3 id="backgroundTitle">
+        <icon-wallpaper :size="18" />
+        背景样式
+      </h3>
+      <el-radio-group
+        class="themeOptions"
+        :modelValue="uiSettings.background"
+        aria-label="背景样式"
+        @change="(value) => updateUiSettings({ background: backgrounds.find(item => item.value === value)?.value })">
+        <el-radio v-for="item in backgrounds" :key="item.value" :value="item.value" border>
+          <span class="themeLabel">
+            <component :is="item.icon" :size="22" />
+            <strong>{{ item.label }}</strong>
+            <small>{{ item.description }}</small>
+          </span>
+        </el-radio>
+      </el-radio-group>
+    </section>
+
     <section class="settingSection" aria-labelledby="colorTitle">
       <div class="settingHeader">
         <h3 id="colorTitle">
@@ -139,6 +159,9 @@ import {
   IconMoon,
   IconDeviceDesktop,
   IconSunMoon,
+  IconSunrise,
+  IconMeteor,
+  IconPlanet,
   IconPalette,
   IconSparkles,
   IconCheck,
@@ -162,6 +185,11 @@ const themes = [
   { value: "dark", label: "深色", description: "沉浸创作", icon: IconMoon },
   { value: "system", label: "跟随系统", description: "自动切换", icon: IconDeviceDesktop },
 ];
+const backgrounds = [
+  { value: "dawn", label: "晨曦麦浪", description: "暖阳与花粉", icon: IconSunrise },
+  { value: "meteor", label: "流星许愿", description: "星空与流星", icon: IconMeteor },
+  { value: "nebula", label: "星云穿梭", description: "粒子与流光", icon: IconPlanet },
+] as const;
 const colors = [
   { value: "#409eff", label: "天空蓝" },
   { value: "#6366f1", label: "鸢尾紫" },
