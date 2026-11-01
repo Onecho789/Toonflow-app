@@ -33,15 +33,10 @@
           </el-select>
         </el-form-item>
         <el-form-item v-if="reasoningLevels.length" label="思考强度">
-          <div class="reasoningSettings">
-            <div class="reasoningGrid" role="radiogroup" aria-label="思考强度" :aria-describedby="`${reasoningId}Hint`" :style="{ gridTemplateColumns: `repeat(${reasoningColumns}, minmax(0, 1fr))` }">
-              <label v-for="option in reasoningOptions" :key="option.value" class="reasoningOption">
-                <input v-model="reasoningEffort" type="radio" :name="reasoningId" :value="option.value" :disabled="disabled" />
-                <span class="reasoningOptionLabel">{{ option.label }}</span>
-              </label>
-            </div>
-            <div :id="`${reasoningId}Hint`" class="reasoningHint">默认由模型决定</div>
-          </div>
+          <el-select v-model="reasoningEffort" :disabled="disabled" :teleported="false" aria-label="思考强度" :aria-describedby="`${reasoningId}Hint`">
+            <el-option v-for="option in reasoningOptions" :key="option.value" :label="option.label" :value="option.value" />
+          </el-select>
+          <div :id="`${reasoningId}Hint`" class="reasoningHint">默认由模型决定</div>
         </el-form-item>
       </el-form>
     </el-popover>
@@ -60,12 +55,11 @@ const reasoningEffort = defineModel<string>("reasoningEffort", { default: "" });
 const props = withDefaults(defineProps<{ active?: boolean; disabled?: boolean }>(), { active: true, disabled: false });
 const visible = ref(false);
 const reasoningId = useId();
-const reasoningLabels: Record<ThinkingLevel, string> = { off: "关闭", minimal: "最少", low: "低", medium: "中", high: "高", xhigh: "超高", max: "最高" };
+const reasoningLabels: Record<ThinkingLevel, string> = { off: "Off", minimal: "Minimal", low: "Low", medium: "Medium", high: "High", xhigh: "XHigh", max: "Max" };
 const selectedModelChoice = computed(() => modelChoices.value.find(item => item.value === selectedModel.value));
 const reasoningLevels = computed(() => selectedModelChoice.value?.reasoningLevels ?? []);
-const reasoningOptions = computed(() => [{ label: "默认", value: "" }, ...reasoningLevels.value.map(value => ({ label: reasoningLabels[value], value }))]);
-const reasoningColumns = computed(() => Math.min(4, reasoningOptions.value.length > 4 ? Math.ceil(reasoningOptions.value.length / 2) : reasoningOptions.value.length));
-const reasoningLabel = computed(() => reasoningOptions.value.find(item => item.value === reasoningEffort.value)?.label ?? "默认");
+const reasoningOptions = computed(() => [{ label: "Default", value: "" }, ...reasoningLevels.value.map(value => ({ label: reasoningLabels[value], value }))]);
+const reasoningLabel = computed(() => reasoningOptions.value.find(item => item.value === reasoningEffort.value)?.label ?? "Default");
 // 旧对话保存的是本地供应商 ID（如 codex），按模型 ID 换成云端选项，和服务端匹配规则一致。
 watch([modelChoices, selectedModel], ([items, value]) => {
   if (!value) return void (selectedModel.value = items[0]?.value ?? "");
@@ -133,66 +127,11 @@ watch(() => !props.active || props.disabled, close => { if (close) visible.value
       .el-select {
         width: 100%;
       }
-      .reasoningSettings {
-        width: 100%;
-
-        .reasoningGrid {
-          display: grid;
-          gap: 6px;
-
-          .reasoningOption {
-            position: relative;
-            min-width: 0;
-
-            input {
-              position: absolute;
-              width: 1px;
-              height: 1px;
-              overflow: hidden;
-              clip-path: inset(50%);
-
-              &:checked + .reasoningOptionLabel {
-                border-color: var(--el-color-primary-light-5);
-                background: var(--el-color-primary-light-9);
-                color: var(--el-color-primary);
-                font-weight: 600;
-              }
-              &:focus-visible + .reasoningOptionLabel {
-                outline: 2px solid var(--el-color-primary);
-                outline-offset: 2px;
-              }
-              &:disabled + .reasoningOptionLabel {
-                opacity: .5;
-                cursor: not-allowed;
-              }
-            }
-            .reasoningOptionLabel {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              min-height: 32px;
-              padding: 4px 8px;
-              border: 1px solid var(--el-border-color-lighter);
-              border-radius: var(--el-border-radius-base);
-              background: var(--el-fill-color-light);
-              color: var(--el-text-color-regular);
-              font-size: 12px;
-              line-height: 20px;
-              cursor: pointer;
-              transition: background-color .15s, border-color .15s, color .15s;
-            }
-            &:hover input:not(:disabled) + .reasoningOptionLabel {
-              border-color: var(--el-color-primary-light-5);
-              color: var(--el-color-primary);
-            }
-          }
-        }
-        .reasoningHint {
-          margin-top: 8px;
-          color: var(--el-text-color-secondary);
-          font-size: 12px;
-          line-height: 18px;
-        }
+      .reasoningHint {
+        margin-top: 8px;
+        color: var(--el-text-color-secondary);
+        font-size: 12px;
+        line-height: 18px;
       }
     }
   }
