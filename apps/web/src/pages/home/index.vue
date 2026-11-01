@@ -37,35 +37,25 @@
               <p v-if="!workspaceDirectory" class="workspaceHint" role="status">请先选择一个空文件夹作为工作目录，画布和素材会保存在这里。</p>
             </div>
           </section>
-          <section class="projectList" data-home-section="projects" aria-labelledby="projectListTitle">
-            <h2 id="projectListTitle">项目</h2>
-            <div class="projectItems">
-              <el-card class="projectCard" shadow="never" :bodyStyle="{ padding: '0', height: '100%' }">
-                <button class="projectLaunch" type="button" :disabled="creating || opening || relocationPicker?.selecting" :aria-busy="creating || relocationPicker?.selecting" title="选择空文件夹新建，或打开已有项目" @click="createProject(false)">
-                  <span class="launchIcon">
-                    <icon-loader-2 v-if="creating || relocationPicker?.selecting" class="isLoading" :size="24" aria-hidden="true" />
-                    <icon-plus v-else :size="24" aria-hidden="true" />
-                  </span>
-                  <span class="launchText">
-                    <span class="launchTitle">新建项目</span>
-                    <span class="launchDescription">或打开已有项目</span>
-                  </span>
-                </button>
-              </el-card>
-              <el-card v-for="project in sortedProjects" :key="project.directory" class="projectCard" shadow="never" :bodyStyle="{ padding: '0', height: '100%' }">
-                <button class="projectEntry" type="button" :disabled="creating || opening" :title="project.directory" :aria-label="`打开项目 ${project.name}`" @click="openProject(project)">
-                  <projectCover :directory="project.directory" />
-                  <span class="projectInfo">
-                    <span class="projectName" :title="project.name">{{ project.name }}</span>
-                    <span class="projectTime">最近打开 {{ new Date(project.lastOpenedAt).toLocaleString(locale, { hour12: false }) }}</span>
-                  </span>
-                </button>
-                <div class="projectActions" :class="{ exporting: exportingDirectory === project.directory }">
-                  <el-button circle :icon="IconFileZip" :loading="exportingDirectory === project.directory" :disabled="creating || opening || !!exportingDirectory" :aria-label="`打包导出项目 ${project.name}`" title="打包导出 ZIP" @click="exportProject(project)" />
-                  <el-button circle :icon="IconEdit" :disabled="creating || opening || exportingDirectory === project.directory" :aria-label="`重命名项目 ${project.name}`" title="重命名" @click="renameProject(project)" />
-                  <el-button circle plain type="danger" :icon="IconTrash" :disabled="creating || opening || exportingDirectory === project.directory" :aria-label="`移除项目 ${project.name}`" title="从列表移除，不删除文件" @click="workspaceStore.removeProject(project.directory)" />
-                </div>
-              </el-card>
+          <nav class="entryList" aria-label="开始创作">
+            <router-link v-for="entry in entries" :key="entry.path" class="entryCard" :to="entry.path">
+              <span class="entryIcon"><component :is="entry.icon" :size="22" aria-hidden="true" /></span>
+              <span class="entryText">
+                <span class="entryTitle">{{ entry.title }}</span>
+                <span class="entryDescription">{{ entry.description }}</span>
+              </span>
+            </router-link>
+          </nav>
+          <section v-if="recentProjects.length" class="recentList" aria-labelledby="recentListTitle">
+            <div class="recentHeader">
+              <h2 id="recentListTitle">最近项目</h2>
+              <router-link class="viewAll" to="/projects">查看全部</router-link>
+            </div>
+            <div class="recentItems">
+              <button v-for="project in recentProjects" :key="project.directory" class="recentCard" type="button" :disabled="creating || opening" :title="project.directory" :aria-label="`打开项目 ${project.name}`" @click="openProject(project)">
+                <projectCover :directory="project.directory" />
+                <span class="projectName" :title="project.name">{{ project.name }}</span>
+              </button>
             </div>
           </section>
         </el-main>
@@ -80,32 +70,30 @@ import { locale, translate } from "@toonflow/i18n/vue";
 import axios from "axios";
 import { storeToRefs } from "pinia";
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
-import { useRouter } from "vue-router";
-import { ElMessage, ElMessageBox, type InputInstance, type ScrollbarInstance } from "element-plus";
+import { ElMessage, type InputInstance, type ScrollbarInstance } from "element-plus";
 import { getReadableFileMimeType, readableFileAccept } from "@toonflow/server/documentFormats";
-import { IconArrowUp, IconFolder, IconEdit, IconFileZip, IconTrash, IconPaperclip } from "@tabler/icons-vue";
+import { IconArrowUp, IconFolder, IconPaperclip, IconPhotoAi, IconMovie, IconInfinity } from "@tabler/icons-vue";
 import modelPopover from "@/components/modelPopover.vue";
 import attachmentList from "@/components/agent/attachmentList.vue";
 import { createPastedTextFile, readTextAttachment } from "@/components/agent/textAttachments";
 import type { AgentAttachment } from "@/components/agent/types";
 import logoUrl from "@toonflow/assets/logo.png";
-import { useWorkspaceStore, type Project } from "@/stores/workspace";
+import { useWorkspaceStore } from "@/stores/workspace";
 import useWorkspaceFiles from "@/lib/workspaceFiles";
-import saveFile from "@/lib/saveFile";
-import { waitForControlValue } from "@/lib/mcpControl";
 import bg from "./bg.vue";
 import projectCover from "./projectCover.vue";
 import workspacePicker from "./workspacePicker.vue";
+import useProjectEntry from "./projectEntry";
 
 const pageScroll = ref<ScrollbarInstance>();
 const backgroundScrollTop = ref(0);
-const router = useRouter();
-const pageLifetime = new AbortController();
-const creating = ref(false);
-const opening = ref(false);
-const exportingDirectory = ref("");
+const { pageLifetime, creating, opening, relocationPicker, enterWorkspace, openProject } = useProjectEntry();
 const promptWorkspacePicker = ref<InstanceType<typeof workspacePicker>>();
-const relocationPicker = ref<InstanceType<typeof workspacePicker>>();
+const entries = [
+  { path: "/imageStudio", title: "生成图片", description: "写一句描述，直接出图", icon: IconPhotoAi },
+  { path: "/videoStudio", title: "生成视频", description: "用文字或图片生成一段视频", icon: IconMovie },
+  { path: "/projects", title: "无限画布", description: "在画布上编排分镜与工作流", icon: IconInfinity },
+];
 const prompt = ref("");
 const promptInput = ref<InputInstance>();
 const promptAttachments = ref<AgentAttachment[]>([]);
@@ -171,25 +159,17 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  pageLifetime.abort();
-  if (router.currentRoute.value.path !== "/workspace") workspaceStore.projectLoading = false;
   window.removeEventListener("dragend", clearAttachmentDrag, true);
   window.removeEventListener("drop", clearAttachmentDrag, true);
   window.removeEventListener("blur", clearAttachmentDrag);
 });
 watch([creating, opening], ([creating, opening]) => {
-  if (creating || opening) {
-    clearAttachmentDrag();
-    workspaceStore.projectLoadingDrawn = false;
-    workspaceStore.projectLoading = true;
-  } else if (router.currentRoute.value.path !== "/workspace") {
-    workspaceStore.projectLoading = false;
-  }
+  if (creating || opening) clearAttachmentDrag();
 }, { flush: "sync" });
 
 const selectedModel = ref("");
 const reasoningEffort = ref("");
-const sortedProjects = computed(() => [...projectList.value].sort((left, right) => right.lastOpenedAt - left.lastOpenedAt));
+const recentProjects = computed(() => [...projectList.value].sort((left, right) => right.lastOpenedAt - left.lastOpenedAt).slice(0, 4));
 
 function pasteAttachments(event: ClipboardEvent) {
   if (creating.value || opening.value) return;
@@ -297,80 +277,16 @@ async function restoreAttachment(index: number) {
   }
 }
 
-async function enterWorkspace() {
-  await waitForControlValue(() => workspaceStore.projectLoadingDrawn || undefined, pageLifetime.signal).catch(error => {
-    if (!pageLifetime.signal.aborted) throw error;
-  });
-  if (pageLifetime.signal.aborted) return;
-  if (!document.hidden) await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-  if (pageLifetime.signal.aborted) return;
-  await router.push("/workspace");
-}
-
-async function openProject(project: Project) {
-  if (creating.value || opening.value) return;
-  opening.value = true;
-  try {
-    const directory = project.directory;
-    try { await workspaceStore.openProject(directory); }
-    catch (err) {
-      if (!axios.isAxiosError(err) || err.response?.status !== 404) throw err;
-      const reselect = await ElMessageBox.confirm(`项目“${project.name}”的文件夹不存在，是否重新选择文件夹？`, "工作目录不存在", {
-        confirmButtonText: "重新选择", cancelButtonText: "取消", type: "warning",
-      }).then(() => true, () => false);
-      if (!reselect) return;
-      const directory = await relocationPicker.value?.chooseDirectory();
-      if (!directory) return;
-      await workspaceStore.openProject(directory, project.directory);
-    }
-    await enterWorkspace();
-  } catch (err) {
-    ElMessage.error(axios.isAxiosError<{ message?: string }>(err)
-      ? err.response?.data.message || "无法打开项目，请重试"
-      : err instanceof Error ? err.message : "无法打开项目，请重试");
-  } finally { opening.value = false; }
-}
-
-async function exportProject(project: Project) {
-  if (creating.value || opening.value || exportingDirectory.value) return;
-  const directory = project.directory;
-  exportingDirectory.value = directory;
-  try {
-    let name = project.name.replace(/[<>:"/\\|?*\x00-\x1f\x7f-\x9f]/g, "_").slice(0, 120).replace(/[. ]+$/, "");
-    if (!name || /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(name)) name = "麦麦工坊";
-    const files = useWorkspaceFiles(directory);
-    await saveFile(() => files.exportZip(pageLifetime.signal), `${name}.zip`);
-  } catch (error) {
-    if (pageLifetime.signal.aborted) return;
-    let message = error instanceof Error ? error.message : translate("导出项目失败，请重试");
-    if (axios.isAxiosError(error)) {
-      const data = error.response?.data instanceof Blob
-        ? await error.response.data.text().then(JSON.parse).catch(() => null) : error.response?.data;
-      if (typeof data?.message === "string") message = data.message;
-    }
-    ElMessage.error(message);
-  } finally { exportingDirectory.value = ""; }
-}
-
-async function renameProject(project: Project) {
-  const result = await ElMessageBox.prompt("请输入项目名称", "重命名项目", {
-    inputValue: project.name, confirmButtonText: "保存", cancelButtonText: "取消",
-    inputValidator: value => !!value?.trim() || "项目名称不能为空",
-  }).catch(() => null);
-  if (result) workspaceStore.renameProject(project.directory, result.value);
-}
-
-async function createProject(fromPrompt = true) {
-  if (creating.value || opening.value || (fromPrompt && !workspaceDirectory.value)) return;
-  const path = fromPrompt ? workspaceDirectory.value : await relocationPicker.value?.chooseDirectory();
+async function createProject() {
+  const path = workspaceDirectory.value;
   if (!path || creating.value || opening.value || pageLifetime.signal.aborted) return;
   creating.value = true;
   try {
     const { directory, empty } = await useWorkspaceFiles(path).list();
-    if (fromPrompt && !empty) return ElMessage.warning("该文件夹不为空，请重新选择空文件夹；已有项目请使用“新建项目”入口或点击项目列表打开。");
-    if (empty) await useWorkspaceFiles(directory).writeJson("画布1.json", { toonflowCanvas: true, nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } }, true);
+    if (!empty) return ElMessage.warning("该文件夹不为空，请重新选择空文件夹；已有项目请到“无限画布”打开。");
+    await useWorkspaceFiles(directory).writeJson("画布1.json", { toonflowCanvas: true, nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } }, true);
     await workspaceStore.openProject(directory);
-    if (fromPrompt && (prompt.value.trim() || promptAttachments.value.length)) {
+    if (prompt.value.trim() || promptAttachments.value.length) {
       workspaceStore.pendingAgentMessage = { directory: workspaceStore.project!.directory, prompt: prompt.value, attachments: [...promptAttachments.value], model: selectedModel.value, reasoningEffort: reasoningEffort.value };
     }
     await enterWorkspace();
@@ -413,7 +329,7 @@ async function createProject(fromPrompt = true) {
 
         .creationPanel {
           max-width: 800px;
-          margin: clamp(32px, 6vh, 64px) auto 56px;
+          margin: clamp(32px, 6vh, 64px) auto 36px;
 
           .brand {
             display: flex;
@@ -586,141 +502,117 @@ async function createProject(fromPrompt = true) {
           }
         }
 
-        .projectList {
-          max-width: 1280px;
+        .entryList {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+          gap: 16px;
+          max-width: 800px;
+          margin: 0 auto 48px;
+
+          .entryCard {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 18px 20px;
+            border: 1px solid var(--el-border-color-lighter);
+            border-radius: calc(var(--ui-radius) * 2.5);
+            background: color-mix(in srgb, var(--el-bg-color-overlay) 70%, transparent);
+            box-shadow: var(--el-box-shadow-lighter);
+            color: inherit;
+            text-decoration: none;
+            transition: border-color 0.2s, transform 0.2s;
+
+            &:hover { border-color: var(--el-color-primary-light-5); transform: translateY(-2px); }
+            &:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: 2px; }
+
+            .entryIcon {
+              display: grid;
+              place-items: center;
+              flex-shrink: 0;
+              width: 40px;
+              height: 40px;
+              border-radius: calc(var(--ui-radius) * 2);
+              background: var(--el-color-primary-light-9);
+              color: var(--el-color-primary);
+            }
+
+            .entryText {
+              display: flex;
+              flex-direction: column;
+              gap: 2px;
+              min-width: 0;
+
+              .entryTitle { font-size: 15px; font-weight: 600; line-height: 1.6; }
+              .entryDescription { color: var(--el-text-color-secondary); font-size: 12px; line-height: 1.6; }
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+              transition: none;
+
+              &:hover { transform: none; }
+            }
+          }
+        }
+
+        .recentList {
+          max-width: 800px;
           margin: 0 auto;
 
-          h2 {
-            margin: 0 0 20px;
-            font-size: 22px;
-            font-weight: 600;
-            line-height: 1.5;
+          .recentHeader {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            margin-bottom: 14px;
+
+            h2 { margin: 0; font-size: 16px; font-weight: 600; line-height: 1.5; }
+
+            .viewAll {
+              color: var(--el-color-primary);
+              font-size: 13px;
+              text-decoration: none;
+
+              &:hover { text-decoration: underline; }
+              &:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: 2px; border-radius: 2px; }
+            }
           }
 
-          .projectItems {
+          .recentItems {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
-            grid-auto-rows: 1fr;
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr));
+            gap: 16px;
 
-            .projectCard {
-              position: relative;
-              border-radius: calc(var(--ui-radius) * 2.5);
-              border-color: var(--el-border-color-lighter);
+            .recentCard {
+              display: flex;
+              flex-direction: column;
+              min-width: 0;
+              padding: 0;
+              overflow: hidden;
+              border: 1px solid var(--el-border-color-lighter);
+              border-radius: calc(var(--ui-radius) * 2);
               background: color-mix(in srgb, var(--el-bg-color-overlay) 70%, transparent);
-              box-shadow: var(--el-box-shadow-lighter);
+              color: inherit;
+              font: inherit;
+              text-align: start;
+              cursor: pointer;
+              transition: border-color 0.2s;
 
-              &:focus-within {
-                border-color: var(--el-color-primary-light-5);
-              }
+              &:hover { border-color: var(--el-color-primary-light-5); }
+              &:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: 2px; }
+              &:disabled { cursor: wait; opacity: 0.6; }
 
-              .projectLaunch, .projectEntry {
-                width: 100%;
-                height: 100%;
-                min-height: 240px;
-                border: 0;
-                border-radius: calc(var(--ui-radius) * 2.5);
-                background: transparent;
-                color: inherit;
-                font: inherit;
-                cursor: pointer;
-
-                &:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: -2px; }
-                &:disabled { cursor: wait; opacity: 0.6; }
-              }
-
-              .projectLaunch {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                gap: 12px;
-                padding: 20px;
-                text-align: center;
-
-                .launchIcon {
-                  display: grid;
-                  place-items: center;
-                  width: 36px;
-                  height: 36px;
-                  border-radius: 50%;
-                  background: var(--el-color-primary);
-                  color: var(--el-color-white);
-
-                  .isLoading { animation: launchSpin 1.5s linear infinite; }
-
-                  @media (prefers-reduced-motion: reduce) {
-                    .isLoading { animation: none; }
-                  }
-                }
-
-                .launchText {
-                  display: flex;
-                  flex-direction: column;
-                  gap: 6px;
-
-                  .launchTitle { font-size: 15px; font-weight: 500; line-height: 1.8; }
-                  .launchDescription { color: var(--el-text-color-regular); font-size: 13px; line-height: 1.6; }
-                }
-              }
-
-              .projectEntry {
-                display: flex;
-                flex-direction: column;
-                padding: 0;
-                text-align: start;
-
-                .projectInfo {
-                  display: flex;
-                  flex-direction: column;
-                  gap: 6px;
-                  width: 100%;
-                  min-width: 0;
-                  margin-top: auto;
-                  padding: 12px 16px;
-                  border-top: 1px solid var(--el-border-color-lighter);
-                  background: transparent;
-
-                  .projectName {
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    white-space: nowrap;
-                    font-size: 14px;
-                    font-weight: 600;
-                    line-height: 1.5;
-                  }
-
-                  .projectTime { font-size: 12px; line-height: 1.6; color: var(--el-text-color-secondary); }
-                }
-              }
-
-              .projectActions {
-                position: absolute;
-                top: 12px;
-                right: 12px;
-                display: flex;
-                gap: 4px;
-                opacity: 0;
-                pointer-events: none;
-                transition: opacity 0.2s;
-
-                .el-button {
-                  width: 32px;
-                  height: 32px;
-                  margin: 0;
-                  padding: 0;
-                  box-shadow: var(--el-box-shadow-lighter);
-                }
-              }
-
-              &:hover .projectActions, &:focus-within .projectActions, .projectActions.exporting { opacity: 1; pointer-events: auto; }
-
-              @media (hover: none), (any-pointer: coarse) {
-                .projectActions { opacity: 1; pointer-events: auto; }
+              .projectName {
+                overflow: hidden;
+                padding: 10px 12px;
+                border-top: 1px solid var(--el-border-color-lighter);
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                font-size: 13px;
+                font-weight: 500;
+                line-height: 1.5;
               }
 
               @media (prefers-reduced-motion: reduce) {
-                .projectActions { transition: none; }
+                transition: none;
               }
             }
           }
@@ -732,8 +624,5 @@ async function createProject(fromPrompt = true) {
   @media (max-width: 560px) {
     .pageScroll .pageBody .pageContent { padding: 24px 16px 40px; }
   }
-}
-@keyframes launchSpin {
-  to { transform: rotate(360deg); }
 }
 </style>

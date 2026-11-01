@@ -103,9 +103,10 @@ function resize() {
 
 function updateScrollPoints() {
   if (!logo || !fogPixels || !width || !height) return;
-  const logoSize = Math.min(height * 0.6, width * (width < 600 ? 0.7 : 0.36), 420);
-  const logoX = width * (width < 600 ? 0.53 : 0.8);
-  const logoY = height * 0.58;
+  // Logo 只做背景点缀：尺寸与不透明度都压低，避免抢首页内容的视觉。
+  const logoSize = Math.min(height * 0.4, width * (width < 600 ? 0.5 : 0.24), 280);
+  const logoX = width * (width < 600 ? 0.53 : 0.84);
+  const logoY = height * 0.7;
   for (const point of points) {
     const contentY = point.y + props.scrollTop;
     point.ny = contentY / height;
@@ -142,7 +143,7 @@ function draw() {
   let modulation = 0;
   for (const { x, y, nx, ny, ink, halo, variation, pixelIndex } of points) {
     if (ink > 0.65) {
-      fogPixels.data[pixelIndex] = ink * 0.5 * 255;
+      fogPixels.data[pixelIndex] = ink * 0.22 * 255;
       continue;
     }
     if (x !== columnX) {
@@ -162,7 +163,7 @@ function draw() {
     const hover = pointer.strength > 0.001 ? Math.max(0, 1 - Math.hypot(x - pointer.x, y - pointer.y) / radius) ** 2 * pointer.strength : 0;
     const mist = Math.min(1, fog * modulation);
     const size = Math.min(fogPixelSize, (0.55 + step * (mist * 0.49 + haloStrength * 0.75 + hover * 0.47)) * variation);
-    fogPixels.data[pixelIndex] = Math.min(0.95, (ny < 1 ? 0.05 : 0) + mist * 0.18 + haloStrength * 0.9 + hover * 0.2)
+    fogPixels.data[pixelIndex] = Math.min(0.95, (ny < 1 ? 0.05 : 0) + mist * 0.18 + haloStrength * 0.35 + hover * 0.2)
       * (1 - ink) * Math.min(1, (size / fogPixelSize) ** 2) * 255;
   }
   // ACT: 点阵统一写入离屏掩膜后批量绘制，避免逐点调用 Canvas fillRect。
