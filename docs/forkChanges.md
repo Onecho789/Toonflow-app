@@ -497,12 +497,14 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 - 首页只留问候、Agent 输入框（选空文件夹→新建项目→进画布，逻辑不变）、三张入口卡（生成图片 `/imageStudio`、生成视频 `/videoStudio`、无限画布 `/projects`）和最多 4 个“最近项目”（无项目时不显示，“查看全部”到 `/projects`）
 - 原首页的项目网格（新建/打开已有项目、导出 ZIP、重命名、移除）整段搬到 `/projects`，行为不变；首页输入框遇到非空文件夹时提示改为到“无限画布”打开
 - 背景点阵的 Logo 缩小并移到右下角，主体与光晕不透明度调低，只做点缀
+- 最近项目下方加“最近作品”：合并生图、视频工作台文件夹 `generated/` 下的图片与视频，按修改时间取最新 4 个，点击进对应工作台；两个工作台都没结果时不显示
 
 ### 我们新增的文件
 
 | 文件 | 说明 |
 | --- | --- |
 | `apps/web/src/pages/home/projectEntry.ts` | 首页与 `/projects` 共用：打开项目、加载页过渡（`enterWorkspace`）、文件夹丢失时重新选择 |
+| `apps/web/src/pages/home/workCover.vue` | 最近作品封面：进入视口才读取，图片直接显示，视频显示首帧加播放角标 |
 
 ### 改动了上游文件
 

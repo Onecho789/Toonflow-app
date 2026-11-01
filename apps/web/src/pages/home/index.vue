@@ -58,6 +58,17 @@
               </button>
             </div>
           </section>
+          <section v-if="recentWorks.length" class="recentList" aria-labelledby="recentWorksTitle">
+            <div class="recentHeader">
+              <h2 id="recentWorksTitle">最近作品</h2>
+            </div>
+            <div class="recentItems">
+              <router-link v-for="work in recentWorks" :key="`${work.directory}|${work.path}`" class="recentCard" :to="work.type === 'image' ? '/imageStudio' : '/videoStudio'" :title="work.name" :aria-label="`${work.type === 'image' ? '打开生图工作台' : '打开视频工作台'}：${work.name}`">
+                <workCover :directory="work.directory" :path="work.path" :type="work.type" />
+                <span class="projectName">{{ work.name }}</span>
+              </router-link>
+            </div>
+          </section>
         </el-main>
       </div>
     </el-scrollbar>
@@ -84,6 +95,9 @@ import bg from "./bg.vue";
 import projectCover from "./projectCover.vue";
 import workspacePicker from "./workspacePicker.vue";
 import useProjectEntry from "./projectEntry";
+import workCover from "./workCover.vue";
+import { useWorkbenchStore, type WorkbenchType } from "@/stores/workbench";
+import { imageMimeType } from "../imageStudio/studioFiles";
 
 const pageScroll = ref<ScrollbarInstance>();
 const backgroundScrollTop = ref(0);
@@ -170,6 +184,21 @@ watch([creating, opening], ([creating, opening]) => {
 const selectedModel = ref("");
 const reasoningEffort = ref("");
 const recentProjects = computed(() => [...projectList.value].sort((left, right) => right.lastOpenedAt - left.lastOpenedAt).slice(0, 4));
+const workbenchStore = useWorkbenchStore();
+const recentWorks = ref<{ type: WorkbenchType; directory: string; path: string; name: string; mtimeMs: number }[]>([]);
+
+// 合并两个工作台文件夹 generated/ 下的结果，按修改时间取最新 4 个；读取失败的文件夹视为空。
+watch(() => ({ ...workbenchStore.directories }), async (directories, _previous, onCleanup) => {
+  const controller = new AbortController();
+  onCleanup(() => controller.abort());
+  const works = await Promise.all((["image", "video"] as const).filter(type => directories[type]).map(async type => {
+    const directory = directories[type];
+    const { entries } = await useWorkspaceFiles(directory).list("generated", controller.signal).catch(() => ({ entries: [] }));
+    return entries.filter(entry => entry.type === "file" && (type === "image" ? imageMimeType(entry.name) : /\.(mp4|webm|mov|ogv)$/i.test(entry.name)))
+      .map(entry => ({ type, directory, path: entry.path, name: entry.name, mtimeMs: entry.mtimeMs ?? 0 }));
+  }));
+  if (!controller.signal.aborted) recentWorks.value = works.flat().sort((left, right) => right.mtimeMs - left.mtimeMs).slice(0, 4);
+}, { immediate: true });
 
 function pasteAttachments(event: ClipboardEvent) {
   if (creating.value || opening.value) return;
@@ -558,6 +587,8 @@ async function createProject() {
           max-width: 800px;
           margin: 0 auto;
 
+          & + .recentList { margin-top: 40px; }
+
           .recentHeader {
             display: flex;
             align-items: baseline;
@@ -593,6 +624,7 @@ async function createProject() {
               color: inherit;
               font: inherit;
               text-align: start;
+              text-decoration: none;
               cursor: pointer;
               transition: border-color 0.2s;
 
