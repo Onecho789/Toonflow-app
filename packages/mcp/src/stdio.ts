@@ -53,7 +53,7 @@ async function main() {
   }
   const bridge = serveStdio(() => {
     const resources = client.getServerCapabilities()?.resources;
-    const server = new McpServer({ name: "toonflow", version: "0.0.0" }, {
+    const server = new McpServer({ name: "maimai", version: "0.0.0" }, {
       capabilities: { tools: { listChanged: false }, ...(resources ? { resources: { subscribe: false, listChanged: false } } : {}) },
       instructions: client.getInstructions(),
     });

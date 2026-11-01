@@ -4,8 +4,7 @@ description: 在麦麦工坊当前画布中把创意、小说或定稿剧本制�
 metadata:
   version: "2.7.0"
   displayName: 视频制作工作流
-  author: Toonflow
-  github: https://github.com/HBAI-Ltd/Toonflow-app
+  author: 麦麦工坊
 ---
 
 # 麦麦工坊画布制作工作流

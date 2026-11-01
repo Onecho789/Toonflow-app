@@ -87,7 +87,7 @@
 | 改了 | 没改（刻意保留） |
 | --- | --- |
 | Web 页面文案、通知标题、网页标题、首页与引导页品牌名、关于页标题 | 包名 `@toonflow/*`、`toonflowCanvas` 等文件标记字段、`x-toonflow-*` 请求头、`TOONFLOW_*` 环境变量、`toonflowData` 数据卷（改了会让已保存的项目打不开或要动整个工作区） |
-| 服务端与 MCP 的报错文案、Agent 系统提示词（自称“小麦同学，麦麦工坊的 AI 创作搭档”） | 插件 `author: "Toonflow"` 与 `pluginMarket/index.vue` 中对它的判断（内置插件识别依赖这个值） |
+| 服务端与 MCP 的报错文案、Agent 系统提示词（自称“小麦同学，麦麦工坊的 AI 创作搭档”） | 插件作者名（第三版已改为“麦麦工坊”，见“品牌改名第三版”） |
 | 桌面端菜单与窗口标题、启动窗口标题、移动端设备名 | 旧版供应商检测提示里的“旧版 Toonflow”“Toonflow 2.0”、技能中对上游 v1.1.8 的来源说明、上游仓库链接 |
 | `packages/skills` 技能文案、媒体供应商 AI 提示词 | `User-Agent: Toonflow/2.0`、MCP 的 `realm="Toonflow"` 等协议标识 |
 | i18n：`messageSources.json` 与 21 份 `locales/*.json` 的键和译文 | 鸿蒙与安卓原生代码（安装器、原生程序和桌面标识见第二版） |
@@ -543,6 +543,28 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 | 文件 | 改动 | 冲突时的处理 |
 | --- | --- | --- |
 | `apps/web/src/pages/imageStudio/index.vue` | 工作台外壳默认插槽放入 `studioPanel` | 本页为我们新增的骨架，保留我们的版本 |
+
+---
+
+## 品牌改名第三版：MCP、内置插件作者、移动端
+
+- 日期：2026-11-01
+- 只改用户看得到的名字。以下不动：包名 `@toonflow/*`、`x-toonflow-*` 请求头、`toonflow:*` 事件名、`toonflow://` 桥接与资源 URI、`Symbol.for("toonflow.*")`、localStorage 键、`TOONFLOW_*` 环境变量、安卓/鸿蒙包名、`ToonflowMobile` 日志标签
+
+| 文件 | 改动 | 冲突时的处理 |
+| --- | --- | --- |
+| `packages/mcp/src/index.ts`、`stdio.ts`、`client.ts` | MCP 服务名、客户端名 `toonflow` → `maimai`；`realm="Toonflow"` → `realm="MaiMai Studio"` | 保留上游改动，再换回名字 |
+| `packages/mcp/skills/toonflow/` → `skills/maimai/`，以及 `package.json`、`scripts/build.ts`、`README.md` 里的路径 | Skill `name: maimai`，正文的 Toonflow → 麦麦工坊 | 上游改 SKILL.md 时合并到 `skills/maimai/SKILL.md`，再换一次显示名 |
+| `apps/web/src/components/settings/panels/mcp/index.vue` | 复制配置的键 `mcpServers.toonflow` → `maimai` | 直接补回 |
+| `packages/nodes/*/vite.config.ts`、`packages/tools/*/build.ts`、`packages/skills/*/SKILL.md`、`packages/teams/storyboardTeam/team.json` | `author` → `麦麦工坊`，`github` 清空（卡片不再链接上游仓库） | 上游新增的内置插件同样改 |
+| `apps/web/src/components/settings/panels/pluginMarket/index.vue` | 内置节点和工具不可卸载，改用接口返回的 `builtin` 判断，不再比较作者名 | 保留我们的判断 |
+| `packages/teamScaffold/src/a2a.ts` | A2A 标签 `toonflow` → `maimai` | 直接补回 |
+| `packages/skills/v118workflow/SKILL.md`、`tools/browser/readme.md`、`nodes/frameAnalysisNode/readme.md` | 文案里的 Toonflow 换成旧版 / 小麦同学 / 麦麦工坊 | 采用上游内容再换名 |
+| `apps/mobile/native/manifest.xml`、`mobileActivity.java`、`browserBridge/manifest.json` | 应用名“麦麦工坊”，提示文案（英文提示用 MaiMai Studio） | 采用上游内容再换名 |
+| `compat/ohos/build.ts`、`native/ets/*`、`native/nodeHost.cpp` | `vendor`、`appName`、设备名与提示文案 | 采用上游内容再换名 |
+| `.github/workflows/release.yml`、`debug.yml` | 发布标题、下载摘要用“麦麦工坊” | 采用上游内容再换名 |
+
+- 影响：导出过旧 Skill 的外部 Agent 需要重新导出；外部 Agent 自己配置里的 `toonflow` 键不改也能连。内置插件在构建版本变化时自动覆盖到 `data/`，作者名会随之更新。
 
 ---
 

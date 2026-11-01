@@ -4,8 +4,7 @@ description: 麦麦工坊画布操作手册。使用画布工具创建、切换�
 metadata:
   version: "2.1.0"
   displayName: 画布操作手册
-  author: Toonflow
-  github: https://github.com/HBAI-Ltd/Toonflow-app
+  author: 麦麦工坊
 ---
 
 # 画布操作手册

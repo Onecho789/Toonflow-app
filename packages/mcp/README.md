@@ -31,7 +31,7 @@ Authorization: Bearer <设置中的访问凭证>
 ```json
 {
   "mcpServers": {
-    "toonflow": {
+    "maimai": {
       "url": "http://127.0.0.1:<实际端口>/mcp",
       "headers": { "Authorization": "Bearer <访问凭证>" }
     }
@@ -50,7 +50,7 @@ MCP 凭证只保护 MCP 入口。现有 Web 页面及其接口本身就是管理
 ```json
 {
   "mcpServers": {
-    "toonflow": {
+    "maimai": {
       "command": "node",
       "args": ["<build/mcp/stdio.js 绝对路径>", "--runtime", "<运行信息文件绝对路径>"]
     }
@@ -69,7 +69,7 @@ stdio 配置绑定所选数据目录内的实际端口，不会自动跟随某�
 ```json
 {
   "mcpServers": {
-    "toonflow": {
+    "maimai": {
       "command": "node",
       "args": ["<build/mcp/stdio.js 绝对路径>", "--url", "https://<服务域名>/mcp", "--token-env", "TOONFLOW_MCP_TOKEN"],
       "env": { "TOONFLOW_MCP_TOKEN": "<访问凭证>" }
@@ -82,7 +82,7 @@ Node.js 需要 20 或更新版本，也支持 Bun。源码开发可使用 `bun p
 
 ## Skill
 
-`skills/toonflow/SKILL.md` 面向外部 Agent，随包打包到 `build/mcp/skills/toonflow/SKILL.md`，也可以从设置中导出。将整个 `toonflow` 目录放进外部工具支持的 Skill 目录。
+`skills/maimai/SKILL.md` 面向外部 Agent，随包打包到 `build/mcp/skills/maimai/SKILL.md`，也可以从设置中导出。将整个 `maimai` 目录放进外部工具支持的 Skill 目录。
 
 Skill 介绍实时画布、节点参数、媒体引用与生成结果的操作顺序。连接 MCP 不会自动安装 Skill；不安装 Skill 也能根据工具说明调用。
 
