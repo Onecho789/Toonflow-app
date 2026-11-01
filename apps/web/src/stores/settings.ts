@@ -80,7 +80,7 @@ export function updateGeneralSettings(patch: Omit<Partial<typeof generalSettings
   settings.value = { ...settings.value, general: { ...(current && typeof current === "object" && !Array.isArray(current) ? current : {}), ...patch } };
 }
 
-type CloudAiModel = { providerId: string; providerLabel: string; modelId: string; label: string; vendor?: string; contextWindow: number; maxOutputTokens: number; reasoningLevels: ThinkingLevel[] };
+type CloudAiModel = { providerId: string; providerLabel: string; modelId: string; label: string; vendor?: string; contextWindow: number; maxOutputTokens: number; reasoningLevels: ThinkingLevel[]; price?: string };
 // 文本模型由麦麦云按登录账号下发，本地只读展示，不保存供应商地址与密钥。
 export const aiModels = ref<CloudAiModel[]>([]);
 export const modelChoices = computed(() => aiModels.value.map(model => ({

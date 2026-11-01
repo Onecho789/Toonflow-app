@@ -48,6 +48,19 @@ export function listCloudModels(): Promise<CloudModel[]> {
   return entry.value;
 }
 
+const yuan = (value: number) => `¥${(value / 10000).toFixed(4).replace(/(\.\d\d\d*?)0+$/, "$1")}`;
+
+// 设置页展示用的价格说明，与云端计费公式一致：图片按张、视频按秒，档位倍率不同时显示起步价。
+export function cloudPriceText(model: CloudModel) {
+  const { input, output, unit } = model.pricing;
+  if (model.type === "text") return `输入 ${yuan(input)} · 输出 ${yuan(output)} / 百万 token`;
+  const meta = model.meta as { sizePrices?: Record<string, number>; resolutionPrices?: Record<string, number> };
+  const rates = Object.values((model.type === "image" ? meta.sizePrices : meta.resolutionPrices) ?? {}).filter(rate => typeof rate === "number" && rate > 0);
+  const lowest = rates.length ? Math.min(...rates) : 1;
+  const varies = rates.some(rate => rate !== lowest);
+  return `${yuan(Math.ceil(unit * lowest))} / ${model.type === "image" ? "张" : "秒"}${varies ? " 起" : ""}`;
+}
+
 export async function findCloudModel(modelId: string, type: CloudModel["type"]) {
   const model = (await listCloudModels()).find(item => item.id === modelId && item.type === type);
   if (!model) throw Object.assign(new Error(conf.get("cloudSession") ? "所选模型已下架或不存在，请重新选择" : "请先登录麦麦云账号"), { status: 400 });

@@ -16,6 +16,7 @@
           <div class="providerMeta">
             <el-tag size="small" type="info" effect="plain">{{ item.type === "image" ? "图片" : "视频" }}</el-tag>
           </div>
+          <el-text v-if="item.price" class="modelPrice" size="small">{{ item.price }}</el-text>
         </div>
       </el-card>
       <el-empty v-if="!models.length && !loading" :description="cloudAccount ? '暂无可用模型' : '请先登录麦麦云账号'" />
@@ -30,10 +31,11 @@
 import axios from "axios";
 import { onMounted, ref } from "vue";
 import { IconRefresh } from "@tabler/icons-vue";
+import { modelIcon } from "@toonflow/model-icons";
 import { invalidateNodeModels } from "@toonflow/nodes-scaffold/nodeAi";
 import { cloudAccount } from "@/stores/cloudAccount";
 
-type MediaModel = { modelId: string; label: string; vendor?: string; type: "image" | "video" };
+type MediaModel = { modelId: string; label: string; vendor?: string; type: "image" | "video"; price?: string };
 const models = ref<MediaModel[]>([]);
 const loading = ref(false);
 const error = ref("");

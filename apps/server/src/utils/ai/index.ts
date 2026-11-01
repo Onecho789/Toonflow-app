@@ -7,7 +7,7 @@ import { thinkingLevels, type ThinkingLevel } from "@/lib/modelReasoning";
 import { z } from "zod";
 import conf from "@/utils/conf";
 import { getApiKey, sessionFetch } from "@/utils/cloud";
-import { cloudProviderId, gatewayUrl, listCloudModels } from "@/utils/cloud/models";
+import { cloudPriceText, cloudProviderId, gatewayUrl, listCloudModels } from "@/utils/cloud/models";
 import { readReference } from "@/utils/media/generation";
 import { findModelContextLimits } from "@/utils/ai/modelContextLimits";
 import { createFileTransport, getUnsupportedFileText, type FileProvider } from "@/utils/ai/files";
@@ -61,7 +61,7 @@ async function cloudTextModels() {
       contextWindow: positiveInteger(meta.contextWindow), maxOutputTokens: positiveInteger(meta.maxOutputTokens),
       reasoningLevels: Array.isArray(efforts) ? thinkingLevels.filter(level => efforts.includes(level)) : [],
     } satisfies TextModel;
-    return { model, protocol: cloudProtocols[item.protocol as keyof typeof cloudProtocols] ?? "openai-completions" };
+    return { model, price: cloudPriceText(item), protocol: cloudProtocols[item.protocol as keyof typeof cloudProtocols] ?? "openai-completions" };
   });
 }
 
@@ -75,12 +75,12 @@ export async function getConfiguredModel(_providerId: string, modelId: string) {
 }
 
 export async function listAiModels() {
-  return (await cloudTextModels()).map(({ model, protocol }) => {
+  return (await cloudTextModels()).map(({ model, price, protocol }) => {
     const limits = getModelLimits(cloudProviderId, model);
     return {
       providerId: cloudProviderId, providerLabel: "麦麦云", protocol, modelId: model.id, label: model.label, vendor: model.vendor,
       contextWindow: limits.contextWindow, maxOutputTokens: limits.maxTokens,
-      reasoningLevels: getModelReasoning(model, protocol).reasoningLevels,
+      reasoningLevels: getModelReasoning(model, protocol).reasoningLevels, price,
     };
   });
 }

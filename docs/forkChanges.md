@@ -659,6 +659,19 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 
 ---
 
+## 工作台文件夹列表、设置页模型图标与价格
+
+- 日期：2026-11-01
+- 生图、视频工作台各自记住用过的文件夹（最多 20 个），顶部文件夹按钮打开列表：切换、在文件管理器中打开、从列表移除（文件保留）、删除文件夹中的作品。没选文件夹时，引导页列出最近 5 个可一键继续
+- 删除文件夹只删工作台建的 `generated/`、`references/`、`frames/` 和生成记录，文件夹里其他文件保留，删完为空才删文件夹本身；需二次确认
+- 设置页“文本模型”“媒体模型”卡片原来用了 `<modelIcon>` 却没导入，图标一直是空方块，现补上导入；卡片右下显示云端价格（文本按百万 token，图片按张，视频按秒，档位倍率不同时显示“起”）
+
+| 文件 | 说明 |
+| --- | --- |
+| `apps/server/src/routes/workbench/removeFolder.ts` | 删除工作台作品与空文件夹 |
+
+改动的上游文件：`apps/server/src/utils/cloud/models.ts` 加 `cloudPriceText`，`utils/ai/index.ts`、`utils/media/generation.ts` 的模型列表多返回 `price`；设置页两个面板与 `providerList.scss`。冲突时保留上游改动再补回导入和价格行。
+
 ## 同步记录
 
 | 日期 | 上游提交 | 说明 |

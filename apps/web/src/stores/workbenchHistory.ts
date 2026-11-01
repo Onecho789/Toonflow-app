@@ -66,7 +66,7 @@ function save(state: BookState) {
 }
 
 function schedule(state: BookState, delay = pollInterval) {
-  if (state.timer !== undefined) return;
+  if (state.timer !== undefined || states.get(`${state.type}\n${state.directory}`) !== state) return;
   if (!state.book.records.some(record => record.items.some(item => item.status === "pending" && item.taskId))) return;
   state.timer = setTimeout(() => void poll(state), delay);
 }
@@ -137,6 +137,15 @@ export async function retryItem(type: HistoryType, directory: string, record: Hi
   Object.assign(item, { status: "pending", error: undefined, taskId: undefined, files: [] });
   await save(state);
   await submitItem(state, record, item);
+}
+
+// 文件夹删除后丢掉内存里的记录并停止轮询，再选回来时从磁盘重新读取。
+export function forgetHistory(directory: string) {
+  for (const type of ["image", "video"] as const) {
+    const state = states.get(`${type}\n${directory}`);
+    if (state?.timer !== undefined) clearTimeout(state.timer);
+    states.delete(`${type}\n${directory}`);
+  }
 }
 
 // 只删除记录，已生成的文件保留在文件夹里。

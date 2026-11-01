@@ -17,6 +17,7 @@
             <el-text v-if="item.contextWindow" size="small" type="info">上下文 {{ item.contextWindow.toLocaleString() }}</el-text>
             <el-tag v-if="item.reasoningLevels.length" size="small" type="info" effect="plain">支持思考</el-tag>
           </div>
+          <el-text v-if="item.price" class="modelPrice" size="small">{{ item.price }}</el-text>
         </div>
       </el-card>
       <el-empty v-if="!aiModels.length && !loading" :description="cloudAccount ? '暂无可用模型' : '请先登录麦麦云账号'" />
@@ -30,6 +31,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { IconRefresh } from "@tabler/icons-vue";
+import { modelIcon } from "@toonflow/model-icons";
 import { aiModels, loadAiModels } from "@/stores/settings";
 import { cloudAccount } from "@/stores/cloudAccount";
 
