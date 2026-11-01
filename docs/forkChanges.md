@@ -716,6 +716,14 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 
 改动的上游文件：`utils/network/transport.ts` 加 `usesProxy`，`utils/workspace/download.ts` 拆出 `publicAddresses` 并在走代理时经全局 `fetch` 下载。冲突时保留上游的直连实现，再补回代理分支。
 
+## 网络设置默认使用系统代理
+
+- 日期：2026-11-01
+- 没保存过网络设置时，默认按系统代理处理（设置页也默认选中“使用系统代理设置”）；已保存过的保持原选择
+- 默认情况下读不到系统代理（如 PAC、自动发现）时直连，不像主动选择系统代理那样阻断外网请求
+
+改动的上游文件：`apps/server/src/utils/network/index.ts` 的 `prepareNetwork` 处理未保存的情况，`apps/web/src/components/settings/panels/network.vue` 改默认选中项。
+
 ## 同步记录
 
 | 日期 | 上游提交 | 说明 |

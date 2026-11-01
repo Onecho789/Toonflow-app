@@ -31,7 +31,12 @@ export const networkSchema = z.object({
 });
 
 export async function prepareNetwork(value: unknown) {
-  if (value === undefined) return {};
+  // 未保存过网络设置时默认使用系统代理；系统代理读不到（如 PAC）时直连，不因默认值阻断外网请求。
+  if (value === undefined) {
+    if (!process.versions.bun) return {};
+    if (process.platform !== "win32" && process.platform !== "darwin") return initialEnvironment;
+    return readSystemProxy().catch(() => ({}));
+  }
   const network = networkSchema.parse(value);
   if (!process.versions.bun) throw Object.assign(new Error("当前运行环境暂不支持应用内代理设置"), { status: 400 });
   if (network.mode === "none") return {};

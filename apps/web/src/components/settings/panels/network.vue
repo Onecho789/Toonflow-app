@@ -62,7 +62,8 @@ type NetworkSettings = {
 const raw = settings.value.network;
 const saved = raw && typeof raw === "object" && !Array.isArray(raw) ? raw as Partial<NetworkSettings> : {};
 const form = reactive<NetworkSettings>({
-  mode: saved.mode === "system" || saved.mode === "custom" ? saved.mode : "none",
+  // 未保存过网络设置时默认系统代理，与服务端一致。
+  mode: saved.mode === "none" || saved.mode === "custom" ? saved.mode : "system",
   protocol: saved.protocol === "https" ? "https" : "http",
   host: typeof saved.host === "string" ? saved.host : "",
   port: typeof saved.port === "number" ? saved.port : 80,
