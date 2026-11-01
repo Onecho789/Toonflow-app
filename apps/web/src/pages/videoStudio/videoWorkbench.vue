@@ -1,55 +1,18 @@
 <template>
-  <div class="videoWorkbench">
-    <el-scrollbar class="paramPanel" tag="section" aria-label="生成参数">
-      <div class="panelContent">
-        <div class="fieldLabel">模型</div>
-        <el-select
-          v-model="data.model"
-          filterable
-          :loading="modelsLoading"
-          :disabled="generating"
-          placeholder="选择模型"
-          aria-label="视频模型"
-          noDataText="暂无可用的视频模型"
-          @visibleChange="(visible: boolean) => visible && loadModels()">
-          <template #prefix><modelOption v-if="selectedModel" :model="selectedModel" iconOnly :size="17" /></template>
-          <el-option-group v-for="provider in modelGroups" :key="provider.id" :label="provider.label">
-            <el-option v-for="item in provider.models" :key="item.modelId" :label="item.label" :value="modelKey(item)">
-              <modelOption :model="item" />
-            </el-option>
-          </el-option-group>
-        </el-select>
-        <template v-if="selectedModel">
-          <div v-if="durations.length || resolutions.length" class="fieldRow">
-            <div v-if="durations.length" class="fieldItem">
-              <div class="fieldLabel">时长</div>
-              <el-select v-model="data.duration" :disabled="generating" aria-label="视频时长">
-                <el-option v-for="item in durations" :key="item" :value="item" :label="`${item}秒`" />
-              </el-select>
-            </div>
-            <div v-if="resolutions.length" class="fieldItem">
-              <div class="fieldLabel">分辨率</div>
-              <el-select v-model="data.resolution" :disabled="generating" aria-label="视频分辨率">
-                <el-option v-for="item in resolutions" :key="item" :value="item" :label="item" />
-              </el-select>
-            </div>
-          </div>
-          <div class="fieldLabel">比例</div>
-          <el-radio-group v-model="data.ratio" class="ratioGroup" :disabled="generating" aria-label="视频比例">
-            <el-radio-button v-for="item in ratios" :key="item" :value="item" :label="item" />
-          </el-radio-group>
-          <div v-if="selectedModel.audio === 'optional'" class="audioOption">
-            <span class="fieldLabel">生成音频</span>
-            <el-switch v-model="data.generateAudio" :disabled="generating" aria-label="生成音频" />
-          </div>
-          <modelForm v-model="data.other" :rules="selectedModel.rules" :disabled="generating" />
-        </template>
-        <div class="promptHeader">
-          <span class="fieldLabel">提示词</span>
-          <promptLibrary type="video" :disabled="generating" @select="data.prompt = $event" />
-        </div>
-        <el-input v-model="data.prompt" type="textarea" :rows="6" resize="vertical" :disabled="generating" aria-label="提示词" />
-        <div v-if="frameSupport.first || frameSupport.last" class="frameRow">
+  <workbenchLayout class="videoWorkbench" type="video" :count="results.length" :empty="!results.length && !currentTasks.length" :loading="resultsLoading">
+    <template #settings>
+      <div class="fieldLabel">提示词<promptLibrary type="video" :disabled="generating" @select="data.prompt = $event" /></div>
+      <el-input
+        v-model="data.prompt"
+        class="promptInput"
+        type="textarea"
+        :autosize="{ minRows: 5, maxRows: 14 }"
+        :disabled="generating"
+        placeholder="描述镜头内容与运动，例如：镜头缓缓推近，少女在樱花树下回眸微笑，花瓣随风飘落"
+        aria-label="提示词" />
+      <template v-if="frameSupport.first || frameSupport.last">
+        <div class="fieldLabel">首尾帧<span class="fieldHint">可选，上传后按图生成</span></div>
+        <div class="frameRow">
           <frameSlot
             v-if="frameSupport.first"
             label="首帧"
@@ -67,38 +30,87 @@
             @select="uploadFrame('last', $event)"
             @remove="removeFrame('last')" />
         </div>
-        <div class="generateBar">
-          <mediaPrice v-if="generationInput" :input="{ ...generationInput, mediaType: 'video' }" :supported="selectedModel?.supportsPrice === true" />
-          <el-button v-if="generating" :icon="IconPlayerStop" @click="controller?.abort()">取消生成</el-button>
-          <el-button v-else type="primary" :icon="IconSparkles" :disabled="!!uploading || !selectedModel || !data.prompt.trim()" @click="startGeneration">生成视频</el-button>
+      </template>
+      <div class="fieldLabel">模型</div>
+      <el-select
+        v-model="data.model"
+        filterable
+        :loading="modelsLoading"
+        :disabled="generating"
+        placeholder="选择模型"
+        aria-label="视频模型"
+        noDataText="暂无可用的视频模型"
+        @visibleChange="(visible: boolean) => visible && loadModels()">
+        <template #prefix><modelOption v-if="selectedModel" :model="selectedModel" iconOnly :size="17" /></template>
+        <el-option-group v-for="provider in modelGroups" :key="provider.id" :label="provider.label">
+          <el-option v-for="item in provider.models" :key="item.modelId" :label="item.label" :value="modelKey(item)">
+            <modelOption :model="item" />
+          </el-option>
+        </el-option-group>
+      </el-select>
+      <template v-if="selectedModel">
+        <div class="fieldLabel">比例</div>
+        <ratioPicker v-model="data.ratio" :options="ratios" label="视频比例" :disabled="generating" />
+        <template v-if="durations.length">
+          <div class="fieldLabel">时长</div>
+          <el-segmented v-model="data.duration" :options="durationOptions" :disabled="generating" block aria-label="视频时长" />
+        </template>
+        <template v-if="resolutions.length">
+          <div class="fieldLabel">分辨率</div>
+          <el-segmented v-model="data.resolution" :options="resolutions" :disabled="generating" block aria-label="视频分辨率" />
+        </template>
+        <div v-if="selectedModel.audio === 'optional'" class="audioOption">
+          <span class="audioText"><icon-volume :size="16" aria-hidden="true" />生成音频</span>
+          <el-switch v-model="data.generateAudio" :disabled="generating" aria-label="生成音频" />
         </div>
+        <modelForm v-model="data.other" :rules="selectedModel.rules" :disabled="generating" />
+      </template>
+    </template>
+
+    <template #actions>
+      <div class="priceRow">
+        <span>预估费用</span>
+        <mediaPrice v-if="generationInput" :input="{ ...generationInput, mediaType: 'video' }" :supported="selectedModel?.supportsPrice === true" />
       </div>
-    </el-scrollbar>
-    <el-scrollbar class="resultPanel" tag="section" aria-label="生成结果">
-      <div v-loading="resultsLoading" class="resultGrid" :aria-busy="resultsLoading">
+      <el-button v-if="generating" class="generateButton stopButton" size="large" :icon="IconPlayerStop" @click="controller?.abort()">取消生成</el-button>
+      <el-button
+        v-else
+        class="generateButton"
+        type="primary"
+        size="large"
+        :icon="IconSparkles"
+        :disabled="!!uploading || !selectedModel || !data.prompt.trim()"
+        @click="startGeneration">
+        生成视频
+      </el-button>
+    </template>
+
+    <template #results>
+      <div class="resultGrid">
         <article v-for="task in currentTasks" :key="task.id" class="taskCard" :class="{ failed: task.error }" :aria-busy="!task.error">
           <template v-if="task.error">
             <icon-alert-circle :size="28" aria-hidden="true" />
+            <p class="taskTitle">生成失败</p>
             <p class="taskError" role="alert">{{ task.error }}</p>
-            <el-button size="small" text @click="tasks = tasks.filter(item => item !== task)">关闭</el-button>
+            <el-button size="small" round @click="tasks = tasks.filter(item => item !== task)">关闭</el-button>
           </template>
           <template v-else>
+            <span class="taskShine" aria-hidden="true" />
             <icon-loader-2 class="spinIcon" :size="28" aria-hidden="true" />
-            <p>视频生成中，通常需要几分钟</p>
+            <p class="taskTitle">视频生成中，通常需要几分钟</p>
           </template>
           <p class="taskPrompt">{{ task.prompt }}</p>
         </article>
         <videoCard v-for="item in results" :key="item.path" :directory="directory" :path="item.path" :name="item.name" />
       </div>
-    </el-scrollbar>
-  </div>
+    </template>
+  </workbenchLayout>
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, provide, reactive, ref, shallowRef, watch } from "vue";
 import axios from "axios";
-import { vLoading } from "element-plus";
-import { IconAlertCircle, IconLoader2, IconPlayerStop, IconSparkles } from "@tabler/icons-vue";
+import { IconAlertCircle, IconLoader2, IconPlayerStop, IconSparkles, IconVolume } from "@tabler/icons-vue";
 import { useNodeAi, type NodeMediaModel, type NodeVideoRequest } from "@toonflow/nodes-scaffold/nodeAi";
 import { groupNodeModels } from "@toonflow/node-shared/groupNodeModels";
 import { showNodeError } from "@toonflow/node-shared/showNodeError";
@@ -108,6 +120,8 @@ import modelForm from "@toonflow/node-shared/modelForm";
 import mediaPrice from "@toonflow/node-shared/mediaPrice";
 import promptLibrary from "@toonflow/node-shared/promptLibrary";
 import useWorkspaceFiles from "@/lib/workspaceFiles";
+import workbenchLayout from "@/components/workbenchLayout.vue";
+import ratioPicker from "@/components/ratioPicker.vue";
 import frameSlot from "./frameSlot.vue";
 import videoCard from "./videoCard.vue";
 
@@ -140,6 +154,7 @@ useModelForm(data, selectedModel);
 const modelGroups = computed(() => groupNodeModels(models.value));
 const ratios = computed(() => selectedModel.value?.ratios?.length ? selectedModel.value.ratios : defaultRatios);
 const durations = computed(() => [...new Set((selectedModel.value?.durationResolutionMap ?? []).flatMap(item => item.duration))].sort((a, b) => a - b));
+const durationOptions = computed(() => durations.value.map(item => ({ label: `${item}秒`, value: item })));
 const resolutions = computed(() => [...new Set((selectedModel.value?.durationResolutionMap ?? [])
   .filter(item => data.value.duration !== undefined && item.duration.includes(data.value.duration)).flatMap(item => item.resolution))]
   .sort((left, right) => (Number.parseFloat(left) || Infinity) - (Number.parseFloat(right) || Infinity)));
@@ -295,130 +310,129 @@ async function startGeneration() {
 
 <style lang="scss" scoped>
 .videoWorkbench {
-  display: flex;
-  height: 100%;
-  min-height: 0;
+  .promptInput :deep(.el-textarea__inner) { padding: 10px 12px; line-height: 1.7; }
 
-  .paramPanel {
-    flex-shrink: 0;
-    width: 360px;
-    border-right: 1px solid var(--el-border-color-lighter);
+  .frameRow { display: flex; gap: 10px; }
 
-    .panelContent {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      padding: 20px 24px;
+  .audioOption {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 6px;
+    padding: 8px 12px;
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: var(--ui-radius);
+    background: var(--el-fill-color-lighter);
 
-      .fieldLabel {
-        margin-top: 8px;
-        color: var(--el-text-color-secondary);
-        font-size: 12px;
-        font-weight: 500;
-      }
-
-      .fieldRow {
-        display: flex;
-        gap: 12px;
-
-        .fieldItem {
-          display: flex;
-          flex: 1;
-          flex-direction: column;
-          gap: 8px;
-          min-width: 0;
-        }
-      }
-
-      .ratioGroup { flex-wrap: wrap; }
-
-      .audioOption {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-
-        .fieldLabel { margin-top: 0; }
-      }
-
-      .promptHeader {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-top: 8px;
-
-        .fieldLabel { margin-top: 0; }
-      }
-
-      .frameRow {
-        display: flex;
-        gap: 12px;
-        margin-top: 8px;
-      }
-
-      .generateBar {
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        gap: 12px;
-        margin-top: 16px;
-      }
-    }
+    .audioText { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
   }
 
-  .resultPanel {
-    flex: 1;
-    min-width: 0;
+  .priceRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--el-text-color-secondary);
+    font-size: 12px;
+  }
 
-    .resultGrid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      align-items: start;
-      gap: 16px;
-      min-height: 200px;
-      padding: 20px 24px;
+  .generateButton {
+    width: 100%;
+    height: 44px;
+    margin: 0;
+    border-radius: calc(var(--ui-radius) * 1.5);
+    font-size: 15px;
+    font-weight: 600;
+    transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
 
-      .taskCard {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        aspect-ratio: 16 / 9;
-        padding: 16px;
-        border: 1px dashed var(--el-border-color);
-        border-radius: 10px;
-        color: var(--el-text-color-secondary);
-        font-size: 13px;
-        text-align: center;
-        box-sizing: border-box;
+    &:not(.stopButton) {
+      border: 0;
+      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+      box-shadow: 0 6px 18px color-mix(in srgb, var(--el-color-primary) 32%, transparent);
+
+      &:hover:not(.is-disabled) { transform: translateY(-1px); box-shadow: 0 8px 22px color-mix(in srgb, var(--el-color-primary) 40%, transparent); }
+      &.is-disabled { box-shadow: none; opacity: 0.5; }
+    }
+
+    @media (prefers-reduced-motion: reduce) { transition: none; &:hover:not(.is-disabled) { transform: none; } }
+  }
+
+  .resultGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+
+    .taskCard {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      aspect-ratio: 16 / 9;
+      padding: 16px;
+      overflow: hidden;
+      border: 1px dashed var(--el-color-primary-light-5);
+      border-radius: calc(var(--ui-radius) * 1.5);
+      background-color: var(--el-fill-color-lighter);
+      background-image: radial-gradient(circle, color-mix(in srgb, var(--el-color-primary) 30%, transparent) 1.2px, transparent 1.6px);
+      background-size: 16px 16px;
+      color: var(--el-color-primary);
+      text-align: center;
+      box-sizing: border-box;
+
+      p { margin: 0; }
+
+      .taskShine {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(110deg, transparent 30%, color-mix(in srgb, var(--el-color-primary) 14%, transparent) 50%, transparent 70%);
+        background-size: 200% 100%;
+        animation: shine 1.8s linear infinite;
+        pointer-events: none;
+      }
+
+      .spinIcon { animation: spin 1s linear infinite; }
+
+      .taskTitle { font-size: 13px; font-weight: 500; }
+
+      .taskPrompt {
+        display: -webkit-box;
+        max-width: 100%;
         overflow: hidden;
+        color: var(--el-text-color-secondary);
+        font-size: 12px;
+        line-height: 1.6;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+      }
 
-        p { margin: 0; }
+      &.failed {
+        border: 1px solid var(--el-color-danger-light-5);
+        background: var(--el-color-danger-light-9);
+        color: var(--el-color-danger);
 
-        .spinIcon { animation: spin 1s linear infinite; }
-
-        .taskPrompt {
+        .taskError {
           display: -webkit-box;
           max-width: 100%;
           overflow: hidden;
-          color: var(--el-text-color-placeholder);
           font-size: 12px;
-          -webkit-line-clamp: 2;
+          overflow-wrap: anywhere;
+          -webkit-line-clamp: 3;
           -webkit-box-orient: vertical;
         }
-
-        &.failed {
-          border-color: var(--el-color-danger-light-5);
-          color: var(--el-color-danger);
-
-          .taskError { overflow-wrap: anywhere; }
-        }
       }
+
+      @media (prefers-reduced-motion: reduce) { .taskShine, .spinIcon { animation: none; } }
     }
   }
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+@keyframes shine {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
 }
 </style>

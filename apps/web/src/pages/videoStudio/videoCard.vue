@@ -1,13 +1,18 @@
 <template>
   <article ref="element" class="videoCard" :aria-label="name">
-    <videoPlayer v-if="url" :src="url" :label="name" />
-    <div v-else class="cardLoading" v-loading="!failed" :aria-busy="!failed">
-      <span v-if="failed">视频读取失败</span>
+    <div class="cardMedia">
+      <videoPlayer v-if="url" :src="url" :label="name" />
+      <div v-else class="cardLoading" v-loading="!failed" :aria-busy="!failed">
+        <span v-if="failed">视频读取失败</span>
+      </div>
     </div>
-    <div class="cardActions">
-      <a v-if="url" class="actionLink" :href="url" :download="name" title="下载" aria-label="下载"><icon-download :size="16" /></a>
-      <el-button size="small" :icon="IconLibraryPlus" :loading="saving" @click="addToAssets">加入素材库</el-button>
-    </div>
+    <footer class="cardFooter">
+      <span class="cardName" :title="name">{{ name }}</span>
+      <el-tooltip v-if="url" content="下载" placement="top">
+        <a class="actionLink" :href="url" :download="name" aria-label="下载"><icon-download :size="16" /></a>
+      </el-tooltip>
+      <el-button size="small" type="primary" plain round :icon="IconLibraryPlus" :loading="saving" @click="addToAssets">加入素材库</el-button>
+    </footer>
   </article>
 </template>
 
@@ -69,44 +74,63 @@ async function addToAssets() {
 
 <style lang="scss" scoped>
 .videoCard {
-  position: relative;
-  border-radius: 10px;
   overflow: hidden;
-  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: calc(var(--ui-radius) * 1.5);
+  background: var(--el-bg-color);
+  box-shadow: var(--el-box-shadow-lighter);
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
 
-  .cardLoading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    aspect-ratio: 16 / 9;
-    color: var(--el-text-color-secondary);
-    font-size: 13px;
-  }
+  .cardMedia {
+    background: #000;
 
-  .cardActions {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    z-index: 1;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    opacity: 0;
-    transition: opacity 0.15s;
-
-    .actionLink {
-      display: inline-flex;
+    .cardLoading {
+      display: flex;
       align-items: center;
       justify-content: center;
-      width: 24px;
-      height: 24px;
-      border-radius: 4px;
-      color: var(--el-text-color-regular);
-      background: var(--el-bg-color);
+      aspect-ratio: 16 / 9;
+      background: var(--el-fill-color-light);
+      color: var(--el-text-color-secondary);
+      font-size: 13px;
     }
   }
 
-  &:hover .cardActions,
-  &:focus-within .cardActions { opacity: 1; }
+  .cardFooter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px 8px 12px;
+
+    .cardName {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      color: var(--el-text-color-secondary);
+      font-size: 12px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .actionLink {
+      display: inline-grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      color: var(--el-text-color-regular);
+      transition: background 0.15s, color 0.15s;
+
+      &:hover { background: var(--el-fill-color); color: var(--el-color-primary); }
+      &:focus-visible { outline: 2px solid var(--el-color-primary); }
+    }
+  }
+
+  &:hover {
+    border-color: var(--el-color-primary-light-7);
+    box-shadow: var(--el-box-shadow-light);
+    transform: translateY(-2px);
+  }
+
+  @media (prefers-reduced-motion: reduce) { transition: none; &:hover { transform: none; } }
 }
 </style>

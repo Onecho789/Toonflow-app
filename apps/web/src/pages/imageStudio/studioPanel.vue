@@ -1,93 +1,96 @@
 <template>
-  <div class="studioPanel">
-    <aside class="settingsColumn" aria-label="生成参数">
-      <el-scrollbar>
-        <div class="settingsBody">
-          <div class="sectionLabel">模型</div>
-          <el-select
-            v-model="form.model"
-            filterable
-            :loading="modelsLoading"
-            :disabled="generating"
-            placeholder="选择模型"
-            aria-label="生成模型"
-            noDataText="暂无可用的图片模型">
-            <template #prefix><modelOption v-if="selectedModel" :model="selectedModel" iconOnly :size="17" /></template>
-            <el-option-group v-for="provider in modelGroups" :key="provider.id" :label="provider.label">
-              <el-option v-for="item in provider.models" :key="item.modelId" :label="item.label" :value="JSON.stringify([item.providerId, item.modelId])">
-                <modelOption :model="item" />
-              </el-option>
-            </el-option-group>
-          </el-select>
+  <workbenchLayout class="studioPanel" type="image" :count="results.length" :empty="!results.length && generatingDirectory !== directory">
+    <template #settings>
+      <div class="fieldLabel">提示词<promptLibrary type="image" :disabled="generating" @select="prompt = $event" /></div>
+      <el-input v-model="prompt" class="promptInput" type="textarea" :autosize="{ minRows: 5, maxRows: 14 }" :disabled="generating" placeholder="描述你想要的画面，例如：清晨薄雾中的江南小镇，石桥与乌篷船，电影感光影" aria-label="提示词" />
 
-          <template v-if="selectedModel">
-            <div class="sectionLabel">分辨率</div>
-            <el-radio-group v-model="size" :disabled="generating" aria-label="图片分辨率">
-              <el-radio-button v-for="item in sizeOptions" :key="item" :value="item">{{ item }}</el-radio-button>
-            </el-radio-group>
-            <div class="sectionLabel">比例</div>
-            <el-radio-group v-model="ratio" :disabled="generating" aria-label="图片比例">
-              <el-radio-button v-for="item in ratioOptions" :key="item" :value="item">{{ item }}</el-radio-button>
-            </el-radio-group>
-            <modelForm v-model="form.other" :rules="selectedModel.rules" :disabled="generating" />
-          </template>
-
-          <div class="sectionLabel">
-            <span>提示词</span>
-            <promptLibrary type="image" :disabled="generating" @select="prompt = $event" />
-          </div>
-          <el-input v-model="prompt" type="textarea" :autosize="{ minRows: 6, maxRows: 16 }" :disabled="generating" aria-label="提示词" />
-
-          <div class="sectionLabel">
-            <span>参考图</span>
-            <el-button :icon="IconUpload" text size="small" :loading="uploading" :disabled="generating" aria-label="上传参考图" @click="fileInput?.click()">上传</el-button>
-            <input ref="fileInput" type="file" accept="image/*" multiple hidden aria-label="选择参考图" @change="uploadReferences" />
-          </div>
-          <div v-if="references.length" class="referenceList">
-            <div v-for="(item, index) in references" :key="item.path" class="referenceItem">
-              <studioImage :directory="directory" :path="item.path" :alt="`参考图 ${index + 1}`" />
-              <el-button class="removeButton" :icon="IconX" circle size="small" :disabled="generating" :aria-label="`移除参考图 ${index + 1}`" @click="references.splice(index, 1)" />
-            </div>
-          </div>
+      <div class="fieldLabel">参考图<span class="fieldHint">{{ references.length ? `已选 ${references.length} 张` : "可选" }}</span></div>
+      <div class="referenceList">
+        <div v-for="(item, index) in references" :key="item.path" class="referenceItem">
+          <studioImage :directory="directory" :path="item.path" :alt="`参考图 ${index + 1}`" />
+          <span class="referenceIndex">图{{ index + 1 }}</span>
+          <button type="button" class="removeButton" :disabled="generating" :aria-label="`移除参考图 ${index + 1}`" @click="references.splice(index, 1)"><icon-x :size="12" /></button>
         </div>
-      </el-scrollbar>
-      <div class="generateBar">
-        <mediaPrice v-if="generationInput" :input="{ ...generationInput, mediaType: 'image' }" :supported="selectedModel?.supportsPrice === true" />
-        <el-button
-          type="primary"
-          :icon="generating ? IconPlayerStop : IconSparkles"
-          :disabled="!generating && (uploading || !generationInput?.prompt)"
-          @click="generating ? controller?.abort() : startGeneration()">
-          {{ generating ? "停止生成" : "生成" }}
-        </el-button>
+        <button type="button" class="referenceAdd" :disabled="generating || uploading" aria-label="上传参考图" @click="fileInput?.click()">
+          <el-icon v-if="uploading" class="is-loading" :size="18"><icon-loader-2 /></el-icon>
+          <icon-photo-plus v-else :size="20" aria-hidden="true" />
+          <span>上传</span>
+        </button>
+        <input ref="fileInput" type="file" accept="image/*" multiple hidden aria-label="选择参考图" @change="uploadReferences" />
       </div>
-    </aside>
 
-    <section class="resultColumn" aria-label="生成结果">
-      <el-scrollbar>
-        <div class="resultGrid">
-          <div v-if="generatingDirectory === directory" class="pendingCard" role="status" aria-label="正在生成">
-            <el-icon class="is-loading" :size="28"><icon-loader-2 /></el-icon>
-          </div>
-          <resultCard
-            v-for="path in results"
-            :key="path"
-            :directory="directory"
-            :path="path"
-            @preview="preview = { url: $event, name: path.split('/').at(-1) }"
-            @reference="addReference(path)" />
+      <div class="fieldLabel">模型</div>
+      <el-select
+        v-model="form.model"
+        filterable
+        :loading="modelsLoading"
+        :disabled="generating"
+        placeholder="选择模型"
+        aria-label="生成模型"
+        noDataText="暂无可用的图片模型">
+        <template #prefix><modelOption v-if="selectedModel" :model="selectedModel" iconOnly :size="17" /></template>
+        <el-option-group v-for="provider in modelGroups" :key="provider.id" :label="provider.label">
+          <el-option v-for="item in provider.models" :key="item.modelId" :label="item.label" :value="JSON.stringify([item.providerId, item.modelId])">
+            <modelOption :model="item" />
+          </el-option>
+        </el-option-group>
+      </el-select>
+
+      <template v-if="selectedModel">
+        <div class="fieldLabel">比例</div>
+        <ratioPicker v-model="ratio" :options="ratioOptions" label="图片比例" :disabled="generating" />
+        <div class="fieldLabel">分辨率</div>
+        <el-segmented v-model="size" class="sizeSegmented" :options="sizeOptions" :disabled="generating" block aria-label="图片分辨率" />
+        <modelForm v-model="form.other" :rules="selectedModel.rules" :disabled="generating" />
+      </template>
+    </template>
+
+    <template #actions>
+      <div class="priceRow">
+        <span>预估费用</span>
+        <mediaPrice v-if="generationInput" :input="{ ...generationInput, mediaType: 'image' }" :supported="selectedModel?.supportsPrice === true" />
+      </div>
+      <el-button
+        class="generateButton"
+        type="primary"
+        size="large"
+        :icon="generating ? IconPlayerStop : IconSparkles"
+        :disabled="!generating && (uploading || !generationInput?.prompt)"
+        @click="generating ? controller?.abort() : startGeneration()">
+        {{ generating ? "停止生成" : "生成图片" }}
+      </el-button>
+    </template>
+
+    <template #resultExtra>
+      <span v-if="generatingDirectory === directory" class="generatingTag" role="status"><el-icon class="is-loading"><icon-loader-2 /></el-icon>生成中 {{ elapsedText }}</span>
+    </template>
+
+    <template #results>
+      <div class="resultGrid">
+        <div v-if="generatingDirectory === directory" class="pendingCard" aria-label="正在生成">
+          <span class="pendingShine" aria-hidden="true" />
+          <el-icon class="is-loading" :size="26"><icon-loader-2 /></el-icon>
+          <span class="pendingText">正在绘制…</span>
+          <span class="pendingPrompt">{{ generatingPrompt }}</span>
         </div>
-      </el-scrollbar>
-    </section>
-    <mediaPreview :modelValue="!!preview" :items="preview ? [{ ...preview, type: 'image' }] : []" @update:modelValue="!$event && (preview = undefined)" />
-  </div>
+        <resultCard
+          v-for="path in results"
+          :key="path"
+          :directory="directory"
+          :path="path"
+          @preview="preview = { url: $event, name: path.split('/').at(-1) }"
+          @reference="addReference(path)" />
+      </div>
+      <mediaPreview :modelValue="!!preview" :items="preview ? [{ ...preview, type: 'image' }] : []" @update:modelValue="!$event && (preview = undefined)" />
+    </template>
+  </workbenchLayout>
 </template>
 
 <script setup lang="ts">
-import { computed, provide, ref, shallowRef, watch } from "vue";
+import { computed, onScopeDispose, provide, ref, shallowRef, watch } from "vue";
 import axios from "axios";
-import { ElButton, ElIcon, ElInput, ElOption, ElOptionGroup, ElRadioButton, ElRadioGroup, ElScrollbar, ElSelect } from "element-plus";
-import { IconLoader2, IconPlayerStop, IconSparkles, IconUpload, IconX } from "@tabler/icons-vue";
+import { ElButton, ElIcon, ElInput, ElOption, ElOptionGroup, ElSegmented, ElSelect } from "element-plus";
+import { IconLoader2, IconPhotoPlus, IconPlayerStop, IconSparkles, IconX } from "@tabler/icons-vue";
 import { useNodeAi, type NodeImageRequest, type NodeMediaModel } from "@toonflow/nodes-scaffold/nodeAi";
 import { groupNodeModels } from "@toonflow/node-shared/groupNodeModels";
 import { useModelForm } from "@toonflow/node-shared/useModelForm";
@@ -98,6 +101,8 @@ import mediaPrice from "@toonflow/node-shared/mediaPrice";
 import mediaPreview from "@toonflow/node-shared/mediaPreview";
 import promptLibrary from "@toonflow/node-shared/promptLibrary";
 import useWorkspaceFiles from "@/lib/workspaceFiles";
+import workbenchLayout from "@/components/workbenchLayout.vue";
+import ratioPicker from "@/components/ratioPicker.vue";
 import { imageExtension, imageMimeType, timestampName } from "./studioFiles";
 import studioImage from "./studioImage.vue";
 import resultCard from "./resultCard.vue";
@@ -118,6 +123,11 @@ const uploading = ref(false);
 const generating = ref(false);
 // 占位卡只显示在发起生成的文件夹里。
 const generatingDirectory = ref("");
+const generatingPrompt = ref("");
+const elapsedSeconds = ref(0);
+const elapsedText = computed(() => `${Math.floor(elapsedSeconds.value / 60)}:${String(elapsedSeconds.value % 60).padStart(2, "0")}`);
+let elapsedTimer: ReturnType<typeof setInterval> | undefined;
+onScopeDispose(() => clearInterval(elapsedTimer));
 const controller = shallowRef<AbortController>();
 const fileInput = ref<HTMLInputElement>();
 const preview = ref<{ url: string; name?: string }>();
@@ -199,6 +209,10 @@ async function startGeneration() {
   controller.value = current;
   generating.value = true;
   generatingDirectory.value = directory;
+  generatingPrompt.value = input.prompt;
+  elapsedSeconds.value = 0;
+  clearInterval(elapsedTimer);
+  elapsedTimer = setInterval(() => elapsedSeconds.value++, 1000);
   try {
     const [result] = await ai.generateImage({ ...input, directory }, current.signal);
     if (!result) throw new Error("麦麦云未返回图片");
@@ -209,6 +223,7 @@ async function startGeneration() {
       controller.value = undefined;
       generating.value = false;
       generatingDirectory.value = "";
+      clearInterval(elapsedTimer);
     }
     if (directory === props.directory) await loadResults().catch(error => showNodeError(error, "结果读取失败"));
   }
@@ -247,87 +262,171 @@ function addReference(path: string) {
 
 <style lang="scss" scoped>
 .studioPanel {
-  display: flex;
-  height: 100%;
-  min-height: 0;
+  .promptInput :deep(.el-textarea__inner) { padding: 10px 12px; line-height: 1.7; }
 
-  .settingsColumn {
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 0;
-    width: 360px;
-    border-right: 1px solid var(--el-border-color-lighter);
+  .referenceList {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
 
-    .settingsBody {
+    .referenceItem,
+    .referenceAdd {
+      position: relative;
+      overflow: hidden;
+      aspect-ratio: 1;
+      border-radius: var(--ui-radius);
+    }
+
+    .referenceItem {
+      border: 1px solid var(--el-border-color-lighter);
+
+      .referenceIndex {
+        position: absolute;
+        top: 4px;
+        left: 4px;
+        padding: 1px 5px;
+        border-radius: 4px;
+        background: rgb(0 0 0 / 60%);
+        color: #fff;
+        font-size: 10px;
+        line-height: 1.5;
+      }
+
+      .removeButton {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        display: grid;
+        place-items: center;
+        width: 20px;
+        height: 20px;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: rgb(0 0 0 / 60%);
+        color: #fff;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.15s;
+
+        &:focus-visible { opacity: 1; outline: 2px solid var(--el-color-primary); }
+      }
+
+      &:hover .removeButton { opacity: 1; }
+    }
+
+    .referenceAdd {
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      padding: 16px 20px;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 0;
+      border: 1px dashed var(--el-border-color);
+      background: var(--el-fill-color-lighter);
+      color: var(--el-text-color-secondary);
+      font: inherit;
+      font-size: 12px;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
 
-      .sectionLabel {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        min-height: 24px;
-        margin-top: 8px;
+      &:hover:not(:disabled) { border-color: var(--el-color-primary); color: var(--el-color-primary); }
+      &:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: 2px; }
+      &:disabled { cursor: not-allowed; opacity: 0.6; }
+    }
+  }
+
+  .priceRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--el-text-color-secondary);
+    font-size: 12px;
+  }
+
+  .generateButton {
+    width: 100%;
+    height: 44px;
+    margin: 0;
+    border: 0;
+    border-radius: calc(var(--ui-radius) * 1.5);
+    background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--el-color-primary) 32%, transparent);
+    font-size: 15px;
+    font-weight: 600;
+    transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+
+    &:hover:not(.is-disabled) { transform: translateY(-1px); box-shadow: 0 8px 22px color-mix(in srgb, var(--el-color-primary) 40%, transparent); }
+    &.is-disabled { box-shadow: none; opacity: 0.5; }
+
+    @media (prefers-reduced-motion: reduce) { transition: none; &:hover:not(.is-disabled) { transform: none; } }
+  }
+
+  .generatingTag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: var(--el-color-primary-light-9);
+    color: var(--el-color-primary);
+    font-size: 12px;
+    line-height: 22px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .resultGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+
+    .pendingCard {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      aspect-ratio: 1;
+      padding: 16px;
+      overflow: hidden;
+      border: 1px dashed var(--el-color-primary-light-5);
+      border-radius: calc(var(--ui-radius) * 1.5);
+      background-color: var(--el-fill-color-lighter);
+      background-image: radial-gradient(circle, color-mix(in srgb, var(--el-color-primary) 30%, transparent) 1.2px, transparent 1.6px);
+      background-size: 16px 16px;
+      color: var(--el-color-primary);
+      box-sizing: border-box;
+
+      .pendingShine {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(110deg, transparent 30%, color-mix(in srgb, var(--el-color-primary) 14%, transparent) 50%, transparent 70%);
+        background-size: 200% 100%;
+        animation: shine 1.8s linear infinite;
+      }
+
+      .pendingText { font-size: 13px; font-weight: 500; }
+
+      .pendingPrompt {
+        display: -webkit-box;
+        max-width: 100%;
+        overflow: hidden;
         color: var(--el-text-color-secondary);
         font-size: 12px;
-        font-weight: 500;
+        line-height: 1.6;
+        text-align: center;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
       }
 
-      .el-radio-group { flex-wrap: wrap; gap: 6px 0; }
-
-      .referenceList {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 8px;
-
-        .referenceItem {
-          position: relative;
-          overflow: hidden;
-          aspect-ratio: 1;
-          border-radius: 6px;
-
-          .removeButton {
-            position: absolute;
-            top: 4px;
-            right: 4px;
-          }
-        }
-      }
-    }
-
-    .generateBar {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 12px;
-      flex-shrink: 0;
-      padding: 12px 20px;
-      border-top: 1px solid var(--el-border-color-lighter);
+      @media (prefers-reduced-motion: reduce) { .pendingShine { animation: none; } }
     }
   }
+}
 
-  .resultColumn {
-    flex: 1;
-    min-width: 0;
-
-    .resultGrid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 16px;
-      padding: 20px 24px;
-
-      .pendingCard {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        aspect-ratio: 1;
-        border: 1px dashed var(--el-border-color);
-        border-radius: 8px;
-        color: var(--el-text-color-secondary);
-      }
-    }
-  }
+@keyframes shine {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
 }
 </style>
