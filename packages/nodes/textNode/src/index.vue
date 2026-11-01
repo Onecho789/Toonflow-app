@@ -54,6 +54,7 @@ import { ElAlert, ElButton, ElCard, ElSelect, ElDialog, ElOption, ElOptionGroup,
 import { IconEdit, IconFileText, IconSparkles, IconArrowUp } from "@tabler/icons-vue";
 import { nodeSkeleton, nodeTools, useNode, z, type NodeAiModel, type NodeHandle } from "@toonflow/nodes-scaffold/runtime";
 import { groupNodeModels } from "@toonflow/node-shared/groupNodeModels";
+import { pickModel } from "@toonflow/node-shared/pickModel";
 import { useNodeReferences } from "@toonflow/node-shared/useNodeReferences";
 import markdownEditor from "./markdownEditor.vue";
 import markdownPreview from "./markdownPreview.vue";
@@ -213,10 +214,8 @@ async function loadModels() {
   modelsLoading.value = true;
   try {
     models.value = await ai.getModels();
-    if (!model.value) {
-      const first = models.value[0];
-      model.value = first ? JSON.stringify([first.providerId, first.modelId]) : "";
-    }
+    const next = pickModel(models.value, model.value);
+    if (next !== model.value) model.value = next;
   } catch (error) {
     if (error instanceof Error && error.name !== "AbortError") ElMessage.error(error.message);
   } finally {

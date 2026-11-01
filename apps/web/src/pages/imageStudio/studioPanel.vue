@@ -95,6 +95,7 @@ import { ElButton, ElIcon, ElInput, ElMessage, ElMessageBox, ElOption, ElOptionG
 import { IconAlertCircle, IconArrowBackUp, IconLoader2, IconRefresh, IconSparkles } from "@tabler/icons-vue";
 import { useNodeAi, type NodeImageRequest, type NodeMediaModel } from "@toonflow/nodes-scaffold/nodeAi";
 import { groupNodeModels } from "@toonflow/node-shared/groupNodeModels";
+import { pickModel } from "@toonflow/node-shared/pickModel";
 import { useModelForm } from "@toonflow/node-shared/useModelForm";
 import { showNodeError } from "@toonflow/node-shared/showNodeError";
 import modelForm from "@toonflow/node-shared/modelForm";
@@ -182,10 +183,7 @@ async function loadModels() {
   modelsLoading.value = true;
   try {
     models.value = (await ai.getMediaModels()).filter(item => item.type === "image");
-    if (!selectedModel.value) {
-      const first = models.value[0];
-      form.value.model = first ? JSON.stringify([first.providerId, first.modelId]) : "";
-    }
+    form.value.model = pickModel(models.value, form.value.model);
   } catch (error) {
     showNodeError(error, "模型读取失败");
   } finally {

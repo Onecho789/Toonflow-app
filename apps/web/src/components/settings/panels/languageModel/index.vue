@@ -1,6 +1,7 @@
 <template>
   <div class="providerList">
     <el-alert v-if="error" :title="error" type="error" :closable="false" showIcon />
+    <cloudDefaultForm type="text" title="文本" :models="aiModels" />
     <div class="itemList">
       <el-card v-for="item in aiModels" :key="item.modelId" class="providerItem" shadow="never">
         <div class="providerHeader">
@@ -23,28 +24,32 @@
       <el-empty v-if="!aiModels.length && !loading" :description="cloudAccount ? '暂无可用模型' : '请先登录麦麦云账号'" />
     </div>
     <div class="providerActions">
-      <el-button class="refreshButton" :icon="IconRefresh" :loading="loading" @click="refresh">刷新</el-button>
+      <el-button class="refreshButton" :icon="IconRefresh" :loading="loading" @click="refresh()">刷新</el-button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { onMounted, ref } from "vue";
 import { IconRefresh } from "@tabler/icons-vue";
 import { modelIcon } from "@toonflow/model-icons";
 import { aiModels, loadAiModels } from "@/stores/settings";
 import { cloudAccount } from "@/stores/cloudAccount";
+import cloudDefaultForm from "../../cloudDefaultForm.vue";
 
 const loading = ref(false);
 const error = ref("");
 
-async function refresh() {
+// 打开设置页时按缓存读取，“刷新”按钮强制绕过服务端缓存。
+async function refresh(force = true) {
   loading.value = true;
   error.value = "";
-  try { await loadAiModels(); }
+  try { await loadAiModels(force); }
   catch (cause) { error.value = cause instanceof Error ? cause.message : String(cause); }
   finally { loading.value = false; }
 }
+
+onMounted(() => refresh(false));
 </script>
 
 <style lang="scss" scoped src="../../providerList.scss"></style>

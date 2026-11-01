@@ -1,6 +1,8 @@
 <template>
   <div class="providerList">
     <el-alert v-if="error" :title="error" type="error" :closable="false" showIcon />
+    <cloudDefaultForm type="image" title="图片" :models="models.filter(item => item.type === 'image')" />
+    <cloudDefaultForm type="video" title="视频" :models="models.filter(item => item.type === 'video')" />
     <div class="itemList">
       <el-card v-for="item in models" :key="item.modelId" class="providerItem" shadow="never">
         <div class="providerHeader">
@@ -22,7 +24,7 @@
       <el-empty v-if="!models.length && !loading" :description="cloudAccount ? '暂无可用模型' : '请先登录麦麦云账号'" />
     </div>
     <div class="providerActions">
-      <el-button class="refreshButton" :icon="IconRefresh" :loading="loading" @click="refresh">刷新</el-button>
+      <el-button class="refreshButton" :icon="IconRefresh" :loading="loading" @click="refresh()">刷新</el-button>
     </div>
   </div>
 </template>
@@ -34,17 +36,20 @@ import { IconRefresh } from "@tabler/icons-vue";
 import { modelIcon } from "@toonflow/model-icons";
 import { invalidateNodeModels } from "@toonflow/nodes-scaffold/nodeAi";
 import { cloudAccount } from "@/stores/cloudAccount";
+import type { CloudModelGroup } from "@/stores/settings";
+import cloudDefaultForm from "../../cloudDefaultForm.vue";
 
-type MediaModel = { modelId: string; label: string; vendor?: string; type: "image" | "video"; price?: string };
+type MediaModel = { modelId: string; label: string; vendor?: string; type: "image" | "video"; price?: string; groups?: CloudModelGroup[] };
 const models = ref<MediaModel[]>([]);
 const loading = ref(false);
 const error = ref("");
 
-async function refresh() {
+// 打开设置页时按缓存读取，“刷新”按钮强制绕过服务端缓存。
+async function refresh(force = true) {
   loading.value = true;
   error.value = "";
   try {
-    const { data } = await axios.get<{ code: number; data: MediaModel[]; message?: string }>("/api/ai/media/models", { headers: { "Cache-Control": "no-cache" } });
+    const { data } = await axios.get<{ code: number; data: MediaModel[]; message?: string }>("/api/ai/media/models", { params: force ? { refresh: "1" } : undefined, headers: { "Cache-Control": "no-cache" } });
     if (data.code !== 200 || !Array.isArray(data.data)) throw new Error(data.message || "读取媒体模型失败");
     models.value = data.data;
     invalidateNodeModels("media");
@@ -53,7 +58,7 @@ async function refresh() {
   } finally { loading.value = false; }
 }
 
-onMounted(refresh);
+onMounted(() => refresh(false));
 </script>
 
 <style lang="scss" scoped src="../../providerList.scss"></style>

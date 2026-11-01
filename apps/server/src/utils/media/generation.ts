@@ -3,7 +3,7 @@ import { mkdir, readdir, readFile, realpath, stat, unlink } from "@toonflow/file
 import { join, relative } from "node:path";
 import type { GeneratedMedia, MediaGenerationRequest, MediaModel, MediaReference } from "@toonflow/tools-scaffold/runtime";
 import { lockWorkspaceFiles, resolveWorkspacePath, writeWorkspaceFile } from "@/utils/workspace/files";
-import { cloudPriceText, cloudProviderId, listCloudModels } from "@/utils/cloud/models";
+import { cloudPriceText, cloudProviderId, getCloudDefault, listCloudModels, type CloudGroup } from "@/utils/cloud/models";
 import * as cloud from "@/utils/media/cloud";
 
 const maxMediaSize = 100 * 1024 * 1024;
@@ -41,13 +41,13 @@ function invalid(message: string): never {
   throw Object.assign(new Error(message), { status: 400 });
 }
 
-// 媒体模型统一来自麦麦云目录，meta 里是节点表单需要的模式、尺寸与时长。
-export async function listMediaModels(): Promise<(MediaModel & { price: string })[]> {
-  return (await listCloudModels()).flatMap(model => {
+// 媒体模型统一来自麦麦云目录，meta 里是节点表单需要的模式、尺寸与时长；isDefault 标出设置里该类型的默认模型。
+export async function listMediaModels(refresh = false): Promise<(MediaModel & { price: string; groups: CloudGroup[]; isDefault: boolean })[]> {
+  return (await listCloudModels(refresh)).flatMap(model => {
     if (model.type !== "image" && model.type !== "video") return [];
     const meta = model.meta as Pick<MediaModel, "mode" | "durationResolutionMap" | "audio" | "imageSizes" | "imageRatios" | "ratios">;
     return [{
-      providerId: cloudProviderId, providerLabel: "麦麦云", modelId: model.id, label: model.label, vendor: model.vendor, type: model.type, supportsPrice: true, price: cloudPriceText(model),
+      providerId: cloudProviderId, providerLabel: "麦麦云", modelId: model.id, label: model.label, vendor: model.vendor, type: model.type, supportsPrice: true, price: cloudPriceText(model), groups: model.groups, isDefault: model.id === getCloudDefault(model.type).model,
       mode: meta.mode, durationResolutionMap: meta.durationResolutionMap, audio: meta.audio,
       ...(model.type === "image" ? { imageSizes: meta.imageSizes, imageRatios: meta.imageRatios } : { ratios: meta.ratios }),
     }];

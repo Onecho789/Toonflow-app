@@ -48,6 +48,7 @@ import { computed, ref, useId, watch } from "vue";
 import { IconChevronDown, IconChevronUp } from "@tabler/icons-vue";
 import { modelIcon } from "@toonflow/model-icons";
 import type { ThinkingLevel } from "@toonflow/server/modelReasoning";
+import { pickModel } from "@toonflow/node-shared/pickModel";
 import { modelChoices } from "@/stores/settings";
 
 const selectedModel = defineModel<string>({ default: "" });
@@ -60,13 +61,10 @@ const selectedModelChoice = computed(() => modelChoices.value.find(item => item.
 const reasoningLevels = computed(() => selectedModelChoice.value?.reasoningLevels ?? []);
 const reasoningOptions = computed(() => [{ label: "Default", value: "" }, ...reasoningLevels.value.map(value => ({ label: reasoningLabels[value], value }))]);
 const reasoningLabel = computed(() => reasoningOptions.value.find(item => item.value === reasoningEffort.value)?.label ?? "Default");
-// 旧对话保存的是本地供应商 ID（如 codex），按模型 ID 换成云端选项，和服务端匹配规则一致。
+// 没有已保存选择时取设置里的默认模型；旧对话的本地供应商 ID（如 codex）按模型 ID 换成云端选项；已下架时回退第一项并提示。
 watch([modelChoices, selectedModel], ([items, value]) => {
-  if (!value) return void (selectedModel.value = items[0]?.value ?? "");
-  if (items.some(item => item.value === value)) return;
-  const modelId = (() => { try { return (JSON.parse(value) as unknown[])[1]; } catch { return undefined; } })();
-  const match = items.find(item => item.modelId === modelId);
-  if (match) selectedModel.value = match.value;
+  const next = pickModel(items, value);
+  if (next !== value) selectedModel.value = next;
 }, { immediate: true });
 watch([() => selectedModelChoice.value?.reasoningLevels, reasoningEffort], ([levels, effort]) => {
   if (levels && effort && !levels.includes(effort as ThinkingLevel)) reasoningEffort.value = "";

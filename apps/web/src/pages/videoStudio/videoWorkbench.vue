@@ -69,8 +69,13 @@
         <div class="fieldLabel">比例</div>
         <ratioPicker v-model="data.ratio" :options="ratios" label="视频比例" />
         <template v-if="durations.length">
-          <div class="fieldLabel">时长</div>
-          <el-segmented v-model="data.duration" :options="durationOptions" block aria-label="视频时长" />
+          <div class="fieldLabel">时长<span class="fieldHint">{{ data.duration }} 秒</span></div>
+          <div v-if="durationRange" class="durationRange">
+            <el-slider v-model="data.duration" :min="durationRange.min" :max="durationRange.max" :step="1" :showTooltip="false" aria-label="视频时长" />
+            <el-input-number v-model="data.duration" :min="durationRange.min" :max="durationRange.max" :precision="0" :step="1" controlsPosition="right" size="small" aria-label="视频时长（秒）" />
+          </div>
+          <el-segmented v-else-if="durations.length <= 5" v-model="data.duration" :options="durationOptions" block aria-label="视频时长" />
+          <el-select v-else v-model="data.duration" :options="durationOptions" aria-label="视频时长" />
         </template>
         <template v-if="resolutions.length">
           <div class="fieldLabel">分辨率</div>
@@ -141,6 +146,7 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import { IconAlertCircle, IconArrowBackUp, IconLoader2, IconRefresh, IconSparkles, IconVolume } from "@tabler/icons-vue";
 import { useNodeAi, type NodeMediaModel, type NodeVideoRequest } from "@toonflow/nodes-scaffold/nodeAi";
 import { groupNodeModels } from "@toonflow/node-shared/groupNodeModels";
+import { pickModel } from "@toonflow/node-shared/pickModel";
 import { showNodeError } from "@toonflow/node-shared/showNodeError";
 import { useModelForm } from "@toonflow/node-shared/useModelForm";
 import modelOption from "@toonflow/node-shared/modelOption";
@@ -189,6 +195,12 @@ const modelGroups = computed(() => groupNodeModels(models.value));
 const ratios = computed(() => selectedModel.value?.ratios?.length ? selectedModel.value.ratios : defaultRatios);
 const durations = computed(() => [...new Set((selectedModel.value?.durationResolutionMap ?? []).flatMap(item => item.duration))].sort((a, b) => a - b));
 const durationOptions = computed(() => durations.value.map(item => ({ label: `${item}秒`, value: item })));
+// 档位超过 5 个且是连续整数秒时，改用滑块加输入框自定义秒数；不连续的用下拉，避免输入到不支持的秒数。
+const durationRange = computed(() => {
+  const list = durations.value;
+  const min = list[0]!, max = list.at(-1)!;
+  return list.length > 5 && list.every((item, index) => item === min + index) ? { min, max } : undefined;
+});
 const resolutions = computed(() => [...new Set((selectedModel.value?.durationResolutionMap ?? [])
   .filter(item => data.value.duration !== undefined && item.duration.includes(data.value.duration)).flatMap(item => item.resolution))]
   .sort((left, right) => (Number.parseFloat(left) || Infinity) - (Number.parseFloat(right) || Infinity)));
@@ -293,7 +305,7 @@ async function loadModels() {
   modelsLoading.value = true;
   try {
     models.value = (await ai.getMediaModels()).filter(item => item.type === "video");
-    if (!selectedModel.value) data.value.model = models.value[0] ? modelKey(models.value[0]) : "";
+    data.value.model = pickModel(models.value, data.value.model);
   } catch (error) {
     showNodeError(error, "模型读取失败");
   } finally {
@@ -438,6 +450,16 @@ async function removeHistory(record: HistoryRecord) {
     line-height: 22px;
   }
   .frameRow { display: flex; gap: 10px; }
+
+  .durationRange {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding-left: 8px;
+
+    .el-slider { flex: 1; }
+    .el-input-number { width: 96px; }
+  }
 
   .audioOption {
     display: flex;

@@ -80,17 +80,44 @@ export function updateGeneralSettings(patch: Omit<Partial<typeof generalSettings
   settings.value = { ...settings.value, general: { ...(current && typeof current === "object" && !Array.isArray(current) ? current : {}), ...patch } };
 }
 
-type CloudAiModel = { providerId: string; providerLabel: string; modelId: string; label: string; vendor?: string; contextWindow: number; maxOutputTokens: number; reasoningLevels: ThinkingLevel[]; price?: string };
+export type CloudModelGroup = { name: string; label: string; ratio: number };
+type CloudAiModel = { providerId: string; providerLabel: string; modelId: string; label: string; vendor?: string; contextWindow: number; maxOutputTokens: number; reasoningLevels: ThinkingLevel[]; price?: string; groups?: CloudModelGroup[]; isDefault?: boolean };
 // 文本模型由麦麦云按登录账号下发，本地只读展示，不保存供应商地址与密钥。
 export const aiModels = ref<CloudAiModel[]>([]);
 export const modelChoices = computed(() => aiModels.value.map(model => ({
   value: JSON.stringify([model.providerId, model.modelId]), providerId: model.providerId, modelId: model.modelId, label: model.label, vendor: model.vendor,
-  contextWindow: model.contextWindow, reasoningLevels: model.reasoningLevels,
+  contextWindow: model.contextWindow, reasoningLevels: model.reasoningLevels, isDefault: cloudDefaults.value.text?.model === model.modelId,
 })));
 
-export async function loadAiModels() {
+// 各类型的默认模型与分组（线路），服务端按此给生成请求带分组请求头；对话、工作台与节点没有已保存选择时默认选中此模型。
+export type CloudDefault = { model: string; group: string };
+export const cloudDefaults = computed(() => {
+  const raw = settings.value.cloudDefaults;
+  const record = raw && typeof raw === "object" && !Array.isArray(raw) ? raw as Record<string, unknown> : {};
+  return Object.fromEntries((["text", "image", "video"] as const).flatMap(type => {
+    const value = record[type] as Partial<CloudDefault> | undefined;
+    return value && typeof value.model === "string" && value.model ? [[type, { model: value.model, group: typeof value.group === "string" && value.group ? value.group : "default" }]] : [];
+  })) as Partial<Record<"text" | "image" | "video", CloudDefault>>;
+});
+
+// 保存成功后再让节点重新读取模型列表，确保拿到新的 isDefault 标记。
+export async function updateCloudDefault(type: "text" | "image" | "video", value: CloudDefault) {
+  await saveSettings(current => {
+    const saved = current.cloudDefaults;
+    return { cloudDefaults: { ...(saved && typeof saved === "object" && !Array.isArray(saved) ? saved : {}), [type]: value } };
+  });
+  invalidateNodeModels(type === "text" ? "language" : "media");
+}
+
+// 分组选项文字，例如“标准 ×1”。
+export const groupText = (group: CloudModelGroup) => `${group.label || group.name} ×${group.ratio}`;
+// 云端未下发分组时视为只有 default。
+export const modelGroups = (groups?: CloudModelGroup[]) => groups?.length ? groups : [{ name: "default", label: "标准", ratio: 1 }];
+
+// refresh 为 true 时让服务端绕过模型目录缓存，用于设置页“刷新”。
+export async function loadAiModels(refresh = false) {
   const { data } = await axios.get<{ code: number; data: CloudAiModel[] }>(
-    "/api/ai/models", { headers: { "Cache-Control": "no-cache", "x-toonflow-workspace": "1" } },
+    "/api/ai/models", { params: refresh ? { refresh: "1" } : undefined, headers: { "Cache-Control": "no-cache", "x-toonflow-workspace": "1" } },
   );
   if (data.code !== 200 || !Array.isArray(data.data)) throw new Error("读取文本模型失败");
   aiModels.value = data.data;

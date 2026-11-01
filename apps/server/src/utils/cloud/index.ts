@@ -62,6 +62,7 @@ function saveSession(result: { user: CloudUser; apiKey: string }) {
 }
 
 // 给发往麦麦云的请求带上设备 Key，其他地址原样转发，避免 Key 泄露给第三方；401 说明 Key 已失效，清除本地会话回到登录页。
+// 文本、图片、视频生成请求另按设置的默认分组带 X-Maimai-Group，没有设置时不带，由云端走 default。
 export const sessionFetch = Object.assign(async (input: Parameters<typeof fetch>[0], init: RequestInit = {}) => {
   const source = typeof input === "object" && "url" in input ? input : undefined;
   const url = source?.url ?? String(input);
@@ -70,6 +71,10 @@ export const sessionFetch = Object.assign(async (input: Parameters<typeof fetch>
   if (!current) throw Object.assign(new Error("请先登录麦麦云账号"), { status: 401 });
   const headers = new Headers(init.headers ?? source?.headers);
   headers.set("Authorization", `Bearer ${current.key}`);
+  // 模型目录模块静态依赖本模块的 cloudUrl，这里动态导入以免循环依赖时取到未初始化的常量。
+  const { requestGroup } = await import("@/utils/cloud/models");
+  const group = await requestGroup(url.slice(cloudUrl.length), init.method ?? source?.method, init.body);
+  if (group) headers.set("X-Maimai-Group", group);
   const response = await fetch(input, { ...init, headers });
   if (response.status === 401) replaceSession(current.session);
   return response;

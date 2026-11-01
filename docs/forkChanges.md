@@ -657,6 +657,15 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 
 改动的上游文件：`apps/server/src/utils/media/{cloud,generation}.ts` 拆出提交与查询函数，原同步生成接口不变；`router.ts` 由 `bun run routes` 生成。其余改动在我们自己的工作台文件里（`workbenchLayout.vue`、`imageStudio/*`、`videoStudio/*`）。
 
+## 更新说明改为麦麦工坊内容
+
+- 日期：2026-11-01
+- `apps/web/src/components/updateBox.md`（更新弹窗正文）整篇换成麦麦工坊自己的更新内容，按本文各节归纳为新增 / 优化 / 调整三组
+
+| 文件 | 改动 | 冲突时的处理 |
+| --- | --- | --- |
+| `apps/web/src/components/updateBox.md` | 整篇重写 | 保留我们的版本，上游的更新说明直接丢弃 |
+
 ---
 
 ## 工作台文件夹列表、设置页模型图标与价格
@@ -680,6 +689,23 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 - 提示词库组件 `select` 事件多传参考图地址，画布节点只用第一个参数，行为不变
 
 改动的上游文件：`utils/workspace/chatImages.ts` 的 `importImage` 加可选 `outputDirectory`，`routes/workspaces/files/importImage.ts` 只允许 `references`；`lib/workspaceFiles.ts`、`packages/nodeShared/src/components/promptLibrary.vue`。
+
+## 默认模型与分组（线路）
+
+- 日期：2026-11-01
+- 配合麦麦云 2.7.0 的分组与倍率：`/v1/models` 每个模型带可用分组 `groups: [{ name, label, ratio }]`，旧版云端没有该字段时按只有 `default` 处理
+- 设置里新增 `cloudDefaults: { text?, image?, video? }`，每项 `{ model, group }`。文本模型页一组、媒体模型页图片和视频各一组“默认模型 + 分组（线路）”选择，分组只列该模型可用的，显示“标准 ×1”
+- 发往云端的文本、图片、视频生成请求在 `sessionFetch` 里统一按类型带 `X-Maimai-Group`：取请求体开头的 `model`，所选分组不适用于该模型时回退 `default`，`default` 不带请求头
+- 生图、视频工作台、对话模型选择（`modelPopover`）、画布文本节点没有已保存选择时选默认模型，再没有选第一项；已保存的模型下架回退第一项并提示一次（`pickModel`）
+- 模型目录缓存由 5 分钟改为 1 分钟；两个模型列表接口支持 `?refresh=1`，设置页“刷新”强制重新拉取
+- 顺带：视频工作台时长档位超过 5 个且为连续整数秒时，改为滑块加输入框自定义秒数，标签旁显示当前秒数
+
+| 文件 | 说明 |
+| --- | --- |
+| `apps/web/src/components/settings/cloudDefaultForm.vue` | 默认模型与分组选择 |
+| `packages/nodeShared/src/pickModel.ts` | 默认选中与下架回退，导出 `@toonflow/node-shared/pickModel` |
+
+改动的上游文件：`utils/cloud/index.ts`（`sessionFetch` 带分组头）、`utils/cloud/models.ts`（`groups`、`requestGroup`、缓存时长）、`utils/ai/index.ts`、`utils/media/generation.ts`、`routes/ai/models.ts`、`routes/ai/media/models.ts`（`refresh`、`groups`、`isDefault`）；`stores/settings.ts`、`modelPopover.vue`、设置页两个面板、`nodeScaffold/src/nodeAi.ts` 类型、`textNode`、生图与视频工作台选模型一行。冲突时保留上游逻辑，再补回分组头与 `pickModel` 调用。
 
 ## 同步记录
 

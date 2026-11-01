@@ -14,9 +14,15 @@ export type NodeAiModel = {
   protocol: "openai-completions" | "openai-responses" | "anthropic-messages";
   contextWindow?: number;
   maxOutputTokens?: number;
+  // 可用分组（线路）与是否为设置里的默认模型，由麦麦云模型目录下发。
+  groups?: NodeModelGroup[];
+  isDefault?: boolean;
 };
+export type NodeModelGroup = { name: string; label: string; ratio: number };
 export type NodeMediaModel = Omit<MediaModel, "mode"> & {
   mode?: (string | string[])[];
+  groups?: NodeModelGroup[];
+  isDefault?: boolean;
 };
 export type NodeImageRequest = {
   directory: string;
