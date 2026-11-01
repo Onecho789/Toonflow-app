@@ -18,6 +18,7 @@ const router = createRouter({
         { path: "projects", component: () => import("@/pages/projects/index.vue") },
         { path: "imageStudio", component: () => import("@/pages/imageStudio/index.vue") },
         { path: "videoStudio", component: () => import("@/pages/videoStudio/index.vue") },
+        { path: "guide", component: () => import("@/pages/guide/index.vue") },
         { path: "feedback", component: () => import("@/pages/feedback/index.vue") },
       ],
     },

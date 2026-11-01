@@ -750,6 +750,14 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 
 改动的上游文件：`stores/settings.ts` 的 `defaultUiSettings`、`uiSettings` 加 `background`；`components/settings/panels/ui.vue` 加「背景样式」一节。`pages/home/bg.vue` 为 Fork 文件。冲突时保留上游改动并补回 `background` 字段与该节。
 
+## 使用说明页
+
+- 日期：2026-11-01
+- 左侧栏新增「使用说明」（`/guide`），面向新手的内置帮助页：使用篇 9 章（快速上手、画布、生图/视频工作台、小麦同学、素材库与提示词库、插件市场、MCP、设置），开发篇 5 章（开发总览、技能、工具、节点、文件扩展），开发章节各附一段「复制给 AI 的规则」
+- 章节是 `pages/guide/chapters/*.md`，用 `import.meta.glob` 原文导入，复用 `messageMarkdown.vue` 渲染；开发章节参考上游插件开发指南改写，去掉了 api.toonflow.net 发布与 `toonflow://` 安装链接
+
+我们新增的文件：`apps/web/src/pages/guide/`。改动的上游文件：`router/index.ts` 加 `guide` 路由，`components/appLayout.vue` 在「问题反馈」前加入口。冲突时保留上游改动并补回这两处。
+
 ## 同步记录
 
 | 日期 | 上游提交 | 说明 |

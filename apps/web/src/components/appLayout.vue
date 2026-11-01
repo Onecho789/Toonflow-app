@@ -27,6 +27,12 @@
           <icon-building-store :size="18" aria-hidden="true" />
           <span class="sidebarText">插件市场</span>
         </button>
+        <router-link v-slot="{ href, navigate, isActive }" to="/guide" custom>
+          <a class="sidebarItem" :class="{ active: isActive }" :href="href" :aria-current="isActive ? 'page' : undefined" aria-label="使用说明" title="使用说明" @click="navigate">
+            <icon-book :size="18" aria-hidden="true" />
+            <span class="sidebarText">使用说明</span>
+          </a>
+        </router-link>
         <router-link v-slot="{ href, navigate, isActive }" to="/feedback" custom>
           <a class="sidebarItem" :class="{ active: isActive }" :href="href" :aria-current="isActive ? 'page' : undefined" :aria-label="ticketUnread ? `问题反馈，${ticketUnread} 条新回复` : '问题反馈'" :title="ticketUnread ? `问题反馈，${ticketUnread} 条新回复` : '问题反馈'" @click="navigate">
             <span class="sidebarIcon">
