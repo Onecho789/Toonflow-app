@@ -672,6 +672,15 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 
 改动的上游文件：`apps/server/src/utils/cloud/models.ts` 加 `cloudPriceText`，`utils/ai/index.ts`、`utils/media/generation.ts` 的模型列表多返回 `price`；设置页两个面板与 `providerList.scss`。冲突时保留上游改动再补回导入和价格行。
 
+## 提示词库带入参考图
+
+- 日期：2026-11-01
+- 生图、视频工作台从提示词库点「使用」时，提示词自带的参考图一起下载到工作台 `references/`（文件名为地址的 SHA-256，重复使用不重复下载）。生图追加到参考图；视频优先放进全能参考，模型不支持时按顺序放首帧、尾帧。超出模型上限或下载失败的跳过并提示
+- 服务端下载不走系统代理，GitHub、X 等境外图源常连不上；失败后由浏览器经系统代理下载再写入工作区
+- 提示词库组件 `select` 事件多传参考图地址，画布节点只用第一个参数，行为不变
+
+改动的上游文件：`utils/workspace/chatImages.ts` 的 `importImage` 加可选 `outputDirectory`，`routes/workspaces/files/importImage.ts` 只允许 `references`；`lib/workspaceFiles.ts`、`packages/nodeShared/src/components/promptLibrary.vue`。
+
 ## 同步记录
 
 | 日期 | 上游提交 | 说明 |

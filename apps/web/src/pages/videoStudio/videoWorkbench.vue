@@ -27,7 +27,7 @@
         <el-segmented v-model="data.tab" :options="modeOptions" block aria-label="生成方式" />
       </template>
 
-      <div class="fieldLabel">提示词<promptLibrary type="video" @select="data.prompt = $event" /></div>
+      <div class="fieldLabel">提示词<promptLibrary type="video" :disabled="importing" @select="usePrompt" /></div>
       <el-input
         v-model="data.prompt"
         class="promptInput"
@@ -95,7 +95,7 @@
         size="large"
         :icon="IconSparkles"
         :loading="submitting"
-        :disabled="!!uploading || !selectedModel || !data.prompt.trim() || !history.loaded"
+        :disabled="!!uploading || importing || !selectedModel || !data.prompt.trim() || !history.loaded"
         @click="startGeneration">
         生成视频
       </el-button>
@@ -153,7 +153,7 @@ import historyList from "@/components/historyList.vue";
 import referenceList, { type ReferenceFile } from "@/components/referenceList.vue";
 import ratioPicker from "@/components/ratioPicker.vue";
 import { outputDirectory, removeRecord, retryItem, submitRecord, useHistory, type HistoryItem, type HistoryRecord } from "@/stores/workbenchHistory";
-import { mediaKind, type MediaKind } from "@/pages/imageStudio/studioFiles";
+import { importReferenceImages, mediaKind, type MediaKind } from "@/pages/imageStudio/studioFiles";
 import frameSlot from "./frameSlot.vue";
 import videoCard from "./videoCard.vue";
 
@@ -175,6 +175,7 @@ const data = ref({
 const models = shallowRef<NodeMediaModel[]>([]);
 const modelsLoading = ref(false);
 const uploading = ref<FrameKey>();
+const importing = ref(false);
 const submitting = ref(false);
 const activeId = ref<string>();
 const history = computed(() => useHistory("video", props.directory));
@@ -318,6 +319,39 @@ async function uploadFrame(key: FrameKey, file: File) {
     showNodeError(error, "上传失败");
   } finally {
     uploading.value = undefined;
+  }
+}
+
+// 填入提示词，并把提示词自带的参考图下载到 references：模型支持全能参考时切到全能参考追加图片，
+// 否则按顺序放进首帧、尾帧；超出上限或模型不支持的不添加。
+async function usePrompt(text: string, urls: string[]) {
+  data.value.prompt = text;
+  if (!urls.length) return;
+  const imageLimit = referenceLimits.value.image ?? 0;
+  const frameLimit = frameSupport.value.last ? 2 : frameSupport.value.first ? 1 : 0;
+  if (!imageLimit && !frameLimit) return void ElMessage.warning("当前模型不支持参考图，只填入了提示词");
+  const directory = props.directory;
+  importing.value = true;
+  try {
+    const { images, failed } = await importReferenceImages(directory, urls);
+    if (directory !== props.directory) return;
+    let added = 0;
+    if (imageLimit) {
+      data.value.tab = "reference";
+      for (const image of images) {
+        if (data.value.references.some(item => item.path === image.path) || referenceCounts.value.image >= imageLimit) continue;
+        data.value.references.push(image);
+        added++;
+      }
+    } else if (images.length) {
+      data.value.tab = "frames";
+      [data.value.firstFrame, data.value.lastFrame] = [images[0], frameLimit > 1 ? images[1] : undefined];
+      added = Math.min(images.length, frameLimit);
+    }
+    const skipped = images.length - added;
+    if (failed || skipped) ElMessage.warning([failed && `${failed} 张参考图下载失败`, skipped && `${skipped} 张超出模型上限未添加`].filter(Boolean).join("，"));
+  } finally {
+    importing.value = false;
   }
 }
 

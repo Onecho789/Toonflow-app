@@ -26,15 +26,15 @@ function imageMimeType(bytes: Buffer): keyof typeof imageFormats {
   return invalid("下载内容不是支持的图片，可能返回了网页或登录页面");
 }
 
-export async function importImage(cwd: string, value: string) {
+// outputDirectory 默认是聊天图片目录；工作台带入提示词库参考图时存到 references。
+export async function importImage(cwd: string, value: string, outputDirectory = "assets/chatImages") {
   const directory = await realpath(cwd);
   const url = remoteAddress(value);
-  const key = JSON.stringify([directory, url.href]);
+  const key = JSON.stringify([directory, outputDirectory, url.href]);
   const existing = inflight.get(key);
   if (existing) return existing;
   const pending = (async () => {
     const hash = createHash("sha256").update(url.href).digest("hex");
-    const outputDirectory = "assets/chatImages";
     for (const [mimeType, extension] of Object.entries(imageFormats)) {
       const path = `${outputDirectory}/${hash}.${extension}`;
       const cached = await resolveWorkspacePath(directory, path, true);

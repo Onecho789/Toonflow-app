@@ -48,7 +48,8 @@ import promptDetail from "./promptDetail.vue";
 import { readCloudPrompts, type CloudPromptItem, type CloudPromptSource } from "../cloudPrompts";
 
 const props = defineProps<{ type: "image" | "video"; disabled?: boolean }>();
-const emit = defineEmits<{ select: [prompt: string] }>();
+// 第二个参数是提示词自带的参考图地址，工作台据此带入参考图；画布节点只用提示词。
+const emit = defineEmits<{ select: [prompt: string, referenceImageUrls: string[]] }>();
 const visible = ref(false);
 const loading = ref(false);
 const loadError = ref("");
@@ -97,7 +98,7 @@ async function openLibrary() {
 }
 
 function choose(item: CloudPromptItem) {
-  emit("select", item.prompt);
+  emit("select", item.prompt, item.referenceImageUrls ?? []);
   detailVisible.value = false;
   visible.value = false;
 }

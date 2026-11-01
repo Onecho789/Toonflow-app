@@ -5,7 +5,7 @@
     </template>
 
     <template #settings>
-      <div class="fieldLabel">提示词<promptLibrary type="image" @select="prompt = $event" /></div>
+      <div class="fieldLabel">提示词<promptLibrary type="image" :disabled="importing" @select="usePrompt" /></div>
       <el-input v-model="prompt" class="promptInput" type="textarea" :autosize="{ minRows: 5, maxRows: 14 }" placeholder="描述你想要的画面，例如：清晨薄雾中的江南小镇，石桥与乌篷船，电影感光影；有参考图时可写“参考图1的人物”" aria-label="提示词" />
 
       <template v-if="referenceLimit">
@@ -45,7 +45,7 @@
         <span>预估费用{{ count > 1 ? `（单张，共 ${count} 张）` : "" }}</span>
         <mediaPrice v-if="generationInput" :input="{ ...generationInput, mediaType: 'image' }" :supported="selectedModel?.supportsPrice === true" />
       </div>
-      <el-button class="generateButton" type="primary" size="large" :icon="IconSparkles" :loading="submitting" :disabled="!generationInput?.prompt || !history.loaded" @click="startGeneration">
+      <el-button class="generateButton" type="primary" size="large" :icon="IconSparkles" :loading="submitting || importing" :disabled="!generationInput?.prompt || !history.loaded || importing" @click="startGeneration">
         生成 {{ count }} 张图片
       </el-button>
     </template>
@@ -107,7 +107,7 @@ import historyList from "@/components/historyList.vue";
 import referenceList, { type ReferenceFile } from "@/components/referenceList.vue";
 import ratioPicker from "@/components/ratioPicker.vue";
 import { outputDirectory, removeRecord, retryItem, submitRecord, useHistory, type HistoryItem, type HistoryRecord } from "@/stores/workbenchHistory";
-import { imageMimeType } from "./studioFiles";
+import { imageMimeType, importReferenceImages } from "./studioFiles";
 import resultCard from "./resultCard.vue";
 
 const props = defineProps<{ directory: string }>();
@@ -124,6 +124,7 @@ const prompt = ref("");
 const count = ref(1);
 const references = ref<ReferenceFile[]>([]);
 const submitting = ref(false);
+const importing = ref(false);
 const activeId = ref<string>();
 const preview = ref<{ url: string; name?: string }>();
 const history = computed(() => useHistory("image", props.directory));
@@ -243,6 +244,25 @@ async function removeHistory(record: HistoryRecord) {
     await removeRecord("image", props.directory, record.id);
   } catch (error) {
     showNodeError(error, "删除记录失败");
+  }
+}
+
+// 填入提示词，并把提示词自带的参考图下载到 references 后追加到参考图，超出模型上限的不添加。
+async function usePrompt(text: string, urls: string[]) {
+  prompt.value = text;
+  if (!urls.length) return;
+  if (!referenceLimit.value) return void ElMessage.warning("当前模型不支持参考图，只填入了提示词");
+  const directory = props.directory;
+  importing.value = true;
+  try {
+    const { images, failed } = await importReferenceImages(directory, urls);
+    if (directory !== props.directory) return;
+    const next = [...references.value, ...images.filter(item => !references.value.some(current => current.path === item.path))];
+    references.value = next.slice(0, referenceLimit.value);
+    const skipped = next.length - references.value.length;
+    if (failed || skipped) ElMessage.warning([failed && `${failed} 张参考图下载失败`, skipped && `${skipped} 张超出模型上限未添加`].filter(Boolean).join("，"));
+  } finally {
+    importing.value = false;
   }
 }
 

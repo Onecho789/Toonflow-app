@@ -42,8 +42,8 @@ export default function useWorkspaceFiles(directory?: MaybeRefOrGetter<string | 
     return data;
   }
 
-  async function importImage(url: string) {
-    const { data } = await client.post<{ data: { path: string; mimeType: string } }>("/importImage", { directory: getDirectory(), url });
+  async function importImage(url: string, outputDirectory?: "references") {
+    const { data } = await client.post<{ data: { path: string; mimeType: string } }>("/importImage", { directory: getDirectory(), url, outputDirectory });
     return data.data;
   }
 
