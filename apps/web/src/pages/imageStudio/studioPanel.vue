@@ -258,7 +258,7 @@ async function usePrompt(text: string, urls: string[]) {
     const next = [...references.value, ...images.filter(item => !references.value.some(current => current.path === item.path))];
     references.value = next.slice(0, referenceLimit.value);
     const skipped = next.length - references.value.length;
-    if (failed || skipped) ElMessage.warning([failed && `${failed} 张参考图下载失败`, skipped && `${skipped} 张超出模型上限未添加`].filter(Boolean).join("，"));
+    if (failed || skipped) ElMessage.warning([failed && `${failed} 张参考图下载失败（境外图源需在设置 → 网络设置中配置代理）`, skipped && `${skipped} 张超出模型上限未添加`].filter(Boolean).join("，"));
   } finally {
     importing.value = false;
   }

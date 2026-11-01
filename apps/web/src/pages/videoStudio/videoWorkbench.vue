@@ -361,7 +361,7 @@ async function usePrompt(text: string, urls: string[]) {
       added = Math.min(images.length, frameLimit);
     }
     const skipped = images.length - added;
-    if (failed || skipped) ElMessage.warning([failed && `${failed} 张参考图下载失败`, skipped && `${skipped} 张超出模型上限未添加`].filter(Boolean).join("，"));
+    if (failed || skipped) ElMessage.warning([failed && `${failed} 张参考图下载失败（境外图源需在设置 → 网络设置中配置代理）`, skipped && `${skipped} 张超出模型上限未添加`].filter(Boolean).join("，"));
   } finally {
     importing.value = false;
   }

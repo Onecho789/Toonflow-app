@@ -707,6 +707,15 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 
 改动的上游文件：`utils/cloud/index.ts`（`sessionFetch` 带分组头）、`utils/cloud/models.ts`（`groups`、`requestGroup`、缓存时长）、`utils/ai/index.ts`、`utils/media/generation.ts`、`routes/ai/models.ts`、`routes/ai/media/models.ts`（`refresh`、`groups`、`isDefault`）；`stores/settings.ts`、`modelPopover.vue`、设置页两个面板、`nodeScaffold/src/nodeAi.ts` 类型、`textNode`、生图与视频工作台选模型一行。冲突时保留上游逻辑，再补回分组头与 `pickModel` 调用。
 
+## 外链图片下载按网络设置走代理
+
+- 日期：2026-11-01
+- 本地服务端下载外链图片（提示词库参考图、聊天图片、项目包）原来一律按解析出的 IP 直连，不看网络设置；国内直连 GitHub 附件、X、YouMind 等常失败。现在网络设置为系统代理或自定义代理时经代理下载，“不使用代理”仍直连
+- 走代理时仍先在本机解析并拒绝本机、内网地址，每次重定向重新校验；代理侧解析无法校验，见 `download.ts` 的 `ACT:` 注释
+- 去掉上一版工作台的浏览器兜底下载（受图源跨域限制，GitHub 附件、YouMind 仍会失败）；下载失败提示改为提醒在网络设置中配置代理
+
+改动的上游文件：`utils/network/transport.ts` 加 `usesProxy`，`utils/workspace/download.ts` 拆出 `publicAddresses` 并在走代理时经全局 `fetch` 下载。冲突时保留上游的直连实现，再补回代理分支。
+
 ## 同步记录
 
 | 日期 | 上游提交 | 说明 |

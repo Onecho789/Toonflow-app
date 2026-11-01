@@ -66,15 +66,24 @@ function createTransport(profile: NetworkProfile, failure?: Error) {
     void close().catch(() => {});
     throw new Error("代理配置无效，请检查代理地址、端口和认证信息");
   }
+  const proxyAddress = (url: URL) => {
+    const address = url.protocol === "https:" ? profile.httpsProxy : profile.httpProxy;
+    return address && !bypassProxy(url, profile.noProxy) ? address : undefined;
+  };
   const dispatcher = direct.compose(dispatch => (options, handler) => {
     const url = new URL(options.origin!);
     if (localHost(url.hostname)) return dispatch(options, handler);
     if (failure) throw failure;
-    const address = url.protocol === "https:" ? profile.httpsProxy : profile.httpProxy;
-    const proxy = address && !bypassProxy(url, profile.noProxy) ? proxies.get(address) : undefined;
+    const address = proxyAddress(url);
+    const proxy = address ? proxies.get(address) : undefined;
     return proxy ? proxy.dispatch(options, handler) : dispatch(options, handler);
   });
-  return { dispatcher, failure, close };
+  return { dispatcher, failure, close, proxyAddress };
+}
+
+// 当前网络设置下该地址是否经代理；网络设置无法应用时也返回 true，让请求经 fetch 明确报错而不是擅自直连。
+export function usesProxy(url: URL) {
+  return !!activeTransport && !localHost(url.hostname) && (!!activeTransport.failure || !!activeTransport.proxyAddress(url));
 }
 
 let activeTransport: ReturnType<typeof createTransport> | undefined;

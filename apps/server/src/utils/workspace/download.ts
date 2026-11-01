@@ -3,6 +3,7 @@ import { request, type ClientRequest, type IncomingMessage } from "node:http";
 import { request as requestSecure } from "node:https";
 import { BlockList, isIP } from "node:net";
 import { t, translateMessage } from "@/lib/i18n";
+import { usesProxy } from "@/utils/network/transport";
 
 const privateAddresses = new BlockList();
 for (const [address, prefix] of [
@@ -36,6 +37,41 @@ export function remoteAddress(value: string, httpsOnly = false) {
   return url;
 }
 
+// 解析域名并确认全部是公网地址，返回可直接连接的地址。
+async function publicAddresses(hostname: string, signal: AbortSignal) {
+  let addresses = isIP(hostname) ? [{ address: hostname, family: isIP(hostname) }] : await lookup(hostname, { all: true, verbatim: true });
+  signal.throwIfAborted();
+  if (addresses.length && addresses.every(item => /^198\.(18|19)\./.test(item.address))) {
+    // ACT: 仅兼容 TUN 的 fake-IP 答案；固定 DoH 查回真实公网地址，不允许将特殊网段直接作为下载目标。
+    const dnsUrl = new URL("https://dns.alidns.com/resolve");
+    dnsUrl.searchParams.set("name", hostname);
+    dnsUrl.searchParams.set("type", "A");
+    const response = await fetch(dnsUrl, { signal, redirect: "error" });
+    if (!response.ok) invalid("无法解析下载文件的真实公网地址，请稍后重试", 502);
+    const answer = await response.json() as { Status?: number; Answer?: { type?: number; data?: unknown }[] };
+    addresses = answer.Status === 0 && Array.isArray(answer.Answer) ? answer.Answer.filter(item => item.type === 1 && typeof item.data === "string").map(item => ({ address: item.data as string, family: 4 })) : [];
+    signal.throwIfAborted();
+  }
+  if (!addresses.length || addresses.some(item => !isPublicAddress(item.address))) invalid("不能下载解析到本机、内网或特殊网络地址的文件", 403);
+  return addresses;
+}
+
+type FileResponse = { statusCode?: number; headers: { location?: string; "content-length"?: string }; body: AsyncIterable<Uint8Array>; destroy(): void };
+
+// 网络设置要求走代理时经全局 fetch（已按设置分流）请求，重定向交给调用方逐跳校验。
+// ACT: 代理在远端解析域名，本机只能先校验本地解析结果，防不住代理侧 DNS 重绑定；需要严格隔离时可改为代理白名单。
+async function requestProxied(url: URL, signal: AbortSignal, accept: string): Promise<FileResponse> {
+  await publicAddresses(url.hostname.replace(/^\[|\]$/g, ""), signal);
+  const response = await fetch(url, { signal, redirect: "manual", headers: { Accept: accept } });
+  const body = response.body ?? new ReadableStream<Uint8Array>();
+  return {
+    statusCode: response.status,
+    headers: { location: response.headers.get("location") ?? undefined, "content-length": response.headers.get("content-length") ?? undefined },
+    body,
+    destroy: () => void body.cancel().catch(() => {}),
+  };
+}
+
 function requestFile(url: URL, signal: AbortSignal, accept: string) {
   return new Promise<IncomingMessage>((resolve, reject) => {
     let outgoing: ClientRequest | undefined;
@@ -46,21 +82,7 @@ function requestFile(url: URL, signal: AbortSignal, accept: string) {
     void (async () => {
       signal.throwIfAborted();
       const hostname = url.hostname.replace(/^\[|\]$/g, "");
-      let addresses = isIP(hostname) ? [{ address: hostname, family: isIP(hostname) }] : await lookup(hostname, { all: true, verbatim: true });
-      signal.throwIfAborted();
-      if (addresses.length && addresses.every(item => /^198\.(18|19)\./.test(item.address))) {
-        // ACT: 仅兼容 TUN 的 fake-IP 答案；固定 DoH 查回真实公网地址，不允许将特殊网段直接作为下载目标。
-        const dnsUrl = new URL("https://dns.alidns.com/resolve");
-        dnsUrl.searchParams.set("name", hostname);
-        dnsUrl.searchParams.set("type", "A");
-        const response = await fetch(dnsUrl, { signal, redirect: "error" });
-        if (!response.ok) invalid("无法解析下载文件的真实公网地址，请稍后重试", 502);
-        const answer = await response.json() as { Status?: number; Answer?: { type?: number; data?: unknown }[] };
-        addresses = answer.Status === 0 && Array.isArray(answer.Answer) ? answer.Answer.filter(item => item.type === 1 && typeof item.data === "string").map(item => ({ address: item.data as string, family: 4 })) : [];
-        signal.throwIfAborted();
-      }
-      if (!addresses.length || addresses.some(item => !isPublicAddress(item.address))) invalid("不能下载解析到本机、内网或特殊网络地址的文件", 403);
-      const address = addresses[0];
+      const address = (await publicAddresses(hostname, signal))[0]!;
       const connection = new URL(url);
       connection.hostname = address.family === 6 ? `[${address.address}]` : address.address;
       // ACT: 固定已校验 IP，保留原 Host 和 TLS 证书域名；Bun 的 request signal 不保证及时结束，改为显式销毁并 reject。
@@ -84,7 +106,8 @@ export async function downloadPublicFile(value: string, options: { signal: Abort
   let url = remoteAddress(value, httpsOnly);
   for (let redirects = 0; redirects <= 5; redirects++) {
     signal.throwIfAborted();
-    const response = await requestFile(url, signal, accept);
+    const response: FileResponse = usesProxy(url) ? await requestProxied(url, signal, accept)
+      : await requestFile(url, signal, accept).then(incoming => Object.assign(incoming, { body: incoming }));
     if ([301, 302, 303, 307, 308].includes(response.statusCode ?? 0)) {
       const location = response.headers.location;
       response.destroy();
@@ -100,7 +123,7 @@ export async function downloadPublicFile(value: string, options: { signal: Abort
     if (Number(response.headers["content-length"]) > maxBytes) { response.destroy(); tooLarge(); }
     const chunks: Buffer[] = [];
     let size = 0;
-    for await (const chunk of response) {
+    for await (const chunk of response.body) {
       signal.throwIfAborted();
       const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
       size += bytes.length;
