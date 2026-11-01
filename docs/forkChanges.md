@@ -436,6 +436,13 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 | `apps/web/src/pages/home/bg.vue` | 点阵改用 `logo.png` 取样：Logo 内与光晕处的点取原图颜色，其余点仍用墨色；不再整体 `source-in` 染色；Logo 缩小、移到右下；雾的浓度调低 | 保留上游改动，再补回取色逻辑 |
 | `packages/startup/assets/startup.json` | `logo` 图层改为 12 个彩色量化色块（OpenCV 轮廓，512 坐标，`tr` 锚点 256）并加呼吸缩放；`logoAura` 渐变改为暖金；去掉原 `logoPen`/`logoBody` 描边 | 上游改动画时保留我们的 `logo` 图层，只合并时间轴 |
 
+### 替换为“小麦工坊徽章”
+
+- 日期：2026-11-01
+- 图形换成用户提供的成图：奶油色圆形徽章，小麦同学在工坊窗口探身，下方“麦麦工坊”字样（原图为黑底，按四角泛洪去黑底后裁成正方形）
+- 只替换资源，引用位置不变：`logo.png`、`logo.ico`、`logo.iconset/*.png` 换图；`logo.svg` 重新生成为徽章外形剪影；`startup.json` 的 `logo` 图层按新图重新量化成 12 个色块，`tr` 与时间轴不动
+- 上一版资源备份在 `D:\2api-codes\maimaiLogo\oldAssets3`
+
 ---
 
 ## 插件市场改由麦麦云提供（第一期）
