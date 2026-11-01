@@ -4,7 +4,7 @@ import { toValue, type MaybeRefOrGetter } from "vue";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { registerApiLanguage } from "@/lib/i18n";
 
-type WorkspaceEntry = { name: string; path: string; type: "file" | "directory" };
+type WorkspaceEntry = { name: string; path: string; type: "file" | "directory"; mtimeMs?: number };
 export type TextSnapshot = { text: string; revision: string; encoding: "utf-8" | "utf-8-bom" | "utf-16le" | "utf-16be" };
 const client = axios.create({ baseURL: "/api/workspaces/files", headers: { "x-toonflow-workspace": "1" } });
 registerApiLanguage(client);
