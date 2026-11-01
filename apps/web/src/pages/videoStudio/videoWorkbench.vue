@@ -11,7 +11,7 @@
           placeholder="选择模型"
           aria-label="视频模型"
           noDataText="暂无可用的视频模型"
-          @visible-change="(visible: boolean) => visible && loadModels()">
+          @visibleChange="(visible: boolean) => visible && loadModels()">
           <template #prefix><modelOption v-if="selectedModel" :model="selectedModel" iconOnly :size="17" /></template>
           <el-option-group v-for="provider in modelGroups" :key="provider.id" :label="provider.label">
             <el-option v-for="item in provider.models" :key="item.modelId" :label="item.label" :value="modelKey(item)">
@@ -146,7 +146,7 @@ const resolutions = computed(() => [...new Set((selectedModel.value?.durationRes
 // 首尾帧按模型 mode 显示；数组形式的参考生视频模式不在工作台提供。
 const modes = computed(() => (selectedModel.value?.mode ?? []).filter((item): item is string => typeof item === "string"));
 const frameSupport = computed(() => ({
-  first: modes.value.some(item => ["singleImage", "startEndRequired", "endFrameOptional"].includes(item)),
+  first: modes.value.some(item => ["singleImage", "startEndRequired", "endFrameOptional", "startFrameOptional"].includes(item)),
   last: modes.value.some(item => ["startEndRequired", "endFrameOptional", "startFrameOptional"].includes(item)),
 }));
 const first = computed(() => frameSupport.value.first ? frames.first : undefined);
@@ -188,7 +188,9 @@ watch([selectedModel, () => data.value.duration], ([choice]) => {
 }, { flush: "sync" });
 
 // 首尾帧文件属于所选文件夹，切换文件夹后清空并重新读取结果。
+// ACT: 进行中的任务不随切换取消（取消不保证退费），同一时间只允许一个任务，切换后参数仍保持禁用直到任务结束。
 watch(() => props.directory, () => {
+  results.value = [];
   removeFrame("first");
   removeFrame("last");
   void loadResults();

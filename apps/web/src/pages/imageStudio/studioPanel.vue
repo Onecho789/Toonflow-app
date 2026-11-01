@@ -66,7 +66,7 @@
     <section class="resultColumn" aria-label="生成结果">
       <el-scrollbar>
         <div class="resultGrid">
-          <div v-if="generating" class="pendingCard" role="status" aria-label="正在生成">
+          <div v-if="generatingDirectory === directory" class="pendingCard" role="status" aria-label="正在生成">
             <el-icon class="is-loading" :size="28"><icon-loader-2 /></el-icon>
           </div>
           <resultCard
@@ -116,6 +116,8 @@ const references = ref<{ path: string; mimeType: string }[]>([]);
 const results = ref<string[]>([]);
 const uploading = ref(false);
 const generating = ref(false);
+// 占位卡只显示在发起生成的文件夹里。
+const generatingDirectory = ref("");
 const controller = shallowRef<AbortController>();
 const fileInput = ref<HTMLInputElement>();
 const preview = ref<{ url: string; name?: string }>();
@@ -196,6 +198,7 @@ async function startGeneration() {
   const current = new AbortController();
   controller.value = current;
   generating.value = true;
+  generatingDirectory.value = directory;
   try {
     const [result] = await ai.generateImage({ ...input, directory }, current.signal);
     if (!result) throw new Error("麦麦云未返回图片");
@@ -205,6 +208,7 @@ async function startGeneration() {
     if (controller.value === current) {
       controller.value = undefined;
       generating.value = false;
+      generatingDirectory.value = "";
     }
     if (directory === props.directory) await loadResults().catch(error => showNodeError(error, "结果读取失败"));
   }
