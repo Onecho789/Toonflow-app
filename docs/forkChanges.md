@@ -424,15 +424,48 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 - 日期：2026-11-01
 - 图形：小麦同学从麦穗屋顶小工坊的窗口探身挥手，嫩绿圆角底板；用自家画布的图片生成节点产出（原图与候选在 `D:\2api-codes\maimaiLogo`，旧资源备份在其 `oldAssets/`）
 - `packages/assets/logo.ico`、`logo.iconset/*.png`：彩色原图去白边、透明圆角后按尺寸缩放；新增 `logo.png`（256px），网页里直接显示 Logo 的地方改用它
-- `logo.svg` 仍是单色剪影（圆角底板外形，窗口和窗格镂空），只给需要单色的地方用：加载页描边动画、引导页白色 Logo、对话欢迎图标的 `mask-image`、首页像素雾取样
-- 原生启动动画 `packages/startup/assets/startup.json` 的 `logo` 图层换成新剪影：最大轮廓放 `logoPen`，其余镂空放 `logoBody`，`tr` 缩放和位移按原显示区域对齐；时间轴不变
+- `logo.svg` 仍是单色剪影（圆角底板外形，窗口和窗格镂空），只给需要单色的地方用
+- 首页背景、加载页、原生启动动画随后改为彩色（见下表），`logo.svg` 现在只剩引导页白色 Logo 和对话欢迎图标的 `mask-image` 在用
 
 ### 改动了上游文件
 
 | 文件 | 改动 | 冲突时的处理 |
 | --- | --- | --- |
 | `apps/web/src/pages/home/index.vue`、`components/loginGate.vue`、`components/settings/panels/about.vue` | Logo 改引 `logo.png`，删掉暗色模式的 `filter: invert(1)` | 保留上游改动，再补回 |
-| `apps/web/src/components/loadingPage.vue` | 填充图改引 `logo.png`；暗色反色只作用在描边层 `.logoOutline` | 保留上游改动，再补回 |
+| `apps/web/src/components/loadingPage.vue` | 去掉描边动画，改为彩色 `logo.png` 放大淡入，入场结束即标记 `drawn`，之后呼吸缩放加暖金径向光晕，结束时整页淡出；`visible` / `drawn` 双向绑定与时机不变 | 上游若改描边动画，保留我们的版本，只合并状态流转的改动 |
+| `apps/web/src/pages/home/bg.vue` | 点阵改用 `logo.png` 取样：Logo 内与光晕处的点取原图颜色，其余点仍用墨色；不再整体 `source-in` 染色；Logo 缩小、移到右下；雾的浓度调低 | 保留上游改动，再补回取色逻辑 |
+| `packages/startup/assets/startup.json` | `logo` 图层改为 12 个彩色量化色块（OpenCV 轮廓，512 坐标，`tr` 锚点 256）并加呼吸缩放；`logoAura` 渐变改为暖金；去掉原 `logoPen`/`logoBody` 描边 | 上游改动画时保留我们的 `logo` 图层，只合并时间轴 |
+
+---
+
+## 插件市场改由麦麦云提供（第一期）
+
+- 日期：2026-11-01
+- 管理员在麦麦云后台“插件市场”上传节点、文件扩展、技能、工具；客户端登录麦麦云后浏览、收藏、安装，不再需要 TF-Router API Key，也不再请求 `api.toonflow.net`
+- 第一期不含“我的”（上传者自管）和 Agent 类型；已安装、MCP、FFmpeg 页不变
+- 云端接口见 maimai-cloud `docs/apiContract.md` 的 `/api/admin/plugins`、`/v1/plugins`
+
+### 我们新增的文件
+
+| 文件 | 说明 |
+| --- | --- |
+| `apps/server/src/utils/cloud/plugins.ts` | `listCloudPlugins`、`togglePluginCollection`，经 `gatewayFetch` 调 `/v1/plugins*`，给每项补下载地址 `url` |
+| `apps/server/src/routes/cloud/plugins/list.ts` | `GET /api/cloud/plugins/list`，query 校验 `page`、`size`、`type`、`keyword` |
+| `apps/server/src/routes/cloud/plugins/collection.ts` | `POST /api/cloud/plugins/collection`，`{ id }` 切换收藏 |
+
+### 删除的文件
+
+- `apps/web/src/lib/tf.ts`：TF-Router 市场请求封装，已无调用方
+
+### 改动了上游文件
+
+| 文件 | 改动 | 冲突时的处理 |
+| --- | --- | --- |
+| `apps/web/src/components/settings/panels/pluginMarket/index.vue` | 发现页改调 `/api/cloud/plugins/*`；未登录显示登录提示；删掉 TF-Router Key 卡片、网页版市场与开发者文档链接、“我的”筛选；发现页隐藏 Agent 类型 | 上游改市场 UI 时保留我们的数据来源与删减，再合并其余样式与交互 |
+| `apps/server/src/utils/plugins/install.ts` | 下载改用 `sessionFetch`，麦麦云地址自动带设备 Key，其他地址行为不变 | 保留上游改动，再把 `fetch` 换回 `sessionFetch` |
+| `apps/server/src/types/desktop.ts` | 新增 `CloudPlugin` 类型 | 直接补回 |
+| `apps/server/src/utils.ts` | 导出 `cloudPlugins` | 直接补回 |
+| `apps/server/src/router.ts` | `bun run routes` 重新生成 | 不手改，合并后重新生成 |
 
 ---
 

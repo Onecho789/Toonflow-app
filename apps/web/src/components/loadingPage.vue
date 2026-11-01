@@ -1,11 +1,9 @@
 <template>
   <teleport to="body">
-    <div v-if="visible" class="loadingPage" role="status" aria-label="正在加载项目">
-      <div class="logoWrap" :class="{ drawn, filling }" aria-hidden="true">
-        <div class="logoOutline" @animationend="finishDrawing">
-          <div ref="logoElement" class="logoPulse" v-html="logoSvg" />
-        </div>
-        <img class="logoFill" :src="logoUrl" alt="" @animationend="finishFilling" />
+    <div v-if="visible" class="loadingPage" :class="{ leaving }" role="status" aria-label="正在加载项目" @animationend="finishLeaving">
+      <div class="logoWrap" :class="{ drawn }" aria-hidden="true">
+        <span class="logoGlow" />
+        <img class="logoImage" :src="logoUrl" alt="" @animationend="finishEntering" />
       </div>
     </div>
   </teleport>
@@ -13,27 +11,12 @@
 
 <script setup lang="ts">
 import { onBeforeUnmount, ref, watch } from "vue";
-import logoRaw from "@toonflow/assets/logo.svg?raw";
 import logoUrl from "@toonflow/assets/logo.png";
 
 const props = defineProps<{ active: boolean }>();
 const visible = defineModel<boolean>("visible", { default: false });
 const drawn = defineModel<boolean>("drawn", { default: false });
-const logoDocument = new DOMParser().parseFromString(logoRaw, "image/svg+xml");
-// ACT: 仅拆分当前 Logo 的绝对 M 轮廓；相对路径需解析命令，填充始终复用原图。
-for (const [index, path] of [...logoDocument.querySelectorAll("path")].entries()) {
-  const contours = path.getAttribute("d")!.match(/M[^M]*/g)!;
-  path.replaceWith(...contours.map(contour => {
-    const outline = path.cloneNode(false) as SVGPathElement;
-    outline.setAttribute("d", contour);
-    outline.setAttribute("pathLength", "1");
-    outline.setAttribute("data-part", String(index));
-    return outline;
-  }));
-}
-const logoSvg = new XMLSerializer().serializeToString(logoDocument.documentElement);
-const logoElement = ref<HTMLElement>();
-const filling = ref(false);
+const leaving = ref(false);
 const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
 const reducedMotion = ref(motionPreference.matches);
 
@@ -49,24 +32,25 @@ watch([() => props.active, reducedMotion], ([active, reducedMotion]) => {
       drawn.value = false;
       visible.value = true;
     }
-    filling.value = false;
+    leaving.value = false;
   }
   if (reducedMotion) {
     drawn.value = true;
     if (!active) visible.value = false;
   } else if (!active && drawn.value && visible.value) {
-    filling.value = true;
+    leaving.value = true;
   }
 }, { immediate: true });
 
-function finishDrawing(event: AnimationEvent) {
-  if (event.target !== logoElement.value?.querySelector("path:last-of-type")) return;
+// 入场动画结束后才允许页面切换，与原描边结束的时机一致。
+function finishEntering() {
+  if (drawn.value) return;
   drawn.value = true;
-  if (!props.active) filling.value = true;
+  if (!props.active) leaving.value = true;
 }
 
-function finishFilling() {
-  if (!props.active) visible.value = false;
+function finishLeaving(event: AnimationEvent) {
+  if (event.target === event.currentTarget && !props.active) visible.value = false;
 }
 </script>
 
@@ -77,79 +61,65 @@ function finishFilling() {
   z-index: 1100;
   background: var(--el-bg-color);
 
+  &.leaving { animation: pageLeave 0.3s ease both; }
+
   .logoWrap {
     position: absolute;
     top: 50dvh;
     left: 50vw;
-    width: 96px;
+    width: 112px;
     aspect-ratio: 1;
     transform: translate(-50%, -50%);
 
-    .logoOutline {
-      width: 100%;
-      line-height: 0;
-      will-change: opacity;
-
-      .dark & { filter: invert(1); }
-
-      :deep(svg) { display: block; width: 100%; height: auto; overflow: visible; }
-      :deep(path) {
-        stroke: #000;
-        stroke-width: 14;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-        fill: none;
-        stroke-dasharray: 1;
-        stroke-dashoffset: 1;
-        animation: logoDraw 0.65s linear both;
-      }
-      :deep(path[data-part="1"]) { animation-delay: 0.08s; }
+    .logoGlow {
+      position: absolute;
+      inset: -45%;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgb(245 183 49 / 45%) 0%, rgb(242 140 40 / 18%) 42%, transparent 70%);
+      animation: glowEnter 0.6s ease both;
     }
 
-    .logoFill {
-      position: absolute;
-      inset: 0;
+    .logoImage {
+      position: relative;
       display: block;
       width: 100%;
       height: 100%;
-      opacity: 0;
-      will-change: opacity;
+      animation: logoEnter 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
     }
 
-    &.drawn .logoOutline :deep(path) { animation: none; stroke-dashoffset: 0; }
-    &.drawn .logoPulse { animation: logoPulse 0.9s ease-in-out infinite; will-change: opacity; }
-    &.filling {
-      .logoOutline { animation: logoOutlineOut 0.25s ease both; }
-      .logoPulse { animation-play-state: paused; }
-      .logoFill { animation: logoFill 0.25s ease both; }
+    &.drawn {
+      .logoGlow { animation: glowBreathe 1.6s ease-in-out infinite; }
+      .logoImage { animation: logoBreathe 1.6s ease-in-out infinite; }
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .logoOutline { opacity: 0; }
-      .logoOutline :deep(path) { animation: none; }
-      &.drawn .logoPulse { animation: none; }
-      .logoFill { opacity: 1; }
+      .logoGlow, .logoImage, &.drawn .logoGlow, &.drawn .logoImage { animation: none; }
     }
   }
 }
 
-@keyframes logoDraw {
-  from { stroke-dashoffset: 1; }
-  to { stroke-dashoffset: 0; }
+@keyframes logoEnter {
+  from { opacity: 0; transform: scale(0.82); }
+  to { opacity: 1; transform: scale(1); }
 }
 
-@keyframes logoFill {
-  0% { opacity: 0; }
-  70%, 100% { opacity: 1; }
+@keyframes glowEnter {
+  from { opacity: 0; transform: scale(0.6); }
+  to { opacity: 1; transform: scale(1); }
 }
 
-@keyframes logoOutlineOut {
-  0% { opacity: 1; }
-  70%, 100% { opacity: 0; }
+@keyframes logoBreathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
 }
 
-@keyframes logoPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.45; }
+@keyframes glowBreathe {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(1.12); }
+}
+
+@keyframes pageLeave {
+  from { opacity: 1; }
+  to { opacity: 0; }
 }
 </style>

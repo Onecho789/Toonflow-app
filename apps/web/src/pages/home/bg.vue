@@ -4,7 +4,7 @@
 
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
-import logoUrl from "@toonflow/assets/logo.svg";
+import logoUrl from "@toonflow/assets/logo.png";
 
 type FogPoint = { x: number; y: number; nx: number; ny: number; ink: number; halo: number; variation: number; pixelIndex: number };
 type LogoMask = { pixels: Uint8ClampedArray; halo: Uint8ClampedArray };
@@ -33,6 +33,7 @@ let width = 0;
 let height = 0;
 let pixelRatio = 1;
 let inkColor = "";
+let inkRgb = [0, 0, 0];
 
 function sampleLogo(): LogoMask | undefined {
   const mask = document.createElement("canvas");
@@ -101,19 +102,25 @@ function resize() {
 }
 
 function updateScrollPoints() {
-  if (!logo || !width || !height) return;
-  const logoSize = Math.min(height * 0.86, width * 0.82, 560);
-  const logoX = width * (width < 600 ? 0.53 : 0.76);
-  const logoY = height * 0.45;
+  if (!logo || !fogPixels || !width || !height) return;
+  const logoSize = Math.min(height * 0.6, width * (width < 600 ? 0.7 : 0.36), 420);
+  const logoX = width * (width < 600 ? 0.53 : 0.8);
+  const logoY = height * 0.58;
   for (const point of points) {
     const contentY = point.y + props.scrollTop;
     point.ny = contentY / height;
     const maskX = Math.floor((point.x - logoX) / logoSize * maskSize + maskSize / 2);
     const maskY = Math.floor((contentY - logoY) / logoSize * maskSize + maskSize / 2);
-    const index = (maskY * maskSize + maskX) * 4 + 3;
+    const index = (maskY * maskSize + maskX) * 4;
     const inMask = maskX >= 0 && maskX < maskSize && maskY >= 0 && maskY < maskSize;
-    point.ink = inMask ? logo.pixels[index]! / 255 : 0;
-    point.halo = inMask ? logo.halo[index]! / 255 : 0;
+    point.ink = inMask ? logo.pixels[index + 3]! / 255 : 0;
+    point.halo = inMask ? logo.halo[index + 3]! / 255 : 0;
+    // Logo 内的点取原图颜色，光晕处按模糊图颜色向墨色过渡，其余点保持墨色。
+    const source = point.ink > 0 ? logo.pixels : logo.halo;
+    const tint = Math.min(1, point.ink + point.halo * 2);
+    for (let channel = 0; channel < 3; channel++) {
+      fogPixels.data[point.pixelIndex - 3 + channel] = inkRgb[channel]! + ((inMask ? source[index + channel]! : 0) - inkRgb[channel]!) * tint;
+    }
   }
 }
 
@@ -135,7 +142,7 @@ function draw() {
   let modulation = 0;
   for (const { x, y, nx, ny, ink, halo, variation, pixelIndex } of points) {
     if (ink > 0.65) {
-      fogPixels.data[pixelIndex] = ink * 0.32 * 255;
+      fogPixels.data[pixelIndex] = ink * 0.5 * 255;
       continue;
     }
     if (x !== columnX) {
@@ -155,16 +162,12 @@ function draw() {
     const hover = pointer.strength > 0.001 ? Math.max(0, 1 - Math.hypot(x - pointer.x, y - pointer.y) / radius) ** 2 * pointer.strength : 0;
     const mist = Math.min(1, fog * modulation);
     const size = Math.min(fogPixelSize, (0.55 + step * (mist * 0.49 + haloStrength * 0.75 + hover * 0.47)) * variation);
-    fogPixels.data[pixelIndex] = Math.min(0.95, (ny < 1 ? 0.08 : 0) + mist * 0.3 + haloStrength * 1.1 + hover * 0.2)
+    fogPixels.data[pixelIndex] = Math.min(0.95, (ny < 1 ? 0.05 : 0) + mist * 0.18 + haloStrength * 0.9 + hover * 0.2)
       * (1 - ink) * Math.min(1, (size / fogPixelSize) ** 2) * 255;
   }
   // ACT: 点阵统一写入离屏掩膜后批量绘制，避免逐点调用 Canvas fillRect。
   fogContext.putImageData(fogPixels, 0, 0);
   context.drawImage(fogLayer, 0, 0, fogLayer.width * fogPixelSize, fogLayer.height * fogPixelSize);
-  context.globalCompositeOperation = "source-in";
-  context.fillStyle = inkColor;
-  context.fillRect(0, 0, width, height);
-  context.globalCompositeOperation = "source-over";
 }
 
 function tick(timestamp: number) {
@@ -195,6 +198,8 @@ function updateColor() {
   const color = getComputedStyle(fogCanvas.value!).color;
   if (color === inkColor) return;
   inkColor = color;
+  inkRgb = color.match(/[\d.]+/g)!.slice(0, 3).map(Number);
+  updateScrollPoints();
   draw();
 }
 
