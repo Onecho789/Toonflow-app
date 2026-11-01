@@ -62,7 +62,7 @@
           :error="nodeErrors[type]"
           :loading="nodeLoads.has(type) || (nodeListLoading && !nodeTypes[type] && !nodeErrors[type])" />
       </template>
-      <background v-if="canvasId" :gap="16" patternColor="var(--el-border-color)" />
+      <background v-if="canvasId" :gap="16" patternColor="var(--canvasDotColor)" />
       <div v-if="!canvasId" class="canvasOverlay" role="status" @contextmenu.prevent @dragover.prevent @drop.prevent>
         从左上角打开一个画布，就可以开始创作啦
       </div>
@@ -1342,8 +1342,14 @@ const defaultEdgeOptions = markRaw({
 }
 
 .canvas {
+  // 浅色下 border-color 在白底上几乎看不见，改用与深色点阵对比度相近的占位灰，深色沿用原色。
+  --canvasDotColor: var(--el-text-color-placeholder);
   width: 100%;
   height: 100%;
+
+  html.dark & {
+    --canvasDotColor: var(--el-border-color);
+  }
 
   &.canvasUnselected :deep(.vue-flow__viewport) {
     visibility: hidden;

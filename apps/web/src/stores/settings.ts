@@ -30,7 +30,7 @@ export const settingsStorage = {
 
 // 背景样式：晨曦麦浪、流星许愿、星云穿梭。
 export const backgroundStyles = ["dawn", "meteor", "nebula"] as const;
-export const defaultUiSettings = { theme: "dark", language: "system", primaryColor: "#409eff", fontScale: 100, mobileScale: 75, radius: 8, startupAnimation: true, background: "nebula" as (typeof backgroundStyles)[number] };
+export const defaultUiSettings = { theme: "light", language: "system", primaryColor: "#409eff", fontScale: 100, mobileScale: 75, radius: 8, startupAnimation: true, background: "meteor" as (typeof backgroundStyles)[number] };
 export const uiSettings = computed(() => {
   const raw = settings.value.ui;
   const ui = raw && typeof raw === "object" && !Array.isArray(raw) ? raw as Record<string, unknown> : {};
