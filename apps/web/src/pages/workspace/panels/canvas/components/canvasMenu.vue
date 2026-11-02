@@ -41,9 +41,8 @@
   </panel>
   <panel v-if="cloudBalance" class="balanceMenuPanel" position="top-right">
     <el-card class="balanceCard" shadow="never" :bodyStyle="{ padding: '2px 4px' }">
-      <el-button class="balanceTrigger" text :loading="cloudBalanceLoading" :title="cloudBalanceError || '点击刷新麦麦云余额'" aria-label="刷新麦麦云余额" @click="loadCloudBalance">
-        <span class="providerLabel">余额</span>
-        <span>¥{{ (cloudBalance.balance / 10000).toFixed(2) }}</span>
+      <el-button class="balanceTrigger" text :loading="cloudBalanceLoading" :title="cloudBalanceError || '点击刷新麦浪余额'" :aria-label="`麦浪余额 ${cloudBalanceText}，点击刷新`" @click="loadCloudBalance">
+        <mailangBalance />
       </el-button>
     </el-card>
   </panel>
@@ -79,7 +78,8 @@ import { useWorkspaceStore } from "@/stores/workspace";
 import useWorkspaceFiles from "@/lib/workspaceFiles";
 import { getCanvasAssetDirectories, isCanvasFile } from "@/pages/workspace/canvasFile";
 import { findRemainingCanvas } from "../canvasFiles";
-import { cloudBalance, cloudBalanceError, cloudBalanceLoading, loadCloudBalance } from "@/stores/cloudAccount";
+import { cloudBalance, cloudBalanceText, cloudBalanceError, cloudBalanceLoading, loadCloudBalance } from "@/stores/cloudAccount";
+import mailangBalance from "@/components/mailangBalance.vue";
 
 const props = defineProps<{
   directory?: string;
@@ -820,8 +820,6 @@ defineExpose({ getCanvases, peekCanvases, initialized, addCanvas, switchCanvas, 
   max-width: calc(50% - 90px);
 
   .balanceCard {
-    font-variant-numeric: tabular-nums;
-    .providerLabel { color: var(--el-text-color-secondary); font-size: 12px; }
     .balanceTrigger {
       height: 28px;
       padding: 0 3px;

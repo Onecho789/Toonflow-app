@@ -1,5 +1,5 @@
 import axios from "axios";
-import { onScopeDispose, ref, shallowRef } from "vue";
+import { computed, onScopeDispose, ref, shallowRef } from "vue";
 import type { CloudUser } from "@toonflow/server/desktop";
 
 export const cloudAccount = shallowRef<CloudUser | null>(null);
@@ -52,8 +52,9 @@ export function logoutCloudAccount() {
   });
 }
 
-// 余额单位为 0.0001 元，充值页地址由本机服务返回。
+// 1 元 = 1 麦浪；接口余额单位为 0.0001 麦浪，充值页地址由本机服务返回。
 export const cloudBalance = shallowRef<{ balance: number; walletUrl: string } | null>(null);
+export const cloudBalanceText = computed(() => cloudBalance.value ? (cloudBalance.value.balance / 10000).toFixed(2) : "—");
 export const cloudBalanceLoading = ref(false);
 export const cloudBalanceError = ref("");
 let balanceRequest: Promise<void> | undefined;

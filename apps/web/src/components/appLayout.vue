@@ -44,9 +44,8 @@
         </router-link>
       </nav>
       <div class="sidebarFooter">
-        <button v-if="cloudBalance" class="sidebarItem" type="button" :aria-label="`麦麦云余额 ¥${balanceText}，打开账号设置`" :title="cloudBalanceError || '麦麦云余额，点击打开账号设置'" @click="openSettings('account')">
-          <icon-coin :size="18" aria-hidden="true" />
-          <span class="sidebarText">¥{{ balanceText }}</span>
+        <button v-if="cloudBalance" class="sidebarItem" type="button" :aria-label="`麦浪余额 ${cloudBalanceText}，打开账号设置`" :title="cloudBalanceError || `麦浪余额 ${cloudBalanceText}，点击打开账号设置`" @click="openSettings('account')">
+          <mailangBalance />
         </button>
         <button class="sidebarItem" :class="{ connected: deviceHubEnabled || mobileConnection.online === true }" type="button" :aria-label="mobileConnectionLabel" :title="mobileConnectionLabel" @click="mobileConnectVisible = true">
           <span class="sidebarIcon">
@@ -74,16 +73,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineAsyncComponent, ref, watch } from "vue";
+import { defineAsyncComponent, ref, watch } from "vue";
 import { IconQrcode, IconDeviceDesktop, IconHome, IconInfinity, IconPhotoAi, IconMovie } from "@tabler/icons-vue";
 import logoUrl from "@toonflow/assets/logo.png";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { hasDesktopUpdate } from "@/stores/desktopUpdate";
-import { cloudAccount, cloudBalance, cloudBalanceError, useCloudBalanceRefresh } from "@/stores/cloudAccount";
+import { cloudAccount, cloudBalance, cloudBalanceText, cloudBalanceError, useCloudBalanceRefresh } from "@/stores/cloudAccount";
 import { loadTickets, ticketUnread } from "@/stores/feedback";
 import { deviceHubEnabled, mobileConnection, mobileConnectionLabel } from "@/lib/mobile";
 import settings from "@/components/settings/index.vue";
 import assetLibraryDialog from "@/pages/home/assetLibraryDialog.vue";
+import mailangBalance from "@/components/mailangBalance.vue";
 
 const mobileConnect = defineAsyncComponent(() => import("@/components/mobileConnect.vue"));
 const navItems = [
@@ -98,7 +98,6 @@ const assetsVisible = ref(false);
 const mobileConnectVisible = ref(false);
 const settingsVisible = ref(false);
 const settingsPanel = ref<string>();
-const balanceText = computed(() => ((cloudBalance.value?.balance ?? 0) / 10000).toFixed(2));
 useCloudBalanceRefresh();
 // ACT: 小红点只在登录状态就绪（打开应用或切换账号）时拉一次工单列表，不做轮询或推送。
 watch(() => cloudAccount.value?.id, id => {
@@ -152,7 +151,8 @@ function openSettings(panel?: string) {
         gap: 0;
         padding-inline: 14px;
 
-        .sidebarText { max-width: 0; opacity: 0; }
+        .sidebarText, :deep(.balanceText) { max-width: 0; opacity: 0; }
+        :deep(.mailangBalance) { gap: 0; }
       }
     }
   }
@@ -275,6 +275,15 @@ function openSettings(panel?: string) {
         transition: max-width var(--sidebarMotion) ease, opacity var(--sidebarFade) ease;
       }
 
+      :deep(.mailangBalance) {
+        transition: gap var(--sidebarMotion) ease;
+      }
+
+      :deep(.balanceText) {
+        max-width: 180px;
+        transition: max-width var(--sidebarMotion) ease, opacity var(--sidebarFade) ease;
+      }
+
       .sidebarIcon {
         position: relative;
         display: inline-flex;
@@ -355,7 +364,8 @@ function openSettings(panel?: string) {
         gap: 0;
         padding-inline: 14px;
 
-        .sidebarText { max-width: 0; opacity: 0; }
+        .sidebarText, :deep(.balanceText) { max-width: 0; opacity: 0; }
+        :deep(.mailangBalance) { gap: 0; }
       }
     }
   }

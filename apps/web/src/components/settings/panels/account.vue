@@ -11,9 +11,8 @@
       </div>
       <div v-if="cloudAccount" class="accountRow">
         <div class="accountInfo">
-          <span>余额</span>
-          <strong class="balance">{{ cloudBalance ? `¥${(cloudBalance.balance / 10000).toFixed(2)}` : "—" }}</strong>
-          <el-button text :icon="IconRefresh" :loading="cloudBalanceLoading" aria-label="刷新余额" @click="loadCloudBalance" />
+          <mailangBalance />
+          <el-button text :icon="IconRefresh" :loading="cloudBalanceLoading" aria-label="刷新麦浪余额" @click="loadCloudBalance" />
         </div>
         <el-button v-if="cloudBalance" tag="a" type="primary" :href="cloudBalance.walletUrl" target="_blank" rel="noopener noreferrer">充值</el-button>
       </div>
@@ -26,6 +25,7 @@
 
 <script setup lang="ts">
 import { IconRefresh } from "@tabler/icons-vue";
+import mailangBalance from "@/components/mailangBalance.vue";
 import { cloudAccount, cloudAccountError, cloudAccountLoading, cloudBalance, cloudBalanceError, cloudBalanceLoading, loadCloudBalance, logoutCloudAccount } from "@/stores/cloudAccount";
 
 void loadCloudBalance();
@@ -61,10 +61,6 @@ void loadCloudBalance();
 
         .email {
           overflow-wrap: anywhere;
-        }
-
-        .balance {
-          font-variant-numeric: tabular-nums;
         }
       }
     }

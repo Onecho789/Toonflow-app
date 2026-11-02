@@ -767,6 +767,15 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 
 改动的上游文件：`apps/web/src/components/modelPopover.vue`（`reasoningOptions`、档位 watch，删 `useId` 与 `.reasoningHint`）。冲突时保留我们的版本。
 
+## 麦浪余额与桌面 2.1.0
+
+- 日期：2026-11-03
+- 麦麦云余额按 1 元 = 1 麦浪展示，内部仍使用 0.0001 元整数计费；侧栏、账号设置和画布右上角共用 `mailangBalance.vue`，显示金色麦穗、余额数值与麦浪单位。
+- 余额格式化统一在 `stores/cloudAccount.ts`，保留刷新、侧栏折叠及充值链接交互；充值跳转云端钱包，支持在线支付和兑换码两条独立路径。
+- 桌面版本升级为 2.1.0，首次发布构建 Windows 完整安装包与更新归档。
+
+改动的上游文件：`electrobun.config.ts` 更新版本；`components/appLayout.vue`、`components/settings/panels/account.vue`、`pages/workspace/panels/canvas/components/canvasMenu.vue` 复用麦浪余额组件。冲突时保留共享组件与原有交互；不要把麦浪单位改回人民币符号。
+
 ## 同步记录
 
 | 日期 | 上游提交 | 说明 |
