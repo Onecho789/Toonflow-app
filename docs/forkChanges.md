@@ -336,7 +336,7 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 | `apps/server/src/agent/runtime/model.ts` | `compat` 直接用模型自身的配置，不再强制设置 `supportsMidConvoEffort` | 保留 |
 | `apps/server/src/agent/runtime/index.ts`、`types.ts` | 工具事件带上 `label`（工具显示名） | 上游改 `send` 时补回注入 label 的逻辑 |
 | `apps/web/src/components/agent/conversation.vue` | 新增 `runStatus` 状态行和样式 | 保留 |
-| `apps/web/src/components/modelPopover.vue` | 思考强度改为下拉框，档位显示英文 Default/Off/Minimal/Low/Medium/High/XHigh/Max（与 OpenAI 档位名对应，不走 i18n）；Default 不发思考参数（2026-11-01 由按钮网格改来） | 保留我们的版本 |
+| `apps/web/src/components/modelPopover.vue` | 思考强度改为下拉框，档位显示英文 Off/Minimal/Low/Medium/High/XHigh/Max（与 OpenAI 档位名对应，不走 i18n）。2026-11-02 去掉 Default：支持思考的模型总选中一个档位，没选或不在可选范围时默认 Medium，没有 Medium 取第一个非 Off 档（2026-11-01 由按钮网格改来） | 保留我们的版本 |
 | `packages/i18n/src/**` | 新增 超高、最少、出错、等待你回答、运行中 · 调用 {0}、运行中…；删除 极高、最小 | 先跑 extract，再手工补另外 20 种语言 |
 
 注意：本次 extract 还发现了与本次改动无关的漂移，是设备 Key 提交后云端相关的文案（3 个新增，4 个已废弃），本次没有处理，下次补字典时一起处理。
@@ -758,6 +758,14 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 - 章节是 `pages/guide/chapters/*.md`，用 `import.meta.glob` 原文导入，复用 `messageMarkdown.vue` 渲染；开发章节参考上游插件开发指南改写，去掉了 api.toonflow.net 发布与 `toonflow://` 安装链接
 
 我们新增的文件：`apps/web/src/pages/guide/`。改动的上游文件：`router/index.ts` 加 `guide` 路由，`components/appLayout.vue` 在「问题反馈」前加入口。冲突时保留上游改动并补回这两处。
+
+## 思考强度默认选中档位
+
+- 日期：2026-11-02
+- 对话、首页、单 Agent、A2A 设置的模型选择去掉「Default」与「默认由模型决定」提示：支持思考的模型总选中一个档位，没选或已保存的档位不在新模型范围内时选 Medium，没有 Medium 取第一个非 Off 档；不支持思考的模型清空档位，不发思考参数
+- 配套麦麦云 2.9.0：调用记录按请求原值记下思考档位（`reasoningEffort`）
+
+改动的上游文件：`apps/web/src/components/modelPopover.vue`（`reasoningOptions`、档位 watch，删 `useId` 与 `.reasoningHint`）。冲突时保留我们的版本。
 
 ## 同步记录
 

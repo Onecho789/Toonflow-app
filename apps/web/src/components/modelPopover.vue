@@ -33,10 +33,9 @@
           </el-select>
         </el-form-item>
         <el-form-item v-if="reasoningLevels.length" label="思考强度">
-          <el-select v-model="reasoningEffort" :disabled="disabled" :teleported="false" aria-label="思考强度" :aria-describedby="`${reasoningId}Hint`">
+          <el-select v-model="reasoningEffort" :disabled="disabled" :teleported="false" aria-label="思考强度">
             <el-option v-for="option in reasoningOptions" :key="option.value" :label="option.label" :value="option.value" />
           </el-select>
-          <div :id="`${reasoningId}Hint`" class="reasoningHint">默认由模型决定</div>
         </el-form-item>
       </el-form>
     </el-popover>
@@ -44,7 +43,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, useId, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { IconChevronDown, IconChevronUp } from "@tabler/icons-vue";
 import { modelIcon } from "@toonflow/model-icons";
 import type { ThinkingLevel } from "@toonflow/server/modelReasoning";
@@ -55,19 +54,21 @@ const selectedModel = defineModel<string>({ default: "" });
 const reasoningEffort = defineModel<string>("reasoningEffort", { default: "" });
 const props = withDefaults(defineProps<{ active?: boolean; disabled?: boolean }>(), { active: true, disabled: false });
 const visible = ref(false);
-const reasoningId = useId();
 const reasoningLabels: Record<ThinkingLevel, string> = { off: "Off", minimal: "Minimal", low: "Low", medium: "Medium", high: "High", xhigh: "XHigh", max: "Max" };
 const selectedModelChoice = computed(() => modelChoices.value.find(item => item.value === selectedModel.value));
 const reasoningLevels = computed(() => selectedModelChoice.value?.reasoningLevels ?? []);
-const reasoningOptions = computed(() => [{ label: "Default", value: "" }, ...reasoningLevels.value.map(value => ({ label: reasoningLabels[value], value }))]);
-const reasoningLabel = computed(() => reasoningOptions.value.find(item => item.value === reasoningEffort.value)?.label ?? "Default");
+const reasoningOptions = computed(() => reasoningLevels.value.map(value => ({ label: reasoningLabels[value], value })));
+const reasoningLabel = computed(() => reasoningOptions.value.find(item => item.value === reasoningEffort.value)?.label ?? "");
 // 没有已保存选择时取设置里的默认模型；旧对话的本地供应商 ID（如 codex）按模型 ID 换成云端选项；已下架时回退第一项并提示。
 watch([modelChoices, selectedModel], ([items, value]) => {
   const next = pickModel(items, value);
   if (next !== value) selectedModel.value = next;
 }, { immediate: true });
+// 支持思考的模型总要选中一个档位：没选或不在可选范围时优先 medium，没有 medium 取第一个非 off 档；不支持思考时清空。
 watch([() => selectedModelChoice.value?.reasoningLevels, reasoningEffort], ([levels, effort]) => {
-  if (levels && effort && !levels.includes(effort as ThinkingLevel)) reasoningEffort.value = "";
+  if (!levels || levels.includes(effort as ThinkingLevel)) return;
+  const next = levels.includes("medium") ? "medium" : levels.find(level => level !== "off") ?? levels[0] ?? "";
+  if (next !== effort) reasoningEffort.value = next;
 }, { immediate: true, flush: "post" });
 watch(() => !props.active || props.disabled, close => { if (close) visible.value = false; });
 </script>
@@ -124,12 +125,6 @@ watch(() => !props.active || props.disabled, close => { if (close) visible.value
       }
       .el-select {
         width: 100%;
-      }
-      .reasoningHint {
-        margin-top: 8px;
-        color: var(--el-text-color-secondary);
-        font-size: 12px;
-        line-height: 18px;
       }
     }
   }
