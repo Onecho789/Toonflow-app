@@ -801,3 +801,20 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 | `packages/nodeScaffold/src/nodeSkeleton.vue` | 选中/键盘焦点保持刷新删除按钮可见，标题按钮 32px、媒体操作 36px；拖动和框选结束恢复浮动操作；下载/全屏补文字和无资源提示 | 保留只读、多选隐藏逻辑与拖动期间隐藏，结束后恢复；不混入插件专属业务 |
 
 验证：Web 与节点脚手架现有 typecheck 均通过，Web 构建通过。实际画布点击验收待预览账号登录；节点内部浮动工具条仍随画布缩放。原始文件哈希、差异及回退验证保存在共享 `docs/history/canvasInteraction20261103/`；2.1.1 安装包构建、清单与摘要记录在共享 `docs/history/canvasDesktop21120261103/`。
+
+## 画布导航与外观（2026-11-04）
+
+- 桌面版本：2.1.2，打包包含本节画布鼠标操作、工具栏分组与外观调整。
+
+- 默认空白左键拖动平移，Ctrl 或 Space 临时框选，滚轮直接围绕指针缩放；节点继续支持点击、编辑和拖动。V/H 分别切换框选与平移工具，原有快捷键可自定义。
+- 仅完整的旧鼠标默认组合（Space 平移、Ctrl 缩放、无需按键框选）自动迁移；自定义组合保留。迁移标记与设置一起保存，失败保留原值并提示。
+- 左下视图栏集中小地图、适应视图、缩放滑条及比例输入；主工具栏集中添加、模式、撤销/重做、素材、整理及外观。窄画布上下错开视图栏和主栏。
+- 外观复用全局浅色/深色/系统设置，新增点阵/网格/空白背景；网格吸附和显示连线继续作用于当前画布。整理使用普通历史撤销。
+
+| 文件 | 我们改了什么 | 冲突时的处理 |
+| --- | --- | --- |
+| `apps/web/src/lib/canvasShortcuts.ts`、`stores/settings.ts`、`components/settings/panels/general/canvasShortcuts.vue` | 新鼠标默认值、一次性旧默认迁移、背景模式及操作说明 | 保留自定义组合、保存队列与迁移失败处理 |
+| `apps/web/src/pages/workspace/panels/canvas/index.vue` | 临时框选优先、原生平移键联动、节点可交互、滚轮缩放、背景显示及公开当前画布操作 | 保留编辑区域排除、追加选择和已有选区穿透；不恢复抓手模式对所有节点禁用指针事件 |
+| `apps/web/src/pages/workspace/index.vue`、`panels/canvas/canvasHost.vue`、`panels/canvas/components/canvasControls.vue` | 工具栏分组、缩放滑条、外观面板、当前画布状态与动作转发 | 保留当前画布的历史/禁用状态与窄区避让，继续复用原有历史和布局方法 |
+
+验证：现有 Web typecheck 与生产构建通过，未新增测试代码。证据与原始/修改后文件保存在共享 `docs/history/canvasNavigation20261104/`。桌面打包版本为 2.1.2；实际画布操作体验待用户登录后验收。

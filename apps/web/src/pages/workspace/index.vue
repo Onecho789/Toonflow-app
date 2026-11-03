@@ -45,31 +45,62 @@
               </el-button>
             </el-tooltip>
             <el-divider direction="vertical" aria-hidden="true" />
-            <el-tooltip :content="canvasToolTooltip('选择与移动', 'moveTool')" placement="top" :showArrow="false" :hideAfter="0" :enterable="false" :triggerKeys="[]">
+            <el-tooltip :content="canvasToolTooltip('框选', 'moveTool')" placement="top" :showArrow="false" :hideAfter="0" :enterable="false" :triggerKeys="[]">
               <el-button
                 class="toolButton"
                 :class="{ isActive: selectedTool === 'move' }"
                 text
                 :type="selectedTool === 'move' ? 'primary' : 'default'"
                 :aria-pressed="selectedTool === 'move'"
-                aria-label="选择与移动"
+                aria-label="框选"
                 @click="selectedTool = 'move'">
                 <icon-pointer :size="18" aria-hidden="true" />
               </el-button>
             </el-tooltip>
-            <el-tooltip :content="canvasToolTooltip('抓手平移', 'handTool')" placement="top" :showArrow="false" :hideAfter="0" :enterable="false" :triggerKeys="[]">
+            <el-tooltip :content="canvasToolTooltip('平移', 'handTool')" placement="top" :showArrow="false" :hideAfter="0" :enterable="false" :triggerKeys="[]">
               <el-button
                 class="toolButton"
                 :class="{ isActive: selectedTool === 'hand' }"
                 text
                 :type="selectedTool === 'hand' ? 'primary' : 'default'"
                 :aria-pressed="selectedTool === 'hand'"
-                aria-label="抓手平移"
+                aria-label="平移"
                 @click="selectedTool = 'hand'">
                 <icon-hand-stop :size="18" aria-hidden="true" />
               </el-button>
             </el-tooltip>
             <el-divider direction="vertical" aria-hidden="true" />
+            <el-tooltip :content="canvasToolTooltip('撤销', 'undo')" placement="top" :showArrow="false" :hideAfter="0" :enterable="false" :triggerKeys="[]">
+              <span class="toolTrigger"><el-button class="toolButton" text :disabled="canvasActionsDisabled || !canvasPanelRef?.canUndo" aria-label="撤销" @click="canvasPanelRef?.changeHistory('undo')"><icon-arrow-back-up :size="18" aria-hidden="true" /></el-button></span>
+            </el-tooltip>
+            <el-tooltip :content="canvasToolTooltip('重做', 'redo')" placement="top" :showArrow="false" :hideAfter="0" :enterable="false" :triggerKeys="[]">
+              <span class="toolTrigger"><el-button class="toolButton" text :disabled="canvasActionsDisabled || !canvasPanelRef?.canRedo" aria-label="重做" @click="canvasPanelRef?.changeHistory('redo')"><icon-arrow-forward-up :size="18" aria-hidden="true" /></el-button></span>
+            </el-tooltip>
+            <el-divider direction="vertical" aria-hidden="true" />
+            <el-tooltip :content="canvasPanelRef?.assetsVisible ? '关闭素材库' : '打开素材库'" placement="top" :showArrow="false" :hideAfter="0" :enterable="false" :triggerKeys="[]">
+              <el-button class="toolButton" :class="{ isActive: canvasPanelRef?.assetsVisible }" text :type="canvasPanelRef?.assetsVisible ? 'primary' : 'default'" :disabled="canvasActionsDisabled" :aria-pressed="canvasPanelRef?.assetsVisible ?? false" aria-label="素材库" @click="canvasPanelRef?.toggleAssets()"><icon-folders :size="18" aria-hidden="true" /></el-button>
+            </el-tooltip>
+            <el-tooltip :content="canvasToolTooltip(canvasPanelRef?.arranging ? '正在整理画布…' : '整理画布', 'arrange')" placement="top" :showArrow="false" :hideAfter="0" :enterable="false" :triggerKeys="[]">
+              <span class="toolTrigger"><el-button class="toolButton" text :disabled="canvasActionsDisabled || !canvasPanelRef?.canArrange" :loading="canvasPanelRef?.arranging" aria-label="整理画布" @click="canvasPanelRef?.arrangeNodes()"><icon-sitemap v-if="!canvasPanelRef?.arranging" :size="18" aria-hidden="true" /></el-button></span>
+            </el-tooltip>
+            <el-tooltip content="画布外观" placement="top" :showArrow="false" :hideAfter="0" :enterable="false" :triggerKeys="[]" :disabled="appearanceVisible">
+              <span class="toolTrigger">
+                <el-popover v-model:visible="appearanceVisible" trigger="click" placement="top" :width="280" :showArrow="false">
+                  <template #reference>
+                    <el-button class="toolButton" :class="{ isActive: appearanceVisible }" text :type="appearanceVisible ? 'primary' : 'default'" aria-label="画布外观" aria-haspopup="dialog" :aria-expanded="appearanceVisible"><icon-palette :size="18" aria-hidden="true" /></el-button>
+                  </template>
+                  <div class="canvasAppearance" role="dialog" aria-label="画布外观" @keydown.stop @keydown.esc.prevent="appearanceVisible = false">
+                    <strong class="appearanceTitle">画布外观</strong>
+                    <label class="appearanceLabel" id="canvasThemeLabel">外观模式</label>
+                    <el-segmented :modelValue="uiSettings.theme" :options="[{ label: '浅色', value: 'light' }, { label: '深色', value: 'dark' }, { label: '系统', value: 'system' }]" aria-labelledby="canvasThemeLabel" @change="value => updateUiSettings({ theme: String(value) })" />
+                    <label class="appearanceLabel" id="canvasBackgroundLabel">画布背景</label>
+                    <el-segmented :modelValue="generalSettings.canvasBackgroundMode" :options="[{ label: '点阵', value: 'dots' }, { label: '网格', value: 'lines' }, { label: '空白', value: 'blank' }]" aria-labelledby="canvasBackgroundLabel" @change="value => updateGeneralSettings({ canvasBackgroundMode: value as 'dots' | 'lines' | 'blank' })" />
+                    <div class="appearanceSwitch"><span>网格吸附</span><el-switch :modelValue="canvasPanelRef?.snapEnabled ?? false" :disabled="canvasActionsDisabled" aria-label="网格吸附" @change="value => canvasPanelRef?.setSnapEnabled(value === true)" /></div>
+                    <div class="appearanceSwitch"><span>显示连线</span><el-switch :modelValue="canvasPanelRef?.showEdges ?? true" :disabled="canvasActionsDisabled" aria-label="显示连线" @change="value => canvasPanelRef?.setShowEdges(value === true)" /></div>
+                  </div>
+                </el-popover>
+              </span>
+            </el-tooltip>
             <el-tooltip :content="canvasToolTooltip('搜索节点', 'search')" placement="top" :showArrow="false" :hideAfter="0" :enterable="false" :triggerKeys="[]">
               <el-button class="toolButton" text :disabled="!canvasPanelRef?.canvasReady || settingsVisible" aria-label="搜索节点" @click="canvasPanelRef?.openNodeSearch()">
                 <icon-search :size="18" aria-hidden="true" />
@@ -121,12 +152,12 @@ import { translate } from "@toonflow/i18n/vue";
 import { computed, defineAsyncComponent, nextTick, onMounted, onScopeDispose, provide, ref, shallowRef, watch, type ComponentPublicInstance } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
 import axios from "axios";
-import { IconVector, IconFileText, IconPointer, IconHandStop, IconPlus, IconSearch, IconHelp, IconBook } from "@tabler/icons-vue";
+import { IconVector, IconFileText, IconPointer, IconHandStop, IconPlus, IconSearch, IconHelp, IconBook, IconArrowBackUp, IconArrowForwardUp, IconFolders, IconSitemap, IconPalette } from "@tabler/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import settings from "@/components/settings/index.vue";
 import { useWorkspaceStore } from "@/stores/workspace";
-import { generalSettings } from "@/stores/settings";
-import { shortcutLabel, type CanvasShortcutAction } from "@/lib/canvasShortcuts";
+import { generalSettings, uiSettings, updateUiSettings, updateGeneralSettings } from "@/stores/settings";
+import { getShortcutBindings, shortcutLabel, type CanvasShortcutAction } from "@/lib/canvasShortcuts";
 import { registerWorkspaceControl, waitForControlValue } from "@/lib/mcpControl";
 import { useCloudBalanceRefresh } from "@/stores/cloudAccount";
 import canvasPanel from "./panels/canvas/canvasHost.vue";
@@ -137,7 +168,10 @@ import floatingAgent from "./components/floatingAgent.vue";
 const documentPanel = defineAsyncComponent(() => import("./panels/document/index.vue"));
 
 const activePanel = ref<"canvas" | "document">("canvas");
-const selectedTool = ref<"move" | "hand">("move");
+const selectedTool = ref<"move" | "hand">(getShortcutBindings(generalSettings.value.canvasShortcuts.pan).includes("None") ? "hand" : "move");
+watch(() => generalSettings.value.canvasShortcuts.pan, binding => {
+  selectedTool.value = getShortcutBindings(binding).includes("None") ? "hand" : "move";
+});
 function canvasToolTooltip(label: string, action: CanvasShortcutAction) {
   const shortcut = shortcutLabel(generalSettings.value.canvasShortcuts[action]);
   return shortcut ? `${translate(label)} (${shortcut})` : translate(label);
@@ -163,7 +197,13 @@ const agentVisible = ref(true);
 const agentWidth = ref(0);
 const settingsVisible = ref(false);
 const helpVisible = ref(false);
+const appearanceVisible = ref(false);
 const canvasPanelRef = ref<InstanceType<typeof canvasPanel>>();
+const canvasActionsDisabled = computed(() => !canvasPanelRef.value?.canvasReady || settingsVisible.value);
+watch([activePanel, settingsVisible], () => {
+  appearanceVisible.value = false;
+  helpVisible.value = false;
+});
 watch(() => canvasPanelRef.value?.canvasListReady, ready => {
   workspaceStore.projectLoading = !ready;
 }, { immediate: true });
@@ -429,6 +469,7 @@ function saveDocumentNode(directory: string, canvasPath: string, nodeId: string,
           gap: 4px;
           padding: 3px;
           overflow-x: auto;
+          scrollbar-width: thin;
 
           > * { flex-shrink: 0; }
 
@@ -458,7 +499,7 @@ function saveDocumentNode(directory: string, canvasPath: string, nodeId: string,
             }
           }
 
-          .toolTrigger { display: inline-flex; }
+          .toolTrigger { display: inline-flex; flex-shrink: 0; }
 
           .el-divider { height: 20px; margin: 0 2px; }
         }
@@ -600,6 +641,18 @@ function saveDocumentNode(directory: string, canvasPath: string, nodeId: string,
   87.5% {
     background-position: 98% 60%, 0 0, 0 0;
   }
+}
+.canvasAppearance {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  .appearanceTitle { margin-bottom: 4px; font-size: 14px; }
+  .appearanceLabel { color: var(--el-text-color-secondary); font-size: 12px; }
+  .el-segmented { margin-bottom: 4px; }
+  :deep(.el-segmented__group) { display: flex; }
+  :deep(.el-segmented__item) { flex: 1; }
+  .appearanceSwitch { display: flex; align-items: center; justify-content: space-between; gap: 16px; font-size: 13px; }
 }
 .helpMenu {
   display: flex;

@@ -31,7 +31,7 @@ import type { NodeDocumentState } from "@toonflow/nodes-scaffold/nodeDocument";
 import { copyCanvasFiles, findRemainingCanvas, readCanvasFiles, type DocumentNode, type DocumentNodeOptions } from "./canvasFiles";
 
 const props = withDefaults(defineProps<{ active?: boolean; settingsVisible?: boolean }>(), { active: true, settingsVisible: false });
-const selectedTool = defineModel<"move" | "hand">("selectedTool", { default: "move" });
+const selectedTool = defineModel<"move" | "hand">("selectedTool", { default: "hand" });
 type CanvasInstance = InstanceType<typeof canvasPanel>;
 const entries = shallowRef<{ key: string; fileName?: string }[]>([{ key: crypto.randomUUID() }]);
 const activeKey = ref(entries.value[0]!.key);
@@ -406,6 +406,18 @@ const mentionSource: MentionCanvasSource = {
 defineExpose({ canvasId, canvasReady, canvasListReady, getCanvasContext, readDocumentNode, readDocumentNodes, focusDocumentNode, saveDocumentNode, mountDocumentNode, observeDocumentNode, resolveDocumentNodeFile, performFileAction, flushSave, cancelSave,
   addNodeAtPointer: () => activeInstance.value?.addNodeAtPointer(),
   openNodeSearch: () => activeInstance.value?.openNodeSearch(),
+  get canUndo() { return activeInstance.value?.canUndo ?? false; },
+  get canRedo() { return activeInstance.value?.canRedo ?? false; },
+  get canArrange() { return activeInstance.value?.canArrange ?? false; },
+  get arranging() { return activeInstance.value?.arranging ?? false; },
+  get assetsVisible() { return activeInstance.value?.assetsVisible ?? false; },
+  get snapEnabled() { return activeInstance.value?.snapEnabled ?? false; },
+  get showEdges() { return activeInstance.value?.showEdges ?? true; },
+  changeHistory: (direction: "undo" | "redo") => activeInstance.value?.changeHistory(direction),
+  arrangeNodes: () => activeInstance.value?.arrangeNodes(),
+  toggleAssets: () => { if (activeInstance.value) activeInstance.value.assetsVisible = !activeInstance.value.assetsVisible; },
+  setSnapEnabled: (value: boolean) => { if (activeInstance.value) activeInstance.value.snapEnabled = value; },
+  setShowEdges: (value: boolean) => { if (activeInstance.value) activeInstance.value.showEdges = value; },
   mentionSource,
   get saveBusy() { return fileActionBusy || [...instances.values()].some(panel => panel.saveBusy); },
 });

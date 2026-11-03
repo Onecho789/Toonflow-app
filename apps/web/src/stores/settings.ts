@@ -13,6 +13,7 @@ export const settings = ref<Record<string, unknown>>({});
 let settingsReady = false;
 let saveQueue = Promise.resolve();
 let applyingSettings = false;
+const canvasInteractionVersion = 1;
 
 export const settingsStorage = {
   getItem(key: string) {
@@ -65,6 +66,7 @@ export const generalSettings = computed(() => {
     nodeMenu: normalizeNodeMenu(general.nodeMenu),
     agentNotificationsEnabled: general.agentNotificationsEnabled !== false,
     canvasCompositingEnabled: general.canvasCompositingEnabled === true,
+    canvasBackgroundMode: general.canvasBackgroundMode === "lines" ? "lines" as const : general.canvasBackgroundMode === "blank" ? "blank" as const : "dots" as const,
     canvasEdgeAnimationEnabled: general.canvasEdgeAnimationEnabled !== false,
     canvasEdgeColorMode: general.canvasEdgeColorMode === "none" || general.canvasEdgeColorMode === "custom" ? general.canvasEdgeColorMode : "theme",
     canvasEdgeColor: typeof general.canvasEdgeColor === "string" && /^#[\da-f]{6}$/i.test(general.canvasEdgeColor) ? general.canvasEdgeColor : defaultUiSettings.primaryColor,
@@ -80,7 +82,11 @@ export const generalSettings = computed(() => {
 
 export function updateGeneralSettings(patch: Omit<Partial<typeof generalSettings.value>, "nodeMenu"> & { nodeMenu?: StoredNodeMenuItem[] }) {
   const current = settings.value.general;
-  settings.value = { ...settings.value, general: { ...(current && typeof current === "object" && !Array.isArray(current) ? current : {}), ...patch } };
+  settings.value = { ...settings.value, general: {
+    ...(current && typeof current === "object" && !Array.isArray(current) ? current : {}),
+    ...patch,
+    ...(patch.canvasShortcuts ? { canvasInteractionVersion } : {}),
+  } };
 }
 
 export type CloudModelGroup = { name: string; label: string; ratio: number };
@@ -135,6 +141,26 @@ export async function loadSettings() {
     throw new Error("读取设置失败");
   }
   settings.value = data.data;
+  await saveSettings(current => {
+    const raw = current.general;
+    const general = raw && typeof raw === "object" && !Array.isArray(raw) ? raw as Record<string, unknown> : {};
+    if (typeof general.canvasInteractionVersion === "number" && general.canvasInteractionVersion >= canvasInteractionVersion) return;
+    const saved = general.canvasShortcuts;
+    const shortcuts = saved && typeof saved === "object" && !Array.isArray(saved) ? saved as Record<string, unknown> : {};
+    // ACT: 只迁移完整旧鼠标默认组合；其他快捷键和自定义鼠标组合原样保留。
+    const legacyDefaults = Object.entries({ pan: "Space", zoom: "Ctrl", selection: "None" }).every(([action, binding]) =>
+      typeof shortcuts[action] === "string" && normalizeShortcut(shortcuts[action]) === binding);
+    return { general: {
+      ...general,
+      canvasInteractionVersion,
+      ...(legacyDefaults ? { canvasShortcuts: {
+        ...shortcuts,
+        pan: defaultCanvasShortcuts.pan,
+        zoom: defaultCanvasShortcuts.zoom,
+        selection: defaultCanvasShortcuts.selection,
+      } } : {}),
+    } };
+  }).catch(() => { ElMessage.error("画布操作设置保存失败，已保留原设置，下次启动时重试"); });
   // ACT: 云端不可达时不阻塞启动，模型列表为空，可在文本模型页刷新重试。
   await loadAiModels().catch(() => {});
   // 等初始化引发的监听执行完，再允许自动保存。

@@ -21,7 +21,7 @@
     <p class="description">
       {{ bindMode === "listen" ? "点击键帽录制，Esc 退出；右侧 × 取消绑定，箭头菜单可选择无需按键。" : "使用按键代号，如 Ctrl+KeyG / Alt+KeyG；None 表示无需按键，可写 None / Space；留空取消绑定，回车或移开焦点保存。" }}
     </p>
-    <p class="description">将画布平移设为无需按键前，请先把框选节点改成 Shift 等按键。</p>
+    <p class="description">默认在空白处左键拖动平移，按住 Ctrl 或 Space 左键拖动框选。平移与框选可在下方分别调整。</p>
     <el-form class="shortcutList">
       <el-form-item v-for="field in canvasShortcutFields" :key="`${field.id}:${resetKey}`" class="shortcutItem" :error="issues[field.id]">
         <div class="shortcutRow">
@@ -40,32 +40,34 @@
         </div>
       </el-form-item>
       <div class="gestureRow"><span>触摸板缩放</span><span class="gestureValue"><icon-hand-two-fingers :size="16" />双指捏合</span></div>
-      <div class="gestureRow"><span>触摸板双指滑动</span><span class="gestureValue"><icon-hand-two-fingers :size="16" />跟随滚轮配置</span></div>
+      <div class="gestureRow"><span>触摸板双指滑动</span><span class="gestureValue"><icon-hand-two-fingers :size="16" />{{ defaultWheelZoom ? "滑动缩放" : "滑动平移" }}</span></div>
       <div class="gestureRow"><span>鼠标平移</span><span class="gestureValue"><icon-mouse :size="16" />中键拖动</span></div>
     </el-form>
   </section>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { t, translate } from "@toonflow/i18n/vue";
 import { IconRestore, IconChevronDown, IconChevronUp, IconKeyboard, IconEdit, IconHandTwoFingers, IconMouse } from "@tabler/icons-vue";
 import { generalSettings, updateGeneralSettings } from "@/stores/settings";
-import { canvasShortcutFields, defaultCanvasShortcuts, getShortcutBindings, isShortcutAllowed, normalizeShortcut, type CanvasShortcutAction } from "@/lib/canvasShortcuts";
+import { canvasShortcutFields, defaultCanvasShortcuts, getShortcutBindings, isShortcutAllowed, normalizeShortcut, shortcutLabel, type CanvasShortcutAction } from "@/lib/canvasShortcuts";
 import keyInput from "./keyInput.vue";
 
 const bindMode = ref<"listen" | "input">("listen");
 const bindModeVisible = ref(false);
 const resetKey = ref(0);
 const issues = ref<Partial<Record<CanvasShortcutAction, string>>>({});
-const shortcutDescriptions: Partial<Record<CanvasShortcutAction, string>> = {
+const defaultWheelZoom = computed(() => getShortcutBindings(generalSettings.value.canvasShortcuts.zoom).includes("None"));
+const shortcutDescriptions = computed<Partial<Record<CanvasShortcutAction, string>>>(() => ({
   copyOnDrag: "按住并拖动节点",
   duplicateOnDrag: "按住并拖动节点",
-  zoom: "按配置滚动鼠标滚轮",
+  zoom: defaultWheelZoom.value ? "直接滚动缩放；节点输入区保留滚动"
+    : generalSettings.value.canvasShortcuts.zoom ? `按住 ${shortcutLabel(generalSettings.value.canvasShortcuts.zoom)} 滚轮缩放，其余滚轮平移` : "滚轮平移；双指捏合仍可缩放",
   pan: "无需按键时，仅平移空白处",
-  selection: "左键拖动空白处框选",
+  selection: "按配置左键拖动框选",
   multiSelection: "左键点击追加或取消选择",
-};
+}));
 
 function changeBindMode(mode: "listen" | "input") {
   bindMode.value = mode;
