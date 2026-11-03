@@ -825,3 +825,10 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 - 去掉根据平移快捷键初始化和自动切换工具的逻辑，保留点击按钮与 V/H 快捷键的手动切换。
 
 改动的上游文件：`apps/web/src/pages/workspace/index.vue`。冲突时保留 `selectedTool` 默认 `hand`、小手在框选箭头之前的顺序；快捷键配置仍用于对应操作与提示。
+
+## 桌面 2.1.3 安装包（2026-11-04）
+
+- 桌面配置版本升级为 2.1.3，完整安装包包含 `7dc6f0a` 的默认小手与工具栏按钮顺序调整。
+- 本次使用 `release:desktop 2.1.3 --initial` 构建 Windows x64 完整包，更新源配置保持原值。
+
+改动的上游文件：`electrobun.config.ts` 更新 `app.version`；冲突时保留本 fork 的桌面版本号。
