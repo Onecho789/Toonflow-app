@@ -38,23 +38,39 @@
       <div class="bottomTools">
         <el-card v-if="activePanel === 'canvas'" class="toolMenu" shadow="never" :bodyStyle="{ padding: '2px 4px' }">
           <div class="toolMenuContent" role="toolbar" aria-label="画布工具">
-            <el-tooltip content="添加节点" placement="top" :showArrow="false" :hideAfter="0" :enterable="false" :triggerKeys="[]">
+            <el-tooltip :content="canvasToolTooltip('添加节点', 'addNode')" placement="top" :showArrow="false" :hideAfter="0" :enterable="false" :triggerKeys="[]">
               <el-button class="toolButton addNodeButton" :disabled="!canvasPanelRef?.canvasReady || settingsVisible" aria-label="添加节点" aria-haspopup="menu" @click="canvasPanelRef?.addNodeAtPointer()">
                 <icon-plus :size="18" aria-hidden="true" />
+                <span>添加</span>
               </el-button>
             </el-tooltip>
-            <el-tooltip :content="selectedTool === 'move' ? '移动工具，点击切换为抓手' : '抓手工具，点击切换为移动'" placement="top" :showArrow="false" :hideAfter="0" :enterable="false" :triggerKeys="[]">
+            <el-divider direction="vertical" aria-hidden="true" />
+            <el-tooltip :content="canvasToolTooltip('选择与移动', 'moveTool')" placement="top" :showArrow="false" :hideAfter="0" :enterable="false" :triggerKeys="[]">
               <el-button
                 class="toolButton"
+                :class="{ isActive: selectedTool === 'move' }"
+                text
+                :type="selectedTool === 'move' ? 'primary' : 'default'"
+                :aria-pressed="selectedTool === 'move'"
+                aria-label="选择与移动"
+                @click="selectedTool = 'move'">
+                <icon-pointer :size="18" aria-hidden="true" />
+              </el-button>
+            </el-tooltip>
+            <el-tooltip :content="canvasToolTooltip('抓手平移', 'handTool')" placement="top" :showArrow="false" :hideAfter="0" :enterable="false" :triggerKeys="[]">
+              <el-button
+                class="toolButton"
+                :class="{ isActive: selectedTool === 'hand' }"
                 text
                 :type="selectedTool === 'hand' ? 'primary' : 'default'"
                 :aria-pressed="selectedTool === 'hand'"
-                aria-label="切换抓手/移动工具"
-                @click="selectedTool = selectedTool === 'move' ? 'hand' : 'move'">
-                <component :is="selectedTool === 'move' ? IconPointer : IconHandStop" :size="18" aria-hidden="true" />
+                aria-label="抓手平移"
+                @click="selectedTool = 'hand'">
+                <icon-hand-stop :size="18" aria-hidden="true" />
               </el-button>
             </el-tooltip>
-            <el-tooltip content="搜索节点" placement="top" :showArrow="false" :hideAfter="0" :enterable="false" :triggerKeys="[]">
+            <el-divider direction="vertical" aria-hidden="true" />
+            <el-tooltip :content="canvasToolTooltip('搜索节点', 'search')" placement="top" :showArrow="false" :hideAfter="0" :enterable="false" :triggerKeys="[]">
               <el-button class="toolButton" text :disabled="!canvasPanelRef?.canvasReady || settingsVisible" aria-label="搜索节点" @click="canvasPanelRef?.openNodeSearch()">
                 <icon-search :size="18" aria-hidden="true" />
               </el-button>
@@ -88,7 +104,6 @@
         <el-tooltip v-if="!agentVisible" content="小麦同学" placement="top" :showArrow="false" :hideAfter="0">
           <el-button
             class="agentButton"
-            :class="{ standalone: activePanel !== 'canvas' }"
             :aria-expanded="agentVisible"
             aria-label="小麦同学"
             aria-controls="agentPanel"
@@ -110,6 +125,8 @@ import { IconVector, IconFileText, IconPointer, IconHandStop, IconPlus, IconSear
 import { ElMessage, ElMessageBox } from "element-plus";
 import settings from "@/components/settings/index.vue";
 import { useWorkspaceStore } from "@/stores/workspace";
+import { generalSettings } from "@/stores/settings";
+import { shortcutLabel, type CanvasShortcutAction } from "@/lib/canvasShortcuts";
 import { registerWorkspaceControl, waitForControlValue } from "@/lib/mcpControl";
 import { useCloudBalanceRefresh } from "@/stores/cloudAccount";
 import canvasPanel from "./panels/canvas/canvasHost.vue";
@@ -121,6 +138,10 @@ const documentPanel = defineAsyncComponent(() => import("./panels/document/index
 
 const activePanel = ref<"canvas" | "document">("canvas");
 const selectedTool = ref<"move" | "hand">("move");
+function canvasToolTooltip(label: string, action: CanvasShortcutAction) {
+  const shortcut = shortcutLabel(generalSettings.value.canvasShortcuts[action]);
+  return shortcut ? `${translate(label)} (${shortcut})` : translate(label);
+}
 const sideButtonEvents = ["mousedown", "mouseup", "auxclick"] as const;
 // 鼠标侧键会直接触发原生历史导航，需在 DOM 事件阶段拦截，避免生成中的工作区被误关闭。
 function preventSideButtonNavigation(event: MouseEvent) {
@@ -393,30 +414,45 @@ function saveDocumentNode(directory: string, canvasPath: string, nodeId: string,
       display: flex;
       align-items: center;
       gap: 8px;
+      max-width: calc(100% - 30px);
       transform: translateX(-50%);
       pointer-events: auto;
 
       .toolMenu {
-        flex-shrink: 0;
+        min-width: 0;
+        flex-shrink: 1;
         transition: none;
 
         .toolMenuContent {
           display: flex;
           align-items: center;
-          gap: 2px;
+          gap: 4px;
+          padding: 3px;
+          overflow-x: auto;
+
+          > * { flex-shrink: 0; }
 
           .toolButton {
-            width: 28px;
-            height: 28px;
+            width: 36px;
+            height: 36px;
             margin: 0;
             padding: 0;
 
+            &:focus-visible {
+              outline: 2px solid var(--el-color-primary);
+              outline-offset: 1px;
+            }
+
+            &.isActive { background: var(--el-color-primary-light-9); }
+
             &.addNodeButton {
-              margin-right: 6px;
+              width: auto;
+              padding: 0 10px;
               color: var(--el-bg-color);
               background: var(--el-text-color-primary);
               border-color: transparent;
 
+              :deep(> span) { gap: 4px; }
               &:hover { opacity: 0.85; }
               &.is-disabled { opacity: 0.45; }
             }
@@ -424,13 +460,12 @@ function saveDocumentNode(directory: string, canvasPath: string, nodeId: string,
 
           .toolTrigger { display: inline-flex; }
 
-          .el-divider { margin: 0; }
+          .el-divider { height: 20px; margin: 0 2px; }
         }
       }
 
       .agentButton {
-        position: absolute;
-        left: calc(100% + 8px);
+        position: relative;
         width: 34px;
         height: 34px;
         flex-shrink: 0;
@@ -445,11 +480,6 @@ function saveDocumentNode(directory: string, canvasPath: string, nodeId: string,
         overflow: hidden;
         isolation: isolate;
         transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
-
-        &.standalone {
-          position: relative;
-          left: auto;
-        }
 
         &::before,
         &::after {

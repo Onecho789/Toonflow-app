@@ -54,17 +54,23 @@
             @change="changeGroupColor" />
         </div>
       </el-popover>
-      <el-button
-        v-for="action in layoutActions"
-        :key="action.mode"
-        text
-        :icon="action.icon"
-        :disabled="!canArrangeSelection"
-        @click="operate(action.mode)">{{ action.label }}</el-button>
-      <span class="toolbarDivider" aria-hidden="true" />
+      <template v-if="selectionRoots.length > 1">
+        <el-button
+          v-for="action in layoutActions"
+          :key="action.mode"
+          text
+          :icon="action.icon"
+          :disabled="!canArrangeSelection"
+          @click="operate(action.mode)">{{ action.label }}</el-button>
+        <span class="toolbarDivider" aria-hidden="true" />
+      </template>
       <el-button text :icon="IconCopyPlus" :disabled="busy || disabled" @click="operate('duplicate')">创建副本</el-button>
-      <el-button text :icon="IconBoxMultiple" :disabled="busy || disabled" @click="operate('group')">打组</el-button>
-      <el-button text :icon="IconDeselect" :disabled="busy || disabled || !hasGroup" @click="operate('ungroup')">解组</el-button>
+      <el-tooltip :content="groupShortcut ? `成组（${groupShortcut}）` : '成组'" :showArrow="false" :enterable="false" :triggerKeys="[]">
+        <span class="toolbarAction"><el-button text :icon="IconBoxMultiple" :disabled="busy || disabled" @click="operate('group')">成组</el-button></span>
+      </el-tooltip>
+      <el-tooltip v-if="hasGroup" :content="ungroupShortcut ? `解组（${ungroupShortcut}）` : '解组'" :showArrow="false" :enterable="false" :triggerKeys="[]">
+        <span class="toolbarAction"><el-button text :icon="IconDeselect" :disabled="busy || disabled" @click="operate('ungroup')">解组</el-button></span>
+      </el-tooltip>
       <el-button text :icon="IconFileZip" :loading="exporting" :disabled="busy || disabled || exporting" title="导出选中节点的媒体文件" @click="exportMedia">导出</el-button>
     </div>
   </el-card>
@@ -73,7 +79,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from "vue";
 import { getRectOfNodes, useVueFlow, type GraphNode, type Node, type XYPosition } from "@vue-flow/core";
-import { ElButton, ElCard, ElColorPicker, ElMessage, ElPopover } from "element-plus";
+import { ElButton, ElCard, ElColorPicker, ElMessage, ElPopover, ElTooltip } from "element-plus";
 import { storeToRefs } from "pinia";
 import { zipSync } from "fflate";
 import {
@@ -87,6 +93,8 @@ import { remapNodeReferences } from "../canvasFiles";
 import useWorkspaceFiles from "@/lib/workspaceFiles";
 import saveFile from "@/lib/saveFile";
 import { useWorkspaceStore } from "@/stores/workspace";
+import { generalSettings } from "@/stores/settings";
+import { shortcutLabel } from "@/lib/canvasShortcuts";
 import type { NodeOutput } from "@toonflow/nodes-scaffold/values";
 
 const props = defineProps<{
@@ -96,10 +104,21 @@ const props = defineProps<{
 }>();
 const flow = useVueFlow();
 const toolbar = ref<InstanceType<typeof ElCard>>();
+const toolbarSize = ref({ width: 0, height: 0 });
+watch(() => toolbar.value?.$el as HTMLElement | undefined, (element, _, onCleanup) => {
+  if (!element) return;
+  const observer = new ResizeObserver(() => {
+    toolbarSize.value = { width: element.offsetWidth, height: element.offsetHeight };
+  });
+  observer.observe(element);
+  onCleanup(() => observer.disconnect());
+}, { flush: "post" });
 const busy = ref(false);
 const exporting = ref(false);
 const { project } = storeToRefs(useWorkspaceStore());
 const colorMenuVisible = ref(false);
+const groupShortcut = computed(() => shortcutLabel(generalSettings.value.canvasShortcuts.group));
+const ungroupShortcut = computed(() => shortcutLabel(generalSettings.value.canvasShortcuts.ungroup));
 const colors = [
   { label: "灰色", value: "#808080" },
   { label: "红色", value: "#ef4444" },
@@ -144,8 +163,8 @@ watch(() => visible.value && hasGroup.value, value => {
 const toolbarStyle = computed(() => {
   const bounds = getRectOfNodes(flow.getSelectedNodes.value);
   const { x, y, zoom } = flow.viewport.value;
-  const width = toolbar.value?.$el.offsetWidth ?? 0;
-  const height = toolbar.value?.$el.offsetHeight ?? 0;
+  const { width, height } = toolbarSize.value;
+
   const left = Math.max(width / 2 + 8, Math.min(x + (bounds.x + bounds.width / 2) * zoom, flow.dimensions.value.width - width / 2 - 8));
   // ACT: 顶部导航约占 56px，留出 8px 间隔；高度变化时再按导航实际尺寸定位。
   const top = Math.max(height + 64, Math.min(y + bounds.y * zoom - 12 - (hasGroup.value ? 30 * zoom : 0), flow.dimensions.value.height - 8));
@@ -430,23 +449,31 @@ defineExpose({ operate, startDragCopy, busy, exportMedia });
   position: absolute;
   z-index: 6;
   width: max-content;
+  max-width: calc(100% - 16px);
+  box-sizing: border-box;
   transform: translate(-50%, -100%);
 
   .toolbarActions {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 2px;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: thin;
     white-space: nowrap;
 
+    .toolbarAction { display: inline-flex; flex-shrink: 0; }
+
     .el-button {
-      height: 28px;
+      height: 36px;
+      flex-shrink: 0;
       margin: 0;
-      padding: 0 8px;
+      padding: 0 10px;
+
+      &:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: -2px; }
     }
 
     .colorButton {
-      width: 28px;
+      width: 36px;
       padding: 0;
 
       .colorPreview {
@@ -458,7 +485,8 @@ defineExpose({ operate, startDragCopy, busy, exportMedia });
     }
 
     .toolbarDivider {
-      height: 16px;
+      height: 20px;
+      flex-shrink: 0;
       margin: 0 4px;
       border-left: 1px solid var(--el-border-color-lighter);
     }

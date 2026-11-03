@@ -5,110 +5,73 @@
     position="bottom-left"
     :pannable="true"
     :zoomable="true"
-    node-color="var(--el-fill-color-dark)"
-    mask-color="var(--el-mask-color-extra-light)" />
-  <panel class="canvasControlsPanel" position="bottom-left">
-    <el-card class="canvasControlsCard" shadow="never" :bodyStyle="{ padding: '2px 4px' }">
-      <div class="canvasControls">
-        <el-tooltip :showArrow="false" :content="assetsVisible ? '关闭素材库' : '打开素材库'" placement="top" :hideAfter="0" :enterable="false" :triggerKeys="[]">
-          <el-button
-            class="toolButton"
-            text
-            :type="assetsVisible ? 'primary' : 'default'"
-            :aria-pressed="assetsVisible"
-            aria-label="素材库"
-            @click="assetsVisible = !assetsVisible">
+    nodeColor="var(--el-fill-color-dark)"
+    maskColor="var(--el-mask-color-extra-light)" />
+  <panel class="canvasControlsPanel nodrag nopan nowheel" position="bottom-left" @pointerdown.stop @mousedown.stop @dblclick.stop @keydown.stop>
+    <el-card class="canvasControlsCard" shadow="never" :bodyStyle="{ padding: '4px' }">
+      <div class="canvasControls" role="group" aria-label="画布视图与历史">
+        <el-tooltip :content="actionHint('撤销', 'undo')" placement="top" :showArrow="false" :showAfter="200" :hideAfter="0" :enterable="false" :triggerKeys="[]">
+          <span class="toolTrigger">
+            <el-button class="toolButton" text :disabled="!canUndo" aria-label="撤销" @click="emit('undo')"><icon-arrow-back-up :size="18" /></el-button>
+          </span>
+        </el-tooltip>
+        <el-tooltip :content="actionHint('重做', 'redo')" placement="top" :showArrow="false" :showAfter="200" :hideAfter="0" :enterable="false" :triggerKeys="[]">
+          <span class="toolTrigger">
+            <el-button class="toolButton" text :disabled="!canRedo" aria-label="重做" @click="emit('redo')"><icon-arrow-forward-up :size="18" /></el-button>
+          </span>
+        </el-tooltip>
+        <span class="toolDivider" aria-hidden="true" />
+        <el-tooltip :showArrow="false" :content="assetsVisible ? '关闭素材库' : '打开素材库'" placement="top" :showAfter="200" :hideAfter="0" :enterable="false" :triggerKeys="[]">
+          <el-button class="toolButton" text :type="assetsVisible ? 'primary' : 'default'" :aria-pressed="assetsVisible" aria-label="素材库" @click="assetsVisible = !assetsVisible">
             <icon-folders :size="18" />
           </el-button>
         </el-tooltip>
-        <!-- trigger 用 contextmenu 是为了让整理按钮只由 arrangeNodes 控制显隐，同时仍保留点击外部自动关闭 -->
-        <el-tooltip :showArrow="false" content="整理画布" placement="top" :hideAfter="0" :enterable="false" :triggerKeys="[]" :disabled="undoPopoverVisible">
+        <!-- 整理成功后显示撤销入口，点击外部仍可关闭。 -->
+        <el-tooltip :showArrow="false" :content="actionHint(arranging ? '正在整理画布…' : '整理画布', 'arrange')" placement="top" :showAfter="200" :hideAfter="0" :enterable="false" :triggerKeys="[]" :disabled="undoPopoverVisible">
           <span class="toolTrigger">
             <el-popover trigger="contextmenu" placement="top-start" :width="180" v-model:visible="undoPopoverVisible">
               <template #reference>
-                <el-button class="toolButton" text :disabled="!canArrange" aria-label="整理画布" @click="arrangeNodes">
-                  <icon-sitemap :size="18" />
-                </el-button>
+                <el-button class="toolButton" text :disabled="!canArrange" :loading="arranging" aria-label="整理画布" @click="arrangeNodes"><icon-sitemap v-if="!arranging" :size="18" /></el-button>
               </template>
-              <div class="zoomMenu">
-                <el-button class="zoomAction" style="width: 100%" text @click="undoArrange">撤销整理</el-button>
-              </div>
+              <div class="zoomMenu"><el-button class="zoomAction" text @click="undoArrange">撤销整理</el-button></div>
             </el-popover>
           </span>
         </el-tooltip>
-        <el-tooltip :showArrow="false" :content="showMap ? '隐藏地图' : '显示地图'" placement="top" :hideAfter="0" :enterable="false" :triggerKeys="[]">
-          <el-button
-            class="toolButton"
-            text
-            :type="showMap ? 'primary' : 'default'"
-            :aria-pressed="showMap"
-            aria-label="显示或隐藏地图"
-            @click="showMap = !showMap">
-            <icon-map :size="18" />
-          </el-button>
+        <el-tooltip :showArrow="false" :content="showMap ? '隐藏地图' : '显示地图'" placement="top" :showAfter="200" :hideAfter="0" :enterable="false" :triggerKeys="[]">
+          <el-button class="toolButton" text :type="showMap ? 'primary' : 'default'" :aria-pressed="showMap" aria-label="显示或隐藏地图" @click="showMap = !showMap"><icon-map :size="18" /></el-button>
         </el-tooltip>
-        <el-tooltip :showArrow="false" :content="snapEnabled ? '关闭网格吸附' : '开启网格吸附'" placement="top" :hideAfter="0" :enterable="false" :triggerKeys="[]">
-          <el-button
-            class="toolButton"
-            text
-            :type="snapEnabled ? 'primary' : 'default'"
-            :aria-pressed="snapEnabled"
-            aria-label="网格吸附"
-            @click="snapEnabled = !snapEnabled">
-            <icon-magnet :size="18" />
-          </el-button>
+        <el-tooltip :showArrow="false" :content="snapEnabled ? '关闭网格吸附' : '开启网格吸附'" placement="top" :showAfter="200" :hideAfter="0" :enterable="false" :triggerKeys="[]">
+          <el-button class="toolButton" text :type="snapEnabled ? 'primary' : 'default'" :aria-pressed="snapEnabled" aria-label="网格吸附" @click="snapEnabled = !snapEnabled"><icon-magnet :size="18" /></el-button>
         </el-tooltip>
-        <el-tooltip :showArrow="false" :content="showEdges ? '隐藏连线' : '显示连线'" placement="top" :hideAfter="0" :enterable="false" :triggerKeys="[]">
-          <el-button
-            class="toolButton"
-            text
-            :type="showEdges ? 'primary' : 'default'"
-            :aria-pressed="showEdges"
-            aria-label="显示或隐藏连线"
-            @click="showEdges = !showEdges">
-            <icon-arrow-guide :size="18" />
-          </el-button>
+        <el-tooltip :showArrow="false" :content="showEdges ? '隐藏连线' : '显示连线'" placement="top" :showAfter="200" :hideAfter="0" :enterable="false" :triggerKeys="[]">
+          <el-button class="toolButton" text :type="showEdges ? 'primary' : 'default'" :aria-pressed="showEdges" aria-label="显示或隐藏连线" @click="showEdges = !showEdges"><icon-arrow-guide :size="18" /></el-button>
         </el-tooltip>
-        <el-tooltip :showArrow="false" content="适应视图" placement="top" :hideAfter="0" :enterable="false" :triggerKeys="[]">
-          <el-button class="toolButton" text aria-label="适应视图" @click="fitView()">
-            <icon-focus-centered :size="18" />
-          </el-button>
+        <span class="toolDivider" aria-hidden="true" />
+        <el-tooltip :content="actionHint('缩小', 'zoomOut')" placement="top" :showArrow="false" :showAfter="200" :hideAfter="0" :enterable="false" :triggerKeys="[]">
+          <span class="toolTrigger"><el-button class="toolButton" text :disabled="viewport.zoom <= minZoom" aria-label="缩小" @click="zoomOut()"><icon-minus :size="18" /></el-button></span>
         </el-tooltip>
-        <el-tooltip :showArrow="false"
-          content="缩放菜单（滚轮调整缩放）"
-          placement="top"
-          :hideAfter="0"
-          :enterable="false"
-          :triggerKeys="[]"
-          :disabled="zoomMenuVisible">
+        <el-tooltip content="缩放比例（点击输入，滚轮调整）" placement="top" :showArrow="false" :showAfter="200" :hideAfter="0" :enterable="false" :triggerKeys="[]" :disabled="zoomMenuVisible">
           <span class="toolTrigger">
             <el-popover v-model:visible="zoomMenuVisible" trigger="click" placement="top-start" :width="216">
               <template #reference>
-                <el-button
-                  class="toolButton"
-                  text
-                  aria-label="缩放菜单"
-                  @wheel.stop.prevent="$event.deltaY && applyZoom(Math.min(800, Math.max(20, zoomPercent - Math.sign($event.deltaY))))">
-                  {{ zoomPercent }}%
-                </el-button>
+                <el-button class="toolButton zoomPercent" text aria-label="缩放菜单" aria-haspopup="dialog" :aria-expanded="zoomMenuVisible"
+                  @wheel.stop.prevent="$event.deltaY && applyZoom(zoomPercent - Math.sign($event.deltaY))">{{ zoomPercent }}%</el-button>
               </template>
               <div class="zoomMenu">
-                <el-input-number
-                  class="zoomInput"
-                  :model-value="zoomPercent"
-                  :min="20"
-                  :max="800"
-                  :controls="false"
-                  aria-label="缩放百分比"
-                  @change="applyZoom">
+                <el-input-number class="zoomInput" :modelValue="zoomPercent" :min="minZoom * 100" :max="maxZoom * 100" :controls="false" aria-label="缩放百分比" @change="applyZoom">
                   <template #suffix>%</template>
                 </el-input-number>
-                <el-button class="zoomAction" text @click="zoomIn()">放大</el-button>
-                <el-button class="zoomAction" text @click="zoomOut()">缩小</el-button>
-                <el-button class="zoomAction" text @click="fitView()">适合屏幕</el-button>
+                <el-button class="zoomAction" text @click="applyZoom(100); zoomMenuVisible = false">重置为 100%</el-button>
+                <el-button class="zoomAction" text @click="fitView(); zoomMenuVisible = false">适合屏幕</el-button>
               </div>
             </el-popover>
           </span>
+        </el-tooltip>
+        <el-tooltip :content="actionHint('放大', 'zoomIn')" placement="top" :showArrow="false" :showAfter="200" :hideAfter="0" :enterable="false" :triggerKeys="[]">
+          <span class="toolTrigger"><el-button class="toolButton" text :disabled="viewport.zoom >= maxZoom" aria-label="放大" @click="zoomIn()"><icon-plus :size="18" /></el-button></span>
+        </el-tooltip>
+        <el-tooltip :showArrow="false" :content="actionHint('适应视图', 'fitView')" placement="top" :showAfter="200" :hideAfter="0" :enterable="false" :triggerKeys="[]">
+          <el-button class="toolButton" text aria-label="适应视图" @click="fitView()"><icon-focus-centered :size="18" /></el-button>
         </el-tooltip>
       </div>
     </el-card>
@@ -119,22 +82,27 @@
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { Panel, useVueFlow, type XYPosition } from "@vue-flow/core";
 import { MiniMap } from "@vue-flow/minimap";
-import { IconMap, IconMagnet, IconFocusCentered } from "@tabler/icons-vue";
+import { IconMap, IconMagnet, IconFocusCentered, IconPlus, IconMinus, IconArrowBackUp, IconArrowForwardUp, IconFolders, IconSitemap, IconArrowGuide } from "@tabler/icons-vue";
 import { ElMessage } from "element-plus";
 import { arrangeCanvas } from "../arrangeCanvas";
+import { generalSettings } from "@/stores/settings";
+import { shortcutLabel, type CanvasShortcutAction } from "@/lib/canvasShortcuts";
 
 const props = defineProps<{
   canvasId: string;
+  canUndo: boolean;
+  canRedo: boolean;
   directory: string | undefined;
   batchHistory: (action: () => Promise<void>) => Promise<void>;
 }>();
+const emit = defineEmits<{ undo: []; redo: [] }>();
 const snapEnabled = defineModel<boolean>("snapEnabled", { required: true });
 const showEdges = defineModel<boolean>("showEdges", { required: true });
 const assetsVisible = defineModel<boolean>("assetsVisible", { default: false });
 const showMap = ref(false);
 const zoomMenuVisible = ref(false);
 const flow = useVueFlow();
-const { viewport, zoomTo, zoomIn, zoomOut, fitView, getNodes, updateNode } = flow;
+const { viewport, minZoom, maxZoom, zoomTo, zoomIn, zoomOut, fitView, getNodes, updateNode } = flow;
 const zoomPercent = computed(() => Math.round(viewport.value.zoom * 100));
 const layoutSnapshot = ref<{ id: string; position: XYPosition }[]>();
 const undoPopoverVisible = ref(false);
@@ -163,8 +131,13 @@ watch(
 );
 onBeforeUnmount(() => arrangeController?.abort());
 
+function actionHint(label: string, action: CanvasShortcutAction) {
+  const keys = shortcutLabel(generalSettings.value.canvasShortcuts[action]);
+  return keys ? `${label}（${keys}）` : label;
+}
+
 function applyZoom(value: number | undefined) {
-  if (value !== undefined && Number.isFinite(value)) void zoomTo(value / 100);
+  if (value !== undefined && Number.isFinite(value)) void zoomTo(Math.min(maxZoom.value, Math.max(minZoom.value, value / 100)));
 }
 
 async function arrangeNodes() {
@@ -207,44 +180,66 @@ async function undoArrange() {
 </script>
 
 <style lang="scss" scoped>
-.canvasMiniMap.vue-flow__minimap { bottom: 46px; }
+.canvasMiniMap.vue-flow__minimap { bottom: 62px; }
 
-@container canvasWorkspace (max-width: 1040px) {
-  .canvasControlsPanel.vue-flow__panel { bottom: 46px; }
-  .canvasMiniMap.vue-flow__minimap { bottom: 92px; }
+.canvasControlsPanel.vue-flow__panel {
+  max-width: calc(100% - 30px);
 }
 
-.canvasControlsCard { height: 34px; box-sizing: border-box; }
+@container canvasWorkspace (max-width: 1440px) {
+  .canvasControlsPanel.vue-flow__panel { bottom: 68px; }
+  .canvasMiniMap.vue-flow__minimap { bottom: 120px; }
+}
+
+.canvasControlsCard {
+  box-sizing: border-box;
+  border-radius: 12px;
+}
 
 .canvasControls {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
+  overflow-x: auto;
 
-  .toolTrigger {
-    display: inline-flex;
+  .toolTrigger { display: inline-flex; flex-shrink: 0; }
+
+  .toolDivider {
+    height: 20px;
+    margin: 0 2px;
+    border-left: 1px solid var(--el-border-color-lighter);
   }
 
   .toolButton {
-    width: 28px;
-    height: 28px;
+    width: 36px;
+    height: 36px;
     flex-shrink: 0;
     margin-left: 0;
     padding: 0;
+    border-radius: 8px;
     font-size: 12px;
     font-variant-numeric: tabular-nums;
+
+    &.zoomPercent { width: 58px; }
+
+    &[aria-pressed="true"] { background: var(--el-color-primary-light-9); }
+
+    &:focus-visible {
+      outline: 2px solid var(--el-color-primary);
+      outline-offset: -2px;
+    }
   }
 }
 
 .zoomMenu {
   display: flex;
   flex-direction: column;
+  gap: 4px;
 
-  .zoomInput {
-    width: 100%;
-  }
+  .zoomInput { width: 100%; }
 
   .zoomAction {
+    min-height: 36px;
     justify-content: flex-start;
     margin-left: 0;
   }

@@ -787,3 +787,17 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 `data/` 被 Git 忽略，同步代码不会改动其中的文件；但旧代码运行一次就可能写入数据，且新代码不会自动清理。
 
 **旧的供应商数据**：模型改由麦麦云提供后，`data/providers/` 已不再读取，`settings.json` 中的 `customProviders`、`mediaProviderConfigs`、`imageProtocols` 会在启动时被清掉。开发机的旧数据已备份到 `data/backup/cloudModels/`，确认云端渠道导入完成后再删除 `data/providers/`。
+
+## 画布工具栏与节点操作（2026-11-03）
+
+- 版本：桌面 2.1.1，包含本轮画布工具栏与节点操作调整。
+- 参考 `infinite-canvas` 的操作分组、明确工具状态和较大按钮命中区，复用麦麦原有画布方法与快捷键设置。
+
+| 文件 | 我们改了什么 | 冲突时的处理 |
+| --- | --- | --- |
+| `apps/web/src/pages/workspace/index.vue` | 选择/移动与抓手拆为独立按钮，添加按钮带文字，按钮 36px，快捷键提示随设置变化，窄窗口允许横向滚动 | 保留工具状态和现有 selectedTool 模型，避免恢复成含义随状态变化的单个切换按钮 |
+| `apps/web/src/pages/workspace/panels/canvas/components/canvasControls.vue`、`index.vue` | 直接提供撤销/重做和放大/缩小；使用原历史方法与缩放上下限，缩放数字独立加宽；视图操作分组，窄区与中部栏分行避让 | 继续复用 canvasHistory 与 Vue Flow，保留禁用状态、缩放边界和动态快捷键提示 |
+| `apps/web/src/pages/workspace/panels/canvas/components/selectionToolbar.vue` | 多选条 36px 按钮与横向溢出处理，只在适用时显示排列/解组，成组/解组提示实际快捷键 | 保留上下文显示与窄画布约束 |
+| `packages/nodeScaffold/src/nodeSkeleton.vue` | 选中/键盘焦点保持刷新删除按钮可见，标题按钮 32px、媒体操作 36px；拖动和框选结束恢复浮动操作；下载/全屏补文字和无资源提示 | 保留只读、多选隐藏逻辑与拖动期间隐藏，结束后恢复；不混入插件专属业务 |
+
+验证：Web 与节点脚手架现有 typecheck 均通过，Web 构建通过。实际画布点击验收待预览账号登录；节点内部浮动工具条仍随画布缩放。原始文件哈希、差异及回退验证保存在共享 `docs/history/canvasInteraction20261103/`；2.1.1 安装包构建、清单与摘要记录在共享 `docs/history/canvasDesktop21120261103/`。

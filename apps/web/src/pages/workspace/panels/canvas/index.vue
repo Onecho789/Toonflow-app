@@ -85,6 +85,10 @@
         :canvasId="canvasId"
         :directory="project?.directory"
         :batchHistory="canvasHistory.batch"
+        :canUndo="canUndo"
+        :canRedo="canRedo"
+        @undo="changeHistory('undo')"
+        @redo="changeHistory('redo')"
         @update:showEdges="edgeDisconnect = undefined" />
       <nodeMenu
         :key="JSON.stringify(['nodeMenu', project?.directory, canvasId])"

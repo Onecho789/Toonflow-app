@@ -1,7 +1,7 @@
 <template>
   <div v-if="documentTarget" class="nodeDocumentPlaceholder" :style="canvasSize" aria-hidden="true" />
   <teleport :to="documentTarget ?? 'body'" :disabled="!documentTarget">
-  <div ref="skeletonElement" v-bind="$attrs" class="nodeSkeleton" :class="{ documentNode: documentTarget, resized: !!resizedStyle.height, resizing: !!resize }" :style="resizedStyle" @wheel.capture="zoomCanvas" @dblclick.stop="focusNode" @contextmenu="documentTarget && openMenu($event)">
+  <div ref="skeletonElement" v-bind="$attrs" class="nodeSkeleton" :class="{ documentNode: documentTarget, nodeSelected: node.selected, resized: !!resizedStyle.height, resizing: !!resize }" :style="resizedStyle" @wheel.capture="zoomCanvas" @dblclick.stop="focusNode" @contextmenu="documentTarget && openMenu($event)">
     <el-dropdown
       v-if="!readOnly"
       ref="menu"
@@ -46,27 +46,32 @@
           <slot name="topActions" />
           <el-divider direction="vertical" />
           <slot name="topRightActions" />
-          <el-button
-            :tag="downloadUrl ? 'a' : 'button'"
-            :href="downloadUrl || undefined"
-            :download="downloadName"
-            :icon="IconDownload"
-            :disabled="!downloadUrl"
-            :loading="downloading"
-            :aria-busy="downloading"
-            text
-            :title="downloading ? '正在保存…' : '下载'"
-            aria-label="下载"
-            @downloadstate="downloading = $event.detail"
-            @click.stop />
-          <el-button
-            v-if="fullscreenVisible"
-            :icon="IconMaximize"
-            :disabled="!downloadUrl"
-            text
-            title="全屏"
-            aria-label="全屏"
-            @click.stop="emit('fullscreen')" />
+          <el-tooltip :content="!downloadUrl ? '生成或上传媒体后可下载' : downloading ? '正在保存…' : '下载媒体'" :showArrow="false" :enterable="false" :triggerKeys="[]">
+            <span class="toolbarAction">
+              <el-button
+                :tag="downloadUrl ? 'a' : 'button'"
+                :href="downloadUrl || undefined"
+                :download="downloadName"
+                :icon="IconDownload"
+                :disabled="!downloadUrl"
+                :loading="downloading"
+                :aria-busy="downloading"
+                text
+                aria-label="下载"
+                @downloadstate="downloading = $event.detail"
+                @click.stop>下载</el-button>
+            </span>
+          </el-tooltip>
+          <el-tooltip v-if="fullscreenVisible" :content="downloadUrl ? '全屏预览媒体' : '生成或上传媒体后可全屏预览'" :showArrow="false" :enterable="false" :triggerKeys="[]">
+            <span class="toolbarAction">
+              <el-button
+                :icon="IconMaximize"
+                :disabled="!downloadUrl"
+                text
+                aria-label="全屏"
+                @click.stop="emit('fullscreen')">全屏</el-button>
+            </span>
+          </el-tooltip>
         </el-card>
       </slot>
     </div>
@@ -114,7 +119,7 @@
           title="刷新节点"
           aria-label="刷新节点"
           @click.stop="reloadNode" />
-        <el-button :icon="IconTrash" text title="移除节点" aria-label="移除节点" @click.stop="deleteNode" :loading="deleting" />
+        <el-button :icon="IconTrash" text type="danger" title="移除节点" aria-label="移除节点" @click.stop="deleteNode" :loading="deleting" />
       </div>
     </div>
     <div class="cardContainer">
@@ -191,7 +196,7 @@ import {
   IconCircleDot,
   IconLoader2,
 } from "@tabler/icons-vue";
-import { ElCard, ElButton, ElDivider, ElDropdown, ElDropdownMenu, ElDropdownItem, ElMessage } from "element-plus";
+import { ElCard, ElButton, ElDivider, ElDropdown, ElDropdownMenu, ElDropdownItem, ElMessage, ElTooltip } from "element-plus";
 import type { DropdownInstance } from "element-plus";
 import { validateConnection } from "./connection";
 import { useNodeEvent } from "./nodeEvent";
@@ -310,8 +315,10 @@ const {
   onMoveStart,
   onNodeContextMenu,
   onNodeDragStart,
+  onNodeDragStop,
   onNodeClick,
   onSelectionStart,
+  onSelectionEnd,
 } = useVueFlow();
 const batchHistory = inject<((action: () => Promise<void>) => Promise<void>) | undefined>("batchCanvasHistory", undefined);
 const resizedStyle = computed(() => {
@@ -439,8 +446,14 @@ const slotsVisible = computed(() => !slotsHiddenByInteraction.value && (!node.se
 onSelectionStart(() => {
   slotsHiddenByInteraction.value = true;
 });
+onSelectionEnd(() => {
+  slotsHiddenByInteraction.value = false;
+});
 onNodeDragStart(({ nodes }) => {
   if (nodes.some((item) => item.id === nodeId)) slotsHiddenByInteraction.value = true;
+});
+onNodeDragStop(({ nodes }) => {
+  if (nodes.some((item) => item.id === nodeId)) slotsHiddenByInteraction.value = false;
 });
 onNodeClick(({ node: clickedNode }) => {
   if (clickedNode.id === nodeId) slotsHiddenByInteraction.value = false;
@@ -718,7 +731,9 @@ watch(
     opacity: 1;
   }
 
-  &:hover .titleBar .nodeActions {
+  &:hover .titleBar .nodeActions,
+  &:focus-within .titleBar .nodeActions,
+  &.nodeSelected .titleBar .nodeActions {
     visibility: visible;
   }
 
@@ -743,12 +758,16 @@ watch(
     .mediaToolbar {
       &:deep(.el-button) {
         width: auto;
-        min-width: 32px;
-        height: 32px;
+        min-width: 36px;
+        height: 36px;
         margin: 0;
         padding: 0 8px;
         text-decoration: none;
+
+        &:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: -2px; }
       }
+
+      .toolbarAction { display: inline-flex; vertical-align: middle; }
     }
   }
 
@@ -799,10 +818,12 @@ watch(
       gap: 2px;
 
       .el-button {
-        width: 24px;
-        height: 24px;
+        width: 32px;
+        height: 32px;
         margin: 0;
         padding: 0;
+
+        &:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: -2px; }
       }
     }
   }
