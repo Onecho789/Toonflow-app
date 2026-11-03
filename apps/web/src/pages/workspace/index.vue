@@ -45,18 +45,6 @@
               </el-button>
             </el-tooltip>
             <el-divider direction="vertical" aria-hidden="true" />
-            <el-tooltip :content="canvasToolTooltip('框选', 'moveTool')" placement="top" :showArrow="false" :hideAfter="0" :enterable="false" :triggerKeys="[]">
-              <el-button
-                class="toolButton"
-                :class="{ isActive: selectedTool === 'move' }"
-                text
-                :type="selectedTool === 'move' ? 'primary' : 'default'"
-                :aria-pressed="selectedTool === 'move'"
-                aria-label="框选"
-                @click="selectedTool = 'move'">
-                <icon-pointer :size="18" aria-hidden="true" />
-              </el-button>
-            </el-tooltip>
             <el-tooltip :content="canvasToolTooltip('平移', 'handTool')" placement="top" :showArrow="false" :hideAfter="0" :enterable="false" :triggerKeys="[]">
               <el-button
                 class="toolButton"
@@ -67,6 +55,18 @@
                 aria-label="平移"
                 @click="selectedTool = 'hand'">
                 <icon-hand-stop :size="18" aria-hidden="true" />
+              </el-button>
+            </el-tooltip>
+            <el-tooltip :content="canvasToolTooltip('框选', 'moveTool')" placement="top" :showArrow="false" :hideAfter="0" :enterable="false" :triggerKeys="[]">
+              <el-button
+                class="toolButton"
+                :class="{ isActive: selectedTool === 'move' }"
+                text
+                :type="selectedTool === 'move' ? 'primary' : 'default'"
+                :aria-pressed="selectedTool === 'move'"
+                aria-label="框选"
+                @click="selectedTool = 'move'">
+                <icon-pointer :size="18" aria-hidden="true" />
               </el-button>
             </el-tooltip>
             <el-divider direction="vertical" aria-hidden="true" />
@@ -157,7 +157,7 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import settings from "@/components/settings/index.vue";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { generalSettings, uiSettings, updateUiSettings, updateGeneralSettings } from "@/stores/settings";
-import { getShortcutBindings, shortcutLabel, type CanvasShortcutAction } from "@/lib/canvasShortcuts";
+import { shortcutLabel, type CanvasShortcutAction } from "@/lib/canvasShortcuts";
 import { registerWorkspaceControl, waitForControlValue } from "@/lib/mcpControl";
 import { useCloudBalanceRefresh } from "@/stores/cloudAccount";
 import canvasPanel from "./panels/canvas/canvasHost.vue";
@@ -168,10 +168,7 @@ import floatingAgent from "./components/floatingAgent.vue";
 const documentPanel = defineAsyncComponent(() => import("./panels/document/index.vue"));
 
 const activePanel = ref<"canvas" | "document">("canvas");
-const selectedTool = ref<"move" | "hand">(getShortcutBindings(generalSettings.value.canvasShortcuts.pan).includes("None") ? "hand" : "move");
-watch(() => generalSettings.value.canvasShortcuts.pan, binding => {
-  selectedTool.value = getShortcutBindings(binding).includes("None") ? "hand" : "move";
-});
+const selectedTool = ref<"move" | "hand">("hand");
 function canvasToolTooltip(label: string, action: CanvasShortcutAction) {
   const shortcut = shortcutLabel(generalSettings.value.canvasShortcuts[action]);
   return shortcut ? `${translate(label)} (${shortcut})` : translate(label);

@@ -818,3 +818,10 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 | `apps/web/src/pages/workspace/index.vue`、`panels/canvas/canvasHost.vue`、`panels/canvas/components/canvasControls.vue` | 工具栏分组、缩放滑条、外观面板、当前画布状态与动作转发 | 保留当前画布的历史/禁用状态与窄区避让，继续复用原有历史和布局方法 |
 
 验证：现有 Web typecheck 与生产构建通过，未新增测试代码。证据与原始/修改后文件保存在共享 `docs/history/canvasNavigation20261104/`。桌面打包版本为 2.1.2；实际画布操作体验待用户登录后验收。
+
+## 画布默认小手与工具顺序（2026-11-04）
+
+- 进入工作区时固定默认选中小手（平移），底部顺序改为「添加 → 小手 → 框选箭头」。
+- 去掉根据平移快捷键初始化和自动切换工具的逻辑，保留点击按钮与 V/H 快捷键的手动切换。
+
+改动的上游文件：`apps/web/src/pages/workspace/index.vue`。冲突时保留 `selectedTool` 默认 `hand`、小手在框选箭头之前的顺序；快捷键配置仍用于对应操作与提示。
