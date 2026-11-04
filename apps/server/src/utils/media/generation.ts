@@ -130,7 +130,7 @@ async function readReferences(directory: string | undefined, request: MediaGener
   };
 }
 
-export async function getMediaPrice(_directory: string | undefined, mediaType: "image" | "video" | "audio", request: MediaGenerationRequest, signal?: AbortSignal) {
+export async function getMediaPrice(_directory: string | undefined, mediaType: "image" | "video" | "audio", request: MediaGenerationRequest & cloud.ImageCount, signal?: AbortSignal) {
   signal?.throwIfAborted();
   return cloud.getPrice(mediaType, request);
 }
@@ -138,7 +138,7 @@ export async function getMediaPrice(_directory: string | undefined, mediaType: "
 export async function generateMedia(
   cwd: string,
   mediaType: "image" | "video" | "audio",
-  request: MediaGenerationRequest,
+  request: MediaGenerationRequest & cloud.ImageCount,
   signal?: AbortSignal,
 ): Promise<GeneratedMedia[]> {
   signal?.throwIfAborted();
@@ -189,7 +189,7 @@ async function writeAssets(directory: string, outputDirectory: string, mediaType
   }
 }
 
-export async function submitMediaTask(cwd: string, mediaType: "image" | "video", request: MediaGenerationRequest, signal: AbortSignal) {
+export async function submitMediaTask(cwd: string, mediaType: "image" | "video", request: MediaGenerationRequest & cloud.ImageCount, signal: AbortSignal) {
   if (!request.prompt.trim()) invalid("请输入生成提示词");
   const directory = await realpath(cwd);
   const media = await readReferences(directory, request, signal);
@@ -198,6 +198,12 @@ export async function submitMediaTask(cwd: string, mediaType: "image" | "video",
 
 // 查询云端任务；完成后把结果写入 outputDirectory，文件名带任务编号，已领取过的直接返回本地文件。
 export async function collectMediaTask(cwd: string, mediaType: "image" | "video", taskId: string, outputDirectory: string, signal: AbortSignal) {
+  const state = await collectTaskMedia(cwd, mediaType, taskId, outputDirectory, signal);
+  return state.status === "completed" ? { status: "completed" as const, files: state.media.map(item => item.path) } : state;
+}
+
+// 与 collectMediaTask 相同，额外带回 mimeType，供节点任务直接使用；已领取的文件按扩展名推断类型。
+export async function collectTaskMedia(cwd: string, mediaType: "image" | "video", taskId: string, outputDirectory: string, signal: AbortSignal) {
   const directory = await realpath(cwd);
   const output = await resolveWorkspacePath(directory, outputDirectory, true);
   const prefix = `${mediaType}${taskId}_`;
@@ -206,9 +212,13 @@ export async function collectMediaTask(cwd: string, mediaType: "image" | "video"
     throw error;
   });
   const files = existing.filter(name => name.startsWith(prefix)).sort();
-  if (files.length) return { status: "completed" as const, files: files.map(name => `${outputDirectory}/${name}`.replace(/\\/g, "/")) };
+  if (files.length) return { status: "completed" as const, media: files.map((name): GeneratedMedia => ({ path: `${outputDirectory}/${name}`.replace(/\\/g, "/"), mimeType: extensionMimeType(mediaType, name), mediaType })) };
   const state = await cloud.taskState(mediaType, taskId, signal);
   if (state.status !== "completed") return state;
-  const media = await writeAssets(directory, outputDirectory, mediaType, state.assets, index => `${taskId}_${index}`, signal);
-  return { status: "completed" as const, files: media.map(item => item.path) };
+  return { status: "completed" as const, media: await writeAssets(directory, outputDirectory, mediaType, state.assets, index => `${taskId}_${index}`, signal) };
+}
+
+function extensionMimeType(mediaType: "image" | "video", name: string) {
+  const extension = name.slice(name.lastIndexOf(".") + 1).toLowerCase();
+  return Object.keys(mediaExtensions).find(mimeType => mimeType.startsWith(`${mediaType}/`) && mediaExtensions[mimeType] === extension) ?? `${mediaType}/${extension}`;
 }

@@ -5,6 +5,8 @@ type MediaInput = { data: string; mimeType: string };
 export type CloudAsset = { type: "url"; url: string } | { type: "base64"; data: string } | { type: "binary"; data: Uint8Array; mimeType: string };
 type ImageMeta = { sizePrices?: Record<string, number> };
 type VideoMeta = { resolutionPrices?: Record<string, number>; audioPrice?: number };
+// 图片张数不在工具 schema 里，由路由单独校验后随请求传入；缺省为 1 张。
+export type ImageCount = { n?: number };
 
 const dataUrl = (input: MediaInput) => `data:${input.mimeType};base64,${input.data}`;
 
@@ -23,14 +25,14 @@ async function postJson<T>(path: string, body: unknown, signal: AbortSignal) {
 }
 
 // 与云端网关的计费公式一致，金额单位 0.0001 元；实际以云端扣费为准。
-export function estimateCost(model: CloudModel, request: MediaGenerationRequest) {
-  if (model.type === "image") return Math.ceil(model.pricing.unit * ((model.meta as ImageMeta).sizePrices?.[request.size ?? ""] ?? 1));
+export function estimateCost(model: CloudModel, request: MediaGenerationRequest & ImageCount) {
+  if (model.type === "image") return Math.ceil(model.pricing.unit * ((model.meta as ImageMeta).sizePrices?.[request.size ?? ""] ?? 1)) * (request.n ?? 1);
   const meta = model.meta as VideoMeta;
   const audio = request.generateAudio ? meta.audioPrice ?? 1 : 1;
   return Math.ceil(model.pricing.unit * (request.duration ?? 0) * (meta.resolutionPrices?.[request.resolution ?? ""] ?? 1) * audio);
 }
 
-export async function getPrice(mediaType: "image" | "video" | "audio", request: MediaGenerationRequest) {
+export async function getPrice(mediaType: "image" | "video" | "audio", request: MediaGenerationRequest & ImageCount) {
   if (mediaType === "audio") return null;
   const model = await findCloudModel(request.modelId, mediaType);
   if (mediaType === "video" && !request.duration) return null;
@@ -43,10 +45,10 @@ const imageAssets = (data?: { b64_json?: string; url?: string }[]) =>
   (data ?? []).flatMap((item): CloudAsset[] => item.b64_json ? [{ type: "base64", data: item.b64_json }] : item.url ? [{ type: "url", url: item.url }] : []);
 
 // other 里的模型参数（如 quality、background）原样转发给云端，固定字段放在后面，不会被覆盖；size、ratio 缺省时由上游决定。
-function imageBody(request: MediaGenerationRequest, images: MediaInput[] | undefined) {
+function imageBody(request: MediaGenerationRequest & ImageCount, images: MediaInput[] | undefined) {
   // model 须保持在请求体第一个字段，选分组时只读请求体开头取模型 ID。
   return Object.assign({ model: request.modelId, ...request.other }, {
-    model: request.modelId, prompt: request.prompt, n: 1, size: request.size, aspect_ratio: request.ratio,
+    model: request.modelId, prompt: request.prompt, n: request.n ?? 1, size: request.size, aspect_ratio: request.ratio,
     ...(images?.length ? { images: images.map(dataUrl) } : {}),
   });
 }
@@ -71,14 +73,14 @@ function videoBody(request: MediaGenerationRequest, media: VideoMedia) {
   return body;
 }
 
-export async function generateImage(request: MediaGenerationRequest, images: MediaInput[] | undefined, signal: AbortSignal): Promise<CloudAsset[]> {
+export async function generateImage(request: MediaGenerationRequest & ImageCount, images: MediaInput[] | undefined, signal: AbortSignal): Promise<CloudAsset[]> {
   await findCloudModel(request.modelId, "image");
   const result = await postJson<{ data?: { b64_json?: string; url?: string }[] }>("/images/generations", imageBody(request, images), signal);
   return imageAssets(result.data);
 }
 
 // 提交云端任务后立即返回任务 ID，结果由 taskState 查询；页面刷新或应用重启后可凭 ID 继续查询。
-export async function submitTask(mediaType: "image" | "video", request: MediaGenerationRequest, media: VideoMedia, signal: AbortSignal) {
+export async function submitTask(mediaType: "image" | "video", request: MediaGenerationRequest & ImageCount, media: VideoMedia, signal: AbortSignal) {
   await findCloudModel(request.modelId, mediaType);
   const task = mediaType === "image"
     ? await postJson<{ id: string }>("/images/tasks", imageBody(request, media.images), signal)

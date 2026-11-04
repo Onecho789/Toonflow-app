@@ -862,3 +862,12 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 - 结构化镜头保存在 `node.data.shots`：`{ id, number, shotSize, description, dialogue, duration, characterIds, imageNodeId? }`。
 
 改动的上游文件：`apps/web/src/components/settings/panels/general/nodeMenuSettings.vue` 新增图标映射，`apps/web/src/pages/workspace/panels/canvas/components/canvasEmpty.vue` 新增「分镜表」快捷入口；`packages/i18n/src/locales/*.json` 与 `messageSources.json` 新增一条文案；`bun.lock`。冲突时保留这两处注册项与新增文案。
+
+## 生成节点增强与任务恢复（2026-11-04）
+
+- 图片生成节点支持单次 1–4 张（不超过模型表单 `n` 字段上限，局部重绘固定 1 张），报价按张数估算；多张结果以宫格显示，可点选当前输出。
+- 图片、视频生成节点可把结果拆分为右侧新的图片/视频节点（图片节点自动连线），并提供「完成后拆分」开关（`data.autoSplit`）。
+- 生成失败时节点底部显示错误与「重试」，按原请求参数重新走 `useNodeGeneration` 状态机；生成中保留加载动画，成功后显示成功色小图标。
+- 任务恢复：`node.data.generationTask` 记录任务编号与请求摘要；服务端把图片、视频任务写入数据目录 `mediaTasks.json`（`writeAtomic`），重启后继续轮询麦麦云；云端已无该任务时以 410 友好提示失败。节点卸载不再取消图片/视频任务，停止和删除仍会取消本地等待（麦麦云任务无法撤回）。
+
+改动的上游文件：`apps/server/src/utils/media/{cloud,generation,tasks}.ts`、`apps/server/src/routes/ai/media/{generate,price}.ts`、`packages/nodeScaffold/src/nodeAi.ts`、`packages/nodeShared/src/useNodeGeneration.ts` 与 `package.json`（新增 `useResultNodes`、`generationState`、`mediaResults` 导出）、图片/视频生成节点的 `index.vue` 与 `generationSettings.vue`。冲突时保留请求体顶层 `n` 字段、任务持久化与恢复轮询、`resumeMedia`/`onTask` 接口及节点的重试与拆分逻辑。

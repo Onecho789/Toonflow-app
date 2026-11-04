@@ -3,7 +3,7 @@
     <template #reference>
       <el-button class="settingsButton" text size="small" :disabled="disabled" :aria-expanded="settingsVisible" aria-label="图片生成设置">
         <span class="ratioShape" :style="ratioStyle(ratio)" aria-hidden="true" />
-        <span>{{ ratio }} · {{ size }} · 1张</span>
+        <span>{{ ratio }} · {{ size }} · {{ count }}张</span>
         <component :is="settingsVisible ? IconChevronDown : IconChevronUp" :size="14" aria-hidden="true" />
       </el-button>
     </template>
@@ -28,6 +28,16 @@
           </span>
         </el-button>
       </div>
+      <template v-if="maxCount > 1">
+        <div class="sectionLabel countLabel">张数</div>
+        <el-radio-group v-model="count" class="sizeOptions" :disabled="disabled" aria-label="生成张数">
+          <el-radio-button v-for="item in maxCount" :key="item" :value="item">{{ item }}张</el-radio-button>
+        </el-radio-group>
+      </template>
+      <div class="switchOption">
+        <span class="sectionLabel">完成后拆分为图片节点</span>
+        <el-switch v-model="autoSplit" size="small" :disabled="disabled" aria-label="完成后拆分为图片节点" />
+      </div>
       <modelForm v-model="other" :rules="model?.rules" :disabled="disabled" />
     </div>
   </el-popover>
@@ -35,16 +45,18 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { ElButton, ElPopover, ElRadioGroup, ElRadioButton } from "element-plus";
+import { ElButton, ElPopover, ElRadioGroup, ElRadioButton, ElSwitch } from "element-plus";
 import { IconChevronDown, IconChevronUp } from "@tabler/icons-vue";
 import type { NodeMediaModel } from "@toonflow/nodes-scaffold/runtime";
 import modelForm from "@toonflow/node-shared/modelForm";
 
-defineProps<{ sizes: string[]; ratios: string[]; model?: NodeMediaModel; disabled?: boolean }>();
+defineProps<{ sizes: string[]; ratios: string[]; model?: NodeMediaModel; disabled?: boolean; maxCount: number }>();
 const settingsVisible = ref(false);
 const size = defineModel<string>("size", { required: true });
 const ratio = defineModel<string>("ratio", { required: true });
 const other = defineModel<Record<string, unknown>>("other", { required: true });
+const count = defineModel<number>("count", { required: true });
+const autoSplit = defineModel<boolean>("autoSplit", { required: true });
 
 function ratioStyle(value: string) {
   const [width = 1, height = 1] = value.split(":").map(Number);
@@ -99,6 +111,16 @@ function ratioStyle(value: string) {
         border-color: var(--el-text-color-regular);
       }
     }
+  }
+
+  .countLabel { margin-top: 14px; }
+
+  .switchOption {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 14px;
+    .sectionLabel { margin: 0; }
   }
 
   .ratioOptions {

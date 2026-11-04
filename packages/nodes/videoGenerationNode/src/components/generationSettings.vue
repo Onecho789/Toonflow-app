@@ -39,6 +39,10 @@
         <span class="sectionLabel">生成音频</span>
         <el-switch v-model="generateAudio" :disabled="disabled" aria-label="生成音频" />
       </div>
+      <div class="audioOption">
+        <span class="sectionLabel">完成后拆分为视频节点</span>
+        <el-switch v-model="autoSplit" :disabled="disabled" aria-label="完成后拆分为视频节点" />
+      </div>
       <modelForm v-model="other" :rules="model?.rules" :disabled="disabled" />
     </div>
   </el-popover>
@@ -59,6 +63,7 @@ const ratio = defineModel<string>("ratio", { required: true });
 const mode = defineModel<string>("mode", { required: true });
 const generateAudio = defineModel<boolean>("generateAudio", { required: true });
 const other = defineModel<Record<string, unknown>>("other", { required: true });
+const autoSplit = defineModel<boolean>("autoSplit", { required: true });
 const modeLabels: Record<string, string> = {
   text: "文生视频", singleImage: "单图参考", startEndRequired: "首尾帧必填", endFrameOptional: "尾帧可选", startFrameOptional: "首帧可选",
 };
