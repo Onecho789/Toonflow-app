@@ -1,6 +1,6 @@
 # 麦麦打包、发布与部署
 
-2026-11-03 从旧对话、旧记忆和实际源码整理，2026-11-04 补充桌面 2.1.3、2.1.4、2.1.5 本地安装包交付记录及云端 2.12.0-20261104、2.13.0-20261105、2.14.0-20261105、2.14.1-20261105 发布。
+2026-11-03 从旧对话、旧记忆和实际源码整理，2026-11-04 补充桌面 2.1.3、2.1.4、2.1.5、2.1.6 本地安装包交付记录及云端 2.12.0-20261104、2.13.0-20261105、2.14.0-20261105、2.14.1-20261105 发布。
 
 ## 工作目录与记忆
 
@@ -16,7 +16,7 @@
 
 两个子目录分别管理 Git。根目录继续作为共享记忆维护入口；根级 AGENTS.md 与 docs/ 下的 releaseWorkflow.md、maimaiCloud.md、localEnvNotes.md 同步到两个仓库的 docs/projectMemory/ 并分别提交、推送，单独克隆时可从该目录的 readme.md 查看。每次更新共享记忆后同步两份副本；docs/history/ 中的历史证据与构建日志另作本机备份。
 
-当前桌面本地安装包为 **2.1.5**，提交 a643650cb324a9b49ed486de794557d177f5c4c7，分支 codex/simplifyMediaModels；上次公开发布为 2.1.0。云端版本为 **2.14.1-20261105**，提交 92da8edf8db89e33172be870137e02139bf83d84，分支 goRewrite。两个版本号各自维护，后续先读实际 HEAD、分支和工作区。
+当前桌面本地安装包为 **2.1.6**，提交 6f9fa48，分支 codex/simplifyMediaModels；上次公开发布为 2.1.0。云端版本为 **2.14.1-20261105**，提交 92da8edf8db89e33172be870137e02139bf83d84，分支 goRewrite。两个版本号各自维护，后续先读实际 HEAD、分支和工作区。
 
 ## Windows 桌面打包
 
@@ -85,6 +85,17 @@ bun run release:desktop <新的桌面版本> --initial
 - 本次为本地安装包交付；GitHub 公开版本仍为 2.1.0，更新源仍为空。安装器留给用户运行测试，原有 AGENTS.md 修改保留。
 - 构建日志、原始/修改后版本配置、差异及副本回退证据：`docs/history/canvasDesktop21320261104/`。ROLLBACK.sh 仅在独立配置副本恢复 app.version=2.1.2，SHA256 与原始配置一致；实际源码和产物保持 2.1.3，不更换已安装程序。
 - 旧 2.1.2 安装包保留在其原快照目录；打包前已核对 SHA256 与旧记录一致。共享记忆修改前副本保存在本轮证据目录的 memoryBefore/。
+
+### 本地完整安装包 2.1.6（2026-11-05）
+
+- 源码提交：6f9fa48（版本），功能提交 633bcd6，分支 codex/simplifyMediaModels。包含 @ 提及大图预览与画布节点高亮、节点标题短编号 `#xxxx`、悬浮对话框四边四角缩放 / 最大化 / 记住尺寸、askUser 长选项换行与三行折叠。
+- 构建命令：`bun run release:desktop 2.1.6 --initial`，退出 0（去掉代理变量、PATH 前置 System32）。Bun 1.4.3；Windows x64。
+- 版本快照：D:api-codes\maimai\clientuild\desktopeleases.1.6。
+- 安装包：`MaiMaiStudio-2.1.6-Setup.exe`，55,606,955 字节；SHA256 `7c99242eb18c10494626a78a261581fbd34dcdf721d0652b54ab3dda7aa4ba4c`。
+- 更新归档：`stable-win-x64-MaiMaiStudio.tar.zst`，58,265,355 字节；SHA256 `ca59f4b138cecb012216745685e0920b5f0d0a10f96d2aa4e8653d5c1ecbbdde`。
+- 更新清单：`stable-win-x64-update.json`，208 字节；SHA256 `069facda1bcff54e68be57d9f9fabfaae6bae946925556f1127106c0c25f72c4`；version=2.1.6、stable/win/x64、hash=u1hkyk7bsm72。
+- 验证：web、nodeScaffold、askUser vue-tsc 与 server tsc 退出 0；本地预览实测提及预览/高亮、对话框缩放/最大化/刷新恢复、长选项换行折叠与下拉换行。打包退出 0；快照与 artifacts 哈希一致；Bun 解压归档 1729 项，version.json 为 2.1.6，11 个节点插件均含短编号，askUser 含下拉换行样式，workspace chunk 含新对话框代码。NSIS 安装包未做 7-Zip 完整性检查。
+- 本次为本地安装包交付；GitHub 公开版本仍为 2.1.0，更新源仍为空。未运行安装器；router.ts、components.d.ts 的工作区漂移未提交。回退：安装 2.1.5 快照中的安装包。
 
 ### 本地完整安装包 2.1.5（2026-11-05）
 

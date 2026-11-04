@@ -117,13 +117,19 @@ Grok 当前修订：f8f85bef333fecb4da9ecfdb267a9cbad30472092346ed9a252c15138fda
 上次版本已验证能力400、源码新旧版本读取、默认升级、自定义与恢复版本重启保留。本次发布前无活跃视频任务、无 pending 用量记录，发布中未新发起生成。
 视频编辑/延长等宿主入参及上游特殊计费未扩展，现有失败退款规则保留。
 
-## 桌面本地安装包 2.1.5（2026-11-05）
+## 桌面本地安装包 2.1.6（2026-11-05）
+
+- 源码提交：6f9fa48（版本），功能提交 633bcd6，分支 codex/simplifyMediaModels。包含 @ 提及大图预览与画布高亮、节点短编号、悬浮对话框自由缩放与最大化、askUser 长选项换行。
+- 版本快照：D:api-codes\maimai\clientuild\desktopeleases.1.6。安装包 `MaiMaiStudio-2.1.6-Setup.exe` 55,606,955 字节，SHA256 `7c99242eb18c10494626a78a261581fbd34dcdf721d0652b54ab3dda7aa4ba4c`；清单 version=2.1.6、hash=u1hkyk7bsm72。
+- 打包退出 0；快照与 artifacts 哈希一致；归档 1729 项、11 个节点插件齐全且含新代码。本地交付，未运行安装器，GitHub 仍为 2.1.0、更新源仍为空。详情见 releaseWorkflow.md。
+
+## 上次桌面本地安装包 2.1.5（2026-11-05）
 
 - 源码提交：a643650cb324a9b49ed486de794557d177f5c4c7（版本），分支 codex/simplifyMediaModels。包含 2.1.4 之后的 messages 协议映射（df0087a）、分镜表与角色库、成片时间线、生成节点增强、画布组输入与 JSON 导入导出、角色库修复（7bd6c50），以及 Claude 内置上限按官方补齐（f7daa19，claude-opus-5-5 等取 1M / 128K）。
 - 版本快照：D:\2api-codes\maimai\client\build\desktop\releases\2.1.5。安装包 `MaiMaiStudio-2.1.5-Setup.exe` 55,603,692 字节，SHA256 `564d51d824ba3ca15c308e300fe3f8c58c40badc89bef66d4f3be1b8d9eda9a0`；清单 version=2.1.5、hash=2otkef5rvimk0。
 - 打包退出 0；快照与 artifacts 哈希一致；归档 1729 项、11 个节点插件齐全，app/bun/index.js 含 claude-opus-5-5 条目。本地交付，未运行安装器，GitHub 仍为 2.1.0、更新源仍为空。详情见 releaseWorkflow.md。
 
-## 上次桌面本地安装包 2.1.4（2026-11-04）
+## 更早桌面本地安装包 2.1.4（2026-11-04）
 
 - 源码提交：92bae921a0df5e26245c3af6d8c0ce96a60dd464（修复 6edc944），分支 codex/simplifyMediaModels，2026-11-04 已推送 origin。修复图片下载「EUNKNOWN: unknown error, uv_spawn」：另存为 exe 无法启动时改用系统 PowerShell 弹窗，两者都失败时提示安全软件拦截。
 - 版本快照：D:\2api-codes\maimai\client\build\desktop\releases\2.1.4。安装包 `MaiMaiStudio-2.1.4-Setup.exe` 55,557,551 字节，SHA256 `f2e9dcf70bd70383a7ca794eeb84f6c079a17d085d4d08ab76aac188bf4415c8`；清单 version=2.1.4、hash=2tgxuqgucfqv9。
