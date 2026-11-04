@@ -1284,6 +1284,8 @@
   "选区操作失败": "Nabigo ang pagpapatakbo ng pagpili",
   "选择保存位置失败": "Nabigong piliin ang pag-save ng lokasyon",
   "选择保存位置失败：{0}": "Nabigong piliin ang lokasyon ng pag-save: {0}",
+  "系统阻止了另存为窗口启动，可能被火绒、360 等安全软件拦截。请将麦麦工坊安装目录加入信任区后重试（{0}）": "Hinarang ng system ang pagbukas ng Save As window, posibleng ng security software gaya ng Huorong o 360. Idagdag ang installation folder ng MaiMai Studio sa trusted list at subukang muli ({0})",
+  "另存为窗口运行失败：{0}": "Nabigo ang Save As window: {0}",
   "选择本地{0}文件": "Piliin ang lokal na {0} file",
   "选择此目录": "Piliin ang direktoryo na ito",
   "选择服务器工作目录": "Piliin ang direktoryo ng trabaho sa server",

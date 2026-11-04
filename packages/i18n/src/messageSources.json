@@ -8044,6 +8044,12 @@
   "选择保存位置失败：{0}": [
     "apps/desktop/src/saveFile.ts"
   ],
+  "系统阻止了另存为窗口启动，可能被火绒、360 等安全软件拦截。请将麦麦工坊安装目录加入信任区后重试（{0}）": [
+    "apps/desktop/src/saveFile.ts"
+  ],
+  "另存为窗口运行失败：{0}": [
+    "apps/desktop/src/saveFile.ts"
+  ],
   "保存位置已过期，请重新选择保存位置": [
     "apps/desktop/src/saveFile.ts"
   ],

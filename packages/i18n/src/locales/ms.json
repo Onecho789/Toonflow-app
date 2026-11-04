@@ -1284,6 +1284,8 @@
   "选区操作失败": "Operasi pemilihan gagal",
   "选择保存位置失败": "Gagal memilih lokasi simpan",
   "选择保存位置失败：{0}": "Gagal memilih lokasi simpan: {0}",
+  "系统阻止了另存为窗口启动，可能被火绒、360 等安全软件拦截。请将麦麦工坊安装目录加入信任区后重试（{0}）": "Sistem menyekat tetingkap Simpan Sebagai daripada dibuka, mungkin oleh perisian keselamatan seperti Huorong atau 360. Tambahkan folder pemasangan MaiMai Studio ke senarai dipercayai dan cuba lagi ({0})",
+  "另存为窗口运行失败：{0}": "Tetingkap Simpan Sebagai gagal: {0}",
   "选择本地{0}文件": "Pilih fail {0} setempat",
   "选择此目录": "Pilih direktori ini",
   "选择服务器工作目录": "Pilih direktori kerja pelayan",

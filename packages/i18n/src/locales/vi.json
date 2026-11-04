@@ -1284,6 +1284,8 @@
   "选区操作失败": "Thao tác lựa chọn không thành công",
   "选择保存位置失败": "Không chọn được vị trí lưu",
   "选择保存位置失败：{0}": "Không chọn được vị trí lưu: {0}",
+  "系统阻止了另存为窗口启动，可能被火绒、360 等安全软件拦截。请将麦麦工坊安装目录加入信任区后重试（{0}）": "Hệ thống đã chặn cửa sổ Lưu thành khởi động, có thể do phần mềm bảo mật như Huorong hoặc 360 chặn. Hãy thêm thư mục cài đặt MaiMai Studio vào danh sách tin cậy rồi thử lại ({0})",
+  "另存为窗口运行失败：{0}": "Cửa sổ Lưu thành gặp lỗi: {0}",
   "选择本地{0}文件": "Chọn tệp {0} cục bộ",
   "选择此目录": "Chọn thư mục này",
   "选择服务器工作目录": "Chọn thư mục làm việc của máy chủ",

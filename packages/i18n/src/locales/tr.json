@@ -1284,6 +1284,8 @@
   "选区操作失败": "Seçim işlemi başarısız oldu",
   "选择保存位置失败": "Kaydetme konumu seçilemedi",
   "选择保存位置失败：{0}": "Kaydetme konumu seçilemedi: {0}",
+  "系统阻止了另存为窗口启动，可能被火绒、360 等安全软件拦截。请将麦麦工坊安装目录加入信任区后重试（{0}）": "Sistem, Farklı Kaydet penceresinin açılmasını engelledi. Huorong veya 360 gibi bir güvenlik yazılımı engellemiş olabilir. MaiMai Studio kurulum klasörünü güvenilenler listesine ekleyip yeniden deneyin ({0})",
+  "另存为窗口运行失败：{0}": "Farklı Kaydet penceresi başarısız oldu: {0}",
   "选择本地{0}文件": "Yerel {0} dosyasını seçin",
   "选择此目录": "Bu dizini seç",
   "选择服务器工作目录": "Sunucu çalışma dizinini seçin",

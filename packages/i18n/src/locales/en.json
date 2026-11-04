@@ -1284,6 +1284,8 @@
   "选区操作失败": "Selection operation failed",
   "选择保存位置失败": "Failed to select save location",
   "选择保存位置失败：{0}": "Failed to select save location: {0}",
+  "系统阻止了另存为窗口启动，可能被火绒、360 等安全软件拦截。请将麦麦工坊安装目录加入信任区后重试（{0}）": "The system blocked the Save As window from starting. It may have been blocked by security software such as Huorong or 360. Add the MaiMai Studio installation folder to the trusted list and try again ({0})",
+  "另存为窗口运行失败：{0}": "The Save As window failed: {0}",
   "选择本地{0}文件": "Select local {0} file",
   "选择此目录": "Select this directory",
   "选择服务器工作目录": "Select server working directory",

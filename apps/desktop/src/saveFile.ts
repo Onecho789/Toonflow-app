@@ -29,6 +29,65 @@ on run argv
 end run
 `;
 
+// 与 saveFileDialog.exe 相同的系统另存为窗口；文件名和标题经环境变量传入，不拼进脚本。
+const windowsDialog = `
+$ErrorActionPreference = "Stop"
+[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false
+Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+[System.Windows.Forms.Application]::EnableVisualStyles()
+$owner = New-Object System.Windows.Forms.Form
+$dialog = New-Object System.Windows.Forms.SaveFileDialog
+try {
+  $owner.ShowInTaskbar = $false
+  $owner.TopMost = $true
+  $owner.Opacity = 0
+  $owner.StartPosition = "CenterScreen"
+  $owner.Size = New-Object System.Drawing.Size 1, 1
+  $owner.Show()
+  $owner.Activate()
+  $dialog.Title = $env:maimaiSaveTitle
+  $dialog.FileName = $env:maimaiSaveName
+  $dialog.DefaultExt = [System.IO.Path]::GetExtension($env:maimaiSaveName).TrimStart(".")
+  $dialog.OverwritePrompt = $true
+  $dialog.CheckPathExists = $true
+  if ($dialog.ShowDialog($owner) -eq [System.Windows.Forms.DialogResult]::OK) { [Console]::Out.Write($dialog.FileName) }
+} finally {
+  $dialog.Dispose()
+  $owner.Dispose()
+}
+`;
+
+// 进程没能创建时 code 是 EUNKNOWN、ENOENT 等字符串；程序已运行但失败时是数字退出码。
+function isSpawnError(error: unknown) {
+  return error instanceof Error && typeof (error as NodeJS.ErrnoException).code === "string";
+}
+
+async function showWindowsDialog(fileName: string) {
+  try {
+    return await execFileAsync(join(PATHS.RESOURCES_FOLDER, "app/saveFileDialog.exe"), [fileName], { windowsHide: true, encoding: "utf8" });
+  } catch (error) {
+    if (!isSpawnError(error)) throw error;
+    // ACT: 安全软件可能只拦截安装目录里未签名的 saveFileDialog.exe，改用系统自带的 PowerShell 弹出同一窗口。
+    console.warn("saveFileDialog.exe 启动失败，改用 PowerShell 另存为窗口：", error);
+    const powershell = join(process.env.SystemRoot ?? "C:\\Windows", "System32/WindowsPowerShell/v1.0/powershell.exe");
+    try {
+      return await execFileAsync(powershell, [
+        "-NoProfile", "-NonInteractive", "-STA", "-ExecutionPolicy", "Bypass",
+        "-EncodedCommand", Buffer.from(windowsDialog, "utf16le").toString("base64"),
+      ], {
+        windowsHide: true,
+        encoding: "utf8",
+        env: { ...process.env, maimaiSaveName: fileName, maimaiSaveTitle: t`另存为` },
+      });
+    } catch (fallbackError) {
+      const detail = [error, fallbackError].map(item => item instanceof Error ? item.message : String(item)).join("；");
+      throw new Error(isSpawnError(fallbackError)
+        ? t`系统阻止了另存为窗口启动，可能被火绒、360 等安全软件拦截。请将麦麦工坊安装目录加入信任区后重试（${detail}）`
+        : t`另存为窗口运行失败：${detail}`, { cause: fallbackError });
+    }
+  }
+}
+
 export async function selectSaveFile(fileName: string): Promise<string | null> {
   if (!fileName.trim() || fileName === "." || fileName === ".." || /[<>:"/\\|?*\u0000-\u001f\u007f-\u009f]/.test(fileName)) {
     throw new Error(t`保存文件名无效，不能包含路径或控制字符`);
@@ -38,10 +97,7 @@ export async function selectSaveFile(fileName: string): Promise<string | null> {
   dialogOpen = true;
   try {
     const { stdout } = process.platform === "win32"
-      ? await execFileAsync(join(PATHS.RESOURCES_FOLDER, "app/saveFileDialog.exe"), [fileName], {
-        windowsHide: true,
-        encoding: "utf8",
-      })
+      ? await showWindowsDialog(fileName)
       : await execFileAsync("/usr/bin/osascript", ["-e", macDialog, "--", fileName, t`另存为`], { encoding: "utf8" });
     const selected = stdout.replace(/\r?\n$/, "");
     if (!selected) return null;
