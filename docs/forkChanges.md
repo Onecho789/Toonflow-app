@@ -839,3 +839,10 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 - 两种方式都无法启动时，提示可能被火绒、360 等安全软件拦截，并建议将安装目录加入信任区；程序已启动但运行失败时单独提示，原始错误附在括号中。
 
 改动的上游文件：`apps/desktop/src/saveFile.ts`；`packages/i18n/src/locales/*.json` 与 `messageSources.json` 新增两条文案。冲突时保留 exe 优先、仅在进程无法创建时（错误 code 为字符串）才走 PowerShell 的判断，以及兜底脚本与新增文案。
+
+## 桌面 2.1.4 安装包（2026-11-04）
+
+- 桌面配置版本升级为 2.1.4，完整安装包包含 `6edc944` 的另存为窗口 PowerShell 兜底与安全软件拦截提示。
+- 本次使用 `release:desktop 2.1.4 --initial` 构建 Windows x64 完整包，更新源配置保持原值。
+
+改动的上游文件：`electrobun.config.ts` 更新 `app.version`；冲突时保留本 fork 的桌面版本号。
