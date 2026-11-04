@@ -33,6 +33,20 @@ Import-Clixml -LiteralPath 'C:\Users\Administrator\.codex\serverConnections\maim
 
 ## 当前线上版本（2026-11-04）
 
+2026-11-04 17:40（北京时间）已更新到 **2.14.0-20261105**。
+镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.14.0-20261105
+摘要：sha256:b64ec602aa67a17d88dd8ee52a48c4cd360a805a2f07bc8d89fdba4dc664d1da
+源码提交：52a9ee6ee9fd17036fb4bac09a48bd0cd937f488（goRewrite，已推送 origin）；Go 内嵌 VCS 与 OCI revision 均为此提交，vcs.modified=false。
+
+本次上线定价页改版与缓存计费（对齐 new-api 定价页）：“模型定价”改为模型列表（模式、价格摘要）+ 右侧“编辑模型定价”面板，按美元/百万 token 填输入、输出、缓存读取、缓存写入（5 分钟 / 1 小时），可选按 Token / 按次，提供 Claude/OpenAI/DeepSeek 缓存模板；JSON 视图为 new-api 同名六张倍率表。模型编辑器复用同一表单；messages 协议隐藏“上游格式”并补充最大输出说明。网关按缓存 token 分别计费，用量明细显示缓存读/写。
+数据库迁移 61→63：model_pricing 新增 cache_ratio、cache_creation_ratio、cache_creation_1h_ratio（全为空，即与输入同价，现有扣费不变）；usage_logs 新增 cache_read_tokens、cache_write_tokens（默认 0）。claude-opus-5-5 仍未定价，需在后台填价后才对外提供。
+部署仅原子替换 .env 的 IMAGE（其他字段不变、600），Compose 仅重建 app。
+应用 running=true、restarts=0；Redis PONG、Bun 1.4.3；启动日志版本 2.14.0-20261105，启动 2026-11-04T09:40:38Z。部署前 activeVideo/activeImage/pendingUsage 均为 0；部署后 1 秒有一条用户 gpt-image-2.5-flare 请求进入并成功结算（cost=1000，与旧价一致）。
+内网及公网 HTTPS 首页、/admin/pricing、/admin/models、/api/pay/config 均 200；匿名 GET /api/admin/pricing、/api/admin/models、PUT /api/admin/pricing、GET /v1/models 均 401。
+发布前在本机临时库完成迁移、定价接口往返与浏览器验收；生产未登录后台、未改价格，生产回退未执行。
+
+### 上次发布：2.13.0-20261105
+
 2026-11-04 16:01（北京时间）已更新到 **2.13.0-20261105**。
 镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.13.0-20261105
 摘要：sha256:e68dab3651eb0754d61b201f88cf9fdcb38ed121b2f2a63f95d7185a83dea8ae
@@ -194,6 +208,10 @@ SHA256：0380f7ecfafac0036fbc7c41a08cdb992e6aa1501620c96ed1d6a9b215bca523
 生产回退脚本仅执行 bash -n 与内嵌 Python 语法检查，本次没有在生产运行回退。此前备份仍保留。
 
 ## 本次交付记录
+
+D:\2api-codes\maimai\docs\history\cachePricingRelease20261105\（releasePrepare.txt、releaseDeployCommand.txt、releaseVerify.txt、releaseRollback.sh）；备份与回退 /opt/maimai-cloud/backups/cachePricingRelease20261105（envBefore、composeBefore.yml、imageBefore.txt、databaseBefore.dump 3613736 字节 SHA256 7cf18c6c…、databaseContents.txt、envAfter、releaseRollback.sh 700 SHA256 02e5330b…），回退到 2.13.0-20261105，只恢复 IMAGE，新增列保留。
+
+### 2.13.0 发布记录
 
 D:\2api-codes\maimai\docs\history\anthropicRelease20261105\（releasePrepare.txt、releaseDeployCommand.txt、releaseVerify.txt、releaseRollback.sh）
 
