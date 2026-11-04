@@ -1,0 +1,155 @@
+# 麦麦云服务器与部署记录
+
+本文件于2026-11-03从 D:\2api-codes\ssh-server\maimaiCloud.md 迁入，作为当前项目的部署主记忆。后续维护更新本文件，并先读 releaseWorkflow.md。以下线上健康状态来自上次发布验收，本次目录整理未连接生产复验；记录不包含明文密码。
+
+## 连接与项目
+
+- 服务器：159.75.178.145
+- SSH：root，端口 22。
+- 公网地址：https://159.75.178.145:8100
+- 本机源码：D:\2api-codes\maimai\cloud，当前分支 goRewrite。直接在这个项目目录构建和修改。
+- 服务器目录：/opt/maimai-cloud
+- Compose 文件：/opt/maimai-cloud/docker-compose.yml
+- 环境文件：/opt/maimai-cloud/.env，权限 600。IMAGE 控制应用版本；保留其他配置与密钥。
+- Compose 项目：maimai-cloud
+- 应用容器：maimai-cloud-app-1；PostgreSQL：maimai-cloud-postgres-1；Redis：maimai-cloud-redis-1。
+- 宿主机 127.0.0.1:8101 映射容器 8100；公网 HTTPS 入口使用 8100。
+- 平台：linux/amd64（服务器 x86_64）。
+- 镜像仓库：ccr.ccs.tencentyun.com/echotools/maimai-cloud。
+
+## 本机凭据
+
+SSH 凭据已由 Windows DPAPI 加密保存在：
+C:\Users\Administrator\.codex\serverConnections\maimaiCloud.xml
+
+凭据仅由当前 Windows 用户和本机解密，不放到源码仓库、不放进聊天提示词、不打印密码。使用 PowerShell 的 Import-Clixml 读取 PSCredential；Python Paramiko 已安装，版本 5.0.0。连接前加载 C:\Users\Administrator\.ssh\known_hosts，保持主机密钥校验。
+
+可读取用户名，确认凭据记录：
+Import-Clixml -LiteralPath 'C:\Users\Administrator\.codex\serverConnections\maimaiCloud.xml' | Select-Object UserName
+
+建立连接时只在进程内取 GetNetworkCredential().Password；如传给子进程，使用任务专用环境变量并在 finally 清除。不要把密码加入命令参数、日志或文档。
+
+其他凭据（root 密码、管理员账号、.env 密钥、测试账号、镜像仓库、new-api 服务器说明）统一记在 D:\2api-codes\资料\maimaiCredentials.md，条目清单见 [releaseWorkflow.md](releaseWorkflow.md) 的凭据小节；该文件不能复制进 Git 仓库，内容不抄进本记录。
+
+## 上次已验收的线上版本（2026-11-03）
+
+2026-11-03 已更新到 **2.11.0-20261103**。
+镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.11.0-20261103
+摘要：sha256:4acb58f17f299f5df200a070147eb07ce2b060962d2331f7175916174d6b3bf9
+源码提交：d5be9f858ec2e3c5f596849e238dae79b57bec6d；Go 内嵌 VCS 与 OCI revision 均为此提交，vcs.modified=false。
+
+本次上线麦浪额度兑换：1 元 = 1 麦浪；在线充值保留原回调；新增管理员生成兑换码、用户一次性兑换和兑换记录；支付设置新增独立的兑换开关及外部商店链接。公开配置 redemptionEnabled=true，redemptionShopUrl 留空，待管理员填写实际商店地址。
+部署仅原子替换 .env 的 IMAGE，其他配置与600权限保持，Compose仅重建app。
+数据库迁移从54升至56，redemption_codes表已存在。Grok和OpenAI协议current/previous指针与发布前完全一致。
+应用running=true、restarts=0；activeVideo=0、activeImage=0、pendingUsage=0；Redis PONG、Bun 1.4.3。
+启动日志版本2.11.0-20261103，启动时间2026-11-02T18:29:13.546Z（北京时间2026-11-03 02:29:13.546）。
+内网及公网HTTPS首页、/wallet、/api/pay/config均HTTP200；匿名GET /api/admin/redemptionCodes、GET /api/wallet/redemptions和POST /api/wallet/redeem均HTTP401。
+本次未创建生产用户或兑换码，未执行充值支付；生产回滚未执行。
+
+### 上次发布：2.10.3-202611030129
+
+2026-11-03 已更新到 2.10.3-202611030129。
+镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.10.3-202611030129
+摘要：sha256:57709f3aa717312a1a37fe8a82a68a7edab47c6aa43fc8cc53a6c191d1e59042
+
+本次：发布视频下载主地址与 fallback 支持，激活 Grok 1.2.0。优先使用同一上游任务的内容代理，下载失败后使用原视频地址；主地址与备用地址分别校验鉴权头。
+Grok 当前修订：f8f85bef333fecb4da9ecfdb267a9cbad30472092346ed9a252c15138fdad6c0
+上一修订：20b359ab0d3e905cd4d0ba1f88f472343ea4ad92299cd0b48089d87f3836869d
+本次经旧 revision 与 previous_revision 精确校验后显式激活 1.2.0，历史修订保留；上传/恢复后重启不会覆盖。
+只修复已完成任务 video_98f2e71cea094800a69baa4ac7ebaf1c 的固定 revision，条件包含任务 ID、protocolId、旧 revision、completed 和 settled；其他任务未迁移。该 3 秒任务净费仍为 0.3000 元，未再次生成。
+数据库版本54；running=true，restarts=0；Redis PONG，Bun 1.4.3。
+启动：2026-11-02T17:34:17.947489802Z；本机与公网首页HTTP200；匿名协议API返回401。客户端 collect 已HTTP200/completed，现有3秒任务成品已下载至工作区；FFmpeg解码通过，848×480、24fps、73帧、3.04秒，含AAC音轨。用户ESC停止UI，节点回填未执行。
+领取后再次核对：目标任务净扣仍0.3000元，目标之后无新视频请求或任务，activeVideoTasks=0；未重复生成。
+实际关联：OpenAI 图片仅 ccnccn 生图；Grok 视频仅 ccnccn Grok 视频。bot 文本继续走文本端点。
+上次版本已验证能力400、源码新旧版本读取、默认升级、自定义与恢复版本重启保留。本次发布前无活跃视频任务、无 pending 用量记录，发布中未新发起生成。
+视频编辑/延长等宿主入参及上游特殊计费未扩展，现有失败退款规则保留。
+
+## 桌面本地安装包 2.1.3（2026-11-04）
+
+- 源码提交：2a64f19e65085e431b2a14756ea7788d4fc1b2fa，分支 codex/simplifyMediaModels；包含功能提交 7dc6f0a 的默认小手与工具顺序调整，进入工作区固定 selectedTool=hand，顺序为「添加 → 小手 → 框选箭头」。
+- 构建命令：`bun run release:desktop 2.1.3 --initial`，退出 0。Bun 1.4.3；Windows x64；完整重建 Web、9 个节点插件、tools、ext、MCP 与桌面宿主。
+- 版本快照：D:\2api-codes\maimai\client\build\desktop\releases\2.1.3。
+- 安装包：`MaiMaiStudio-2.1.3-Setup.exe`，55,555,910 字节；SHA256 `292d9cb3a27d6a95967ff88e6cba8acd3f55d64e482272abf2b7ef63972786e6`。
+- 更新归档：`stable-win-x64-MaiMaiStudio.tar.zst`，58,233,028 字节；SHA256 `b4afcb72333a9bb9d8ce4bf50e6f5792d553e127afd08ffa56e026f31fb813a3`。
+- 更新清单：`stable-win-x64-update.json`，209 字节；SHA256 `3e6aea70f6736804ff21e0bae9807b651466001bf9ce33edb5d5f70c5c1cf011`；version=2.1.3、stable/win/x64、hash=24tflcod9m5bx。
+- 验证：修改前后桌面现有 typecheck 均退出 0；完整打包退出 0；7-Zip 完整性检查输出 `Everything is Ok`、退出 0。三资产快照与 artifacts 哈希一致，包内版本与清单一致，Web 入口与 9 个节点齐全；workspace 主 chunk 与本次 Web 构建一致，包含固定 hand 默认值以及小手先于框选的按钮顺序。
+- 本次为本地安装包交付；GitHub 公开版本仍为 2.1.0，更新源仍为空。安装器留给用户运行测试，原有 AGENTS.md 修改保留。
+- 构建日志、原始/修改后版本配置、差异及副本回退证据：`docs/history/canvasDesktop21320261104/`。ROLLBACK.sh 仅在独立配置副本恢复 app.version=2.1.2，SHA256 与原始配置一致；实际源码和产物保持 2.1.3，不更换已安装程序。
+- 旧 2.1.2 安装包保留在其原快照目录；打包前已核对 SHA256 与旧记录一致。共享记忆修改前副本保存在本轮证据目录的 memoryBefore/。
+
+
+## 上次桌面本地安装包 2.1.2（2026-11-04）
+
+- 源码提交：e863f07e43b60d59d90de3342d8cdd4dcfd20297，分支 codex/simplifyMediaModels。包含空白拖动平移、Ctrl/Space 临时框选、滚轮直接缩放、视图与主工具栏分组、画布外观面板；原有 AGENTS.md 修改保留。
+- 构建命令：`bun run release:desktop 2.1.2 --initial`，退出 0。Bun 1.4.3；Windows x64；完整重建 Web、9 个节点插件、tools、ext、MCP 与桌面宿主。
+- 版本快照：D:\2api-codes\maimai\client\build\desktop\releases\2.1.2。
+- 安装包：`MaiMaiStudio-2.1.2-Setup.exe`，55,558,298 字节；SHA256 `4eb3b65d9d20b3ba3854cce5b43a8b6459d7b588037ed2324bae3c8bee4b3d87`。
+- 更新归档：`stable-win-x64-MaiMaiStudio.tar.zst`，58,257,193 字节；SHA256 `5e0da1e141583b5f32fb6629b35d394e4b26f4d5b833ce8dd93abbe711e85c1d`。
+- 更新清单：`stable-win-x64-update.json`，209 字节；SHA256 `2409c0b58dcb195532e31688d4f04fcbb798c5f6e08468a2ce78180812d32906`；version=2.1.2、stable/win/x64、hash=3auovr8uo0d3d。
+- 验证：桌面现有 typecheck 退出 0；NSIS 构建退出 0；7-Zip 完整性检查 `Everything is Ok`、退出 0。归档内版本与清单一致，Web 入口与 9 个节点齐全；压缩 Web 中确认 pan=None、zoom=None / Ctrl、selection=Ctrl / Space，以及外观/背景/滑条/临时框选标记。
+- 交付为本地安装包，供用户安装测试；GitHub 公开版本仍为 2.1.0，更新源仍为空。未运行安装器或替换已安装程序，实际画布交互待用户验收。
+- 源码原始/修改后快照、差异、日志、三资产摘要与回退验证：`docs/history/canvasDesktop21220261104/`。ROLLBACK.sh 在独立副本恢复 9 个文件，SHA256 全部匹配，配置恢复 2.1.1；当前源码及安装包保持 2.1.2。脚本仅恢复源码，不撤销提交或更换已安装程序。
+- 旧 2.1.1 安装包保留在其原版本快照目录，SHA256 与旧记录一致；共享记忆修改前副本保存在本轮证据目录的 memoryBefore/。
+
+## 上次桌面本地安装包 2.1.1（2026-11-03）
+
+画布交互调整已生成 Windows x64 完整安装包，源码提交 `af1dd9803ef7f3d89fbee9a049d68f59209837cb`。客户端配置版本为 2.1.1；此次交付为本地安装包，云端线上版本仍以本文件原2.11.0记录为准。
+
+- 安装包：D:\2api-codes\maimai\client\build\desktop\releases\2.1.1\MaiMaiStudio-2.1.1-Setup.exe。
+- 大小：55,554,914 字节；SHA256：`4f18ccc3b377a58aef842fc6c2f76199e498557149320fd5e29d5959f9beec33`。
+- 更新清单：stable/win/x64，version=2.1.1，hash=k3lwy0s95yh0；归档及清单位于同一版本目录。
+- 构建命令 `bun run release:desktop 2.1.1 --initial` 退出0，安装器完整性检查输出 `Everything is Ok`。归档内Web与全部9个节点插件已核验，本轮按钮改动已进入图片/生图节点。
+- 原始源码/修改快照、哈希与回退验证位于 `docs/history/canvasDesktop21120261103/`；7文件回退副本哈希一致且恢复版本2.1.0，当前源码保持2.1.1。
+- 旧2.1.0安装包仍保留在 D:\2api-codes\Toonflow-app\build\desktop\releases\2.1.0\MaiMaiStudio-2.1.0-Setup.exe，哈希与原记录一致。本次没有执行已安装程序的替换或生产回退。
+- 完整三资产摘要与说明见 [发布流程](releaseWorkflow.md)；共享记忆修改前副本存于本次证据目录 `memoryBefore/`。
+
+## 构建与发布
+
+使用 server/Dockerfile，根 Dockerfile 属于旧 TS 版本。
+Go：CGO_ENABLED=0 GOOS=linux GOARCH=amd64，go build -trimpath -ldflags "-s -w -X maimai/internal/config.Version=<版本>"。
+前端：web 目录 bun run typecheck 和 bun run build，构建资源放镜像上下文 web/。
+Docker：docker build --platform linux/amd64 -f server/Dockerfile -t <带版本镜像> <包含 maimai 与 web 的上下文>。
+推送使用已登录的腾讯云镜像仓库。每次使用唯一版本标签并核对服务器拉取后的 digest。
+
+上次麦浪发布构建上下文（历史路径，产物未迁入新目录）：
+D:\2api-codes\maimai-cloud\build\mailangRelease20261103
+
+发布前先读当前镜像、Compose 路径和数据库版本，确认活动任务及未结算用量归零，备份数据库及部署配置。先显式拉取目标镜像并核对 digest，再只更新 .env 的 IMAGE 行，使用原权限原子替换，保留其他字段，并重查配置与任务状态。在 /opt/maimai-cloud 执行：
+docker compose -f docker-compose.yml up -d --no-deps --wait --wait-timeout 60 --timeout 40 app
+
+发布后核对容器版本与重启次数、数据库/Redis、Bun、HTTPS 页面与新接口。后续用户明确要求更新、推送或部署时再执行相应操作，单纯读取这份记录不重复发布。
+
+## 本次备份与回退
+
+目录：/opt/maimai-cloud/backups/mailangRelease20261103（权限700）。
+包含 envBefore、composeBefore.yml、imageBefore.txt、stateBefore.json、databaseBefore.dump、databaseContents.txt、envAfter、stateAfter.json、releaseRollback.sh。
+数据库备份：1115013字节，权限600；SHA256 dd4ca850abdc01e74b0f24d64877a25126b4003b4a9251f39d30d74e86af4b2b；pg_restore --list退出0、目录154行。
+旧镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.10.3-202611030129。
+回退入口：/opt/maimai-cloud/backups/mailangRelease20261103/releaseRollback.sh（权限700）。
+脚本与本地副本逐字节一致，sh -n和内嵌Python语法检查通过；本次未在生产执行回退。
+回退只在当前镜像及.env仍符合本次发布状态时恢复旧IMAGE，再重建app；保留新增表、兑换码、历史协议和账目，不自动恢复整个数据库备份。
+
+### 上次发布备份与回退
+
+目录：/opt/maimai-cloud/backups/grokDownloadRelease202611030130
+包含 envBefore、composeBefore.yml、imageBefore.txt、stateBefore.json、databaseBefore.dump、databaseContents.txt、releaseState.json、releaseSource.ts、releaseMetadata.json、activationAfter.json、releaseRollback.sh。
+数据库备份：1114874 字节，权限600；pg_restore --list通过。
+SHA256：0380f7ecfafac0036fbc7c41a08cdb992e6aa1501620c96ed1d6a9b215bca523
+旧镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.10.2-202611022305
+回退入口：/opt/maimai-cloud/backups/grokDownloadRelease202611030130/releaseRollback.sh
+脚本权限700、语法检查通过，本次未执行线上回退。
+回退只恢复IMAGE，以及仍处于本次发布状态的Grok协议指针和该目标任务的旧修订号；保留历史版本、视频任务和账目。若管理员后续更改对应状态，条件不符会停止。写回 .env 前重复检查快照，避免覆盖并发修改。数据库备份不自动恢复。
+生产回退脚本仅执行 bash -n 与内嵌 Python 语法检查，本次没有在生产运行回退。此前备份仍保留。
+
+## 本次交付记录
+
+D:\2api-codes\maimai\docs\history\mailangRelease20261103\releaseDeployment.txt
+D:\2api-codes\maimai\docs\history\mailangRelease20261103\releaseCloud.txt
+D:\2api-codes\maimai\docs\history\mailangRelease20261103\releaseRollback.sh
+
+### 上次发布记录
+
+D:\2api-codes\.codexArtifacts\grokDownloadFallback20261103\releaseDeployment.txt
+D:\2api-codes\.codexArtifacts\grokDownloadFallback20261103\releaseRollback.sh
+
+上次发布时源码未提交；现已由8d7ab2e保存此前上线协议功能，并由d5be9f858ec2e3c5f596849e238dae79b57bec6d提交本次麦浪功能。

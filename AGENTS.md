@@ -1,6 +1,6 @@
 # 麦麦共享工作入口
 
-当前客户端目录为 D:\2api-codes\maimai\client。开始任务先读 ../AGENTS.md；涉及打包、发布、部署时先读 ../docs/releaseWorkflow.md、../docs/maimaiCloud.md 和 ../docs/localEnvNotes.md。共享记忆以后维护在上述位置，旧目录仅用于历史追溯。
+当前客户端目录为 D:\2api-codes\maimai\client。开始任务先读 ../AGENTS.md；涉及打包、发布、部署时先读 ../docs/releaseWorkflow.md、../docs/maimaiCloud.md 和 ../docs/localEnvNotes.md。共享记忆维护在上述位置，并同步到 [仓库内项目记忆](docs/projectMemory/readme.md)。仅克隆本仓库时先读该入口中的工作约定与发布文档；旧目录仅用于历史追溯。
 
 本规范适用于整个仓库。
 
