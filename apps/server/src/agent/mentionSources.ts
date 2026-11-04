@@ -13,6 +13,7 @@ export type MentionCanvasSource = {
   nodes(canvasId: string, options: MentionQuery): Promise<MentionPage<MentionNode>> | undefined;
   outputs(canvasId: string, nodeId: string): MentionOutput[] | undefined;
   selectCanvas(canvasId: string, nodeId: string, outputId: string): Promise<AgentMention> | undefined;
+  highlightNode?(target?: { canvasId: string; nodeId: string; reveal: boolean }): boolean;
 };
 
 export function mentionRecord(value: unknown): value is Record<string, unknown> {

@@ -17,7 +17,12 @@
       <form-create v-if="formRules.length" v-model="formValues" v-model:api="formApi" :rule="formRules" :option="formOptions" />
       <template v-else>
         <el-radio-group v-if="options.length" v-model="selected" class="questionOptions" :disabled="submitting" :aria-label="question">
-          <el-radio v-for="option in options" :key="option" :value="option" border>{{ option }}</el-radio>
+          <el-radio v-for="option in options" :key="option" :value="option" border>
+            <span class="optionText" :class="{ clamped: option.length > longOption && !expanded.has(option) }">{{ option }}</span>
+            <el-button v-if="option.length > longOption" class="optionToggle" link type="primary" size="small" @click.stop.prevent="toggleExpanded(option)">
+              {{ expanded.has(option) ? "收起" : "展开" }}
+            </el-button>
+          </el-radio>
           <el-radio value="" border>自行填写</el-radio>
         </el-radio-group>
         <el-input
@@ -87,6 +92,14 @@ const submitting = ref(false);
 const submittedAnswer = ref("");
 const submittedSkipped = ref(false);
 const formApi = shallowRef<Api>();
+// ACT: 超长选项默认折叠为三行，展开按钮阻止冒泡，避免顺带选中该项。
+const longOption = 200;
+const expanded = ref(new Set<string>());
+function toggleExpanded(option: string) {
+  const next = new Set(expanded.value);
+  if (!next.delete(option)) next.add(option);
+  expanded.value = next;
+}
 const formValues = ref<Record<string, unknown>>({});
 const formOptions = computed<Options>(() => ({ form: { labelPosition: "top", disabled: submitting.value }, submitBtn: false, resetBtn: false }));
 const formRules = computed<Rule[]>(() => (props.tool.question?.fields ?? []).map(field => ({
@@ -98,7 +111,7 @@ const formRules = computed<Rule[]>(() => (props.tool.question?.fields ?? []).map
     placeholder: field.placeholder,
     ...(field.type === "textarea" ? { type: "textarea", autosize: { minRows: 2, maxRows: 6 } } : {}),
     ...(["input", "textarea"].includes(field.type) ? { maxlength: 8000 } : {}),
-    ...(field.type === "select" ? { clearable: true } : {}),
+    ...(field.type === "select" ? { clearable: true, popperClass: "askUserSelectPopper" } : {}),
   },
   options: field.options?.map(value => ({ label: value, value })),
   validate: field.required ? [{
@@ -214,11 +227,55 @@ async function submitAnswer(skip: boolean) {
       height: auto;
       margin: 0;
       padding: 8px 12px;
+    }
 
-      :deep(.el-radio__label) {
-        white-space: normal;
-        overflow-wrap: anywhere;
-      }
+    .optionText.clamped {
+      display: -webkit-box;
+      overflow: hidden;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+    }
+
+    .optionToggle {
+      margin-top: 2px;
+    }
+  }
+
+  // 选项逐行纵向排列、自动换行；单选框与复选框对齐首行文字。
+  .questionOptions,
+  :deep(.el-form) {
+    .el-radio-group,
+    .el-checkbox-group {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .el-radio,
+    .el-checkbox {
+      height: auto;
+      margin: 0;
+      align-items: flex-start;
+      white-space: normal;
+    }
+
+    .el-radio__input,
+    .el-checkbox__input {
+      margin-top: 4px;
+    }
+
+    .el-radio__label,
+    .el-checkbox__label {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      align-items: flex-start;
+      min-width: 0;
+      line-height: 1.5;
+      white-space: normal;
+      overflow-wrap: anywhere;
     }
   }
 
@@ -231,6 +288,22 @@ async function submitAnswer(skip: boolean) {
     .el-button {
       margin: 0;
     }
+  }
+}
+</style>
+
+<style lang="scss">
+// 下拉层挂在 body 上，不能使用 scoped 样式；长选项换行显示完整内容。
+.askUserSelectPopper {
+  max-width: min(480px, 90vw);
+
+  .el-select-dropdown__item {
+    height: auto;
+    padding-top: 6px;
+    padding-bottom: 6px;
+    line-height: 1.5;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 }
 </style>

@@ -110,6 +110,7 @@
         @keydown.enter.stop.prevent="editLabel">
         {{ label }}
       </span>
+      <span v-if="!editingLabel" class="labelId" :title="`节点 ID：${nodeId}`">#{{ shortNodeId }}</span>
       <div v-if="!readOnly" class="nodeActions nodrag nopan" @pointerdown.stop @mousedown.stop @dblclick.stop>
         <el-button
           :icon="IconRefresh"
@@ -244,6 +245,8 @@ const { id: nodeId, node } = useNode();
 const documentContext = inject<NodeDocumentContext | undefined>("nodeDocument", undefined);
 const documentTarget = computed(() => props.readOnly ? undefined : documentContext?.targets.get(nodeId));
 const skeletonElement = ref<HTMLElement>();
+// 与 @ 提及菜单显示的编号一致，用来区分同名节点。
+const shortNodeId = computed(() => nodeId.replace(/[^a-z0-9]/gi, "").slice(-4) || nodeId.slice(-4));
 const canvasSize = shallowRef<{ width: string; height: string }>();
 let documentLease: symbol | undefined;
 function mountDocument(target: HTMLElement) {
@@ -795,6 +798,14 @@ watch(
       &:active {
         cursor: grabbing;
       }
+    }
+
+    .labelId {
+      flex-shrink: 0;
+      color: var(--el-text-color-placeholder);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+      user-select: text;
     }
 
     .labelInput {

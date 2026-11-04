@@ -3,6 +3,12 @@
     <el-button class="mentionButton" text circle :disabled="disabled" :aria-expanded="visible" :aria-controls="listId" aria-label="提及节点输出或素材" title="提及节点输出或素材" @mousedown.prevent @click="visible ? closeMenu() : openMenu()"><icon-at :size="16" /></el-button>
     <teleport to="body">
       <div v-if="visible" ref="popupElement" class="mentionMenu mentionOverlay" :style="popupStyle" @keydown.capture="handleKeydown">
+        <div v-if="previewRow" class="mentionPreview" :class="previewSide" role="presentation">
+          <mentionThumbnail :key="`${previewRow.kind}-${previewRow.id}`" class="previewMedia" :thumbnail="previewRow.thumbnail" :directory="directory" :globalAsset="previewRow.kind === 'file'" :size="224" fit="contain" @dimensions="previewSize = $event"><icon-photo :size="28" /></mentionThumbnail>
+          <strong class="previewName">{{ previewRow.name }}</strong>
+          <span class="previewMeta">{{ [previewRow.description, previewSize ? `${previewSize.width}×${previewSize.height}` : "", previewRow.kind === 'file' ? "" : `#${shortId(previewRow.id)}`].filter(Boolean).join(" · ") }}</span>
+          <span v-if="highlighted" class="previewHint">已在画布上高亮</span>
+        </div>
         <el-card class="mentionPopup" shadow="always" :bodyStyle="{ padding: '0' }" :style="{ maxHeight: `${popupHeight}px` }">
           <div class="mentionHeader"><strong>提及输出与素材</strong><el-button text circle size="small" aria-label="关闭提及" @click="closeMenu"><icon-x :size="14" /></el-button></div>
           <div class="mentionScopes" aria-label="提及来源">
@@ -20,8 +26,8 @@
               <div v-else-if="!rows.length" class="mentionStatus" role="status">{{ emptyText }}</div>
               <div class="mentionRows" :style="{ height: `${listVirtualizer.getTotalSize()}px` }">
                 <button v-for="{ row, index, start } in visibleRows" :id="`${listId}-${index}`" :key="`${row.kind}-${row.id}`" class="mentionItem" :style="{ transform: `translateY(${start}px)` }" :class="{ active: index === activeIndex, unavailable: !row.available, checked: row.kind === 'output' && selectedOutputs.includes(row.id) }" type="button" role="option" :aria-selected="row.kind === 'output' ? selectedOutputs.includes(row.id) : index === activeIndex" :aria-disabled="!row.available || selecting" :aria-posinset="index + 1" :aria-setsize="rows.length" :title="row.name" @mouseenter="activeIndex = index" @mousedown.prevent @click="chooseRow(row)">
-                  <mentionThumbnail :thumbnail="row.thumbnail" :directory="directory" :globalAsset="row.kind === 'file'"><component :is="row.kind === 'canvas' ? IconVector : row.kind === 'directory' ? IconFolder : row.dataType === 'image' || row.dataType === 'mask' ? IconPhoto : row.dataType === 'video' ? IconVideo : row.dataType === 'audio' ? IconMusic : row.dataType ? IconFileText : IconBox" :size="18" /></mentionThumbnail>
-                  <span class="mentionContent"><span class="mentionName">{{ row.name }}</span><span v-if="row.description" class="mentionDescription">{{ row.description }}</span></span>
+                  <mentionThumbnail :thumbnail="row.thumbnail" :directory="directory" :globalAsset="row.kind === 'file'" :size="48"><component :is="row.kind === 'canvas' ? IconVector : row.kind === 'directory' ? IconFolder : row.dataType === 'image' || row.dataType === 'mask' ? IconPhoto : row.dataType === 'video' ? IconVideo : row.dataType === 'audio' ? IconMusic : row.dataType ? IconFileText : IconBox" :size="18" /></mentionThumbnail>
+                  <span class="mentionContent"><span class="mentionName">{{ row.name }}</span><span v-if="row.description" class="mentionDescription">{{ row.kind === 'node' ? `${row.description} · #${shortId(row.id)}` : row.description }}</span></span>
                   <span v-if="!row.available" class="mentionState">{{ row.kind === 'file' ? '不支持' : '暂无输出' }}</span>
                   <span v-else-if="row.kind === 'output'" class="mentionCheck" :class="{ selected: selectedOutputs.includes(row.id) }"><icon-check v-if="selectedOutputs.includes(row.id)" :size="12" /></span>
                   <icon-chevron-right v-else-if="['canvas', 'directory'].includes(row.kind) || row.kind === 'node' && row.outputCount > 1" :size="14" class="mentionArrow" />
@@ -98,7 +104,7 @@ const listVirtualizer = useVirtualizer<HTMLDivElement, HTMLButtonElement>(comput
   count: rows.value.length,
   getScrollElement: () => listScrollbar.value?.wrapRef ?? null,
   getItemKey: (index: number) => `${rows.value[index]!.kind}-${rows.value[index]!.id}`,
-  estimateSize: () => 52,
+  estimateSize: () => 60,
   overscan: 3,
   enabled: visible.value,
 })));
@@ -107,6 +113,13 @@ const hasMore = computed(() => !listingCanvases.value && !selectedNode.value && 
 const breadcrumb = computed(() => selectedNode.value ? [selectedCanvas.value?.name ?? translate("当前画布"), selectedNode.value.name].join(" / ") : selectedCanvas.value?.name ?? assetPath.value);
 const searchPlaceholder = computed(() => selectedNode.value ? "搜索该节点的输出" : listingCanvases.value ? "搜索其他画布" : scope.value === "assets" ? "搜索素材" : "搜索节点名称或 ID");
 const emptyText = computed(() => scope.value === "current" && !canvasId.value ? translate("打开画布后即可提及节点输出") : search.value ? translate("没有找到匹配的内容") : selectedNode.value ? translate("该节点暂无可用输出") : listingCanvases.value ? translate("暂无其他画布") : scope.value === "assets" ? translate("暂无素材") : translate("当前画布暂无节点"));
+// 当前高亮项有图片或视频时在菜单旁显示大图，并让画布高亮对应节点，方便区分同名节点。
+const previewSize = ref<{ width: number; height: number }>();
+const previewSide = ref<"left" | "right">("left");
+const highlighted = ref(false);
+const activeRow = computed(() => visible.value && !loading.value ? rows.value[activeIndex.value] : undefined);
+const previewRow = computed(() => activeRow.value?.thumbnail ? activeRow.value : undefined);
+const shortId = (id: string) => id.replace(/[^a-z0-9]/gi, "").slice(-4) || id.slice(-4);
 let requestController: AbortController | undefined;
 let selectionController: AbortController | undefined;
 let searchTimer: ReturnType<typeof setTimeout> | undefined;
@@ -298,6 +311,7 @@ watch([visible, () => props.editor], ([open, editor], _previous, onCleanup) => {
     const available = openBelow ? below : above;
     const width = Math.min(bounds.width, Math.max(0, window.innerWidth - 16));
     popupHeight.value = Math.min(420, available);
+    previewSide.value = bounds.left >= 260 || window.innerWidth - bounds.right < 260 ? "left" : "right";
     popupStyle.value = {
       width: `${width}px`,
       left: `${Math.max(8, Math.min(bounds.left, window.innerWidth - width - 8))}px`,
@@ -348,6 +362,19 @@ watch(search, () => {
   loading.value = true;
   searchTimer = setTimeout(() => void loadList(), search.value ? 180 : 0);
 });
+watch(previewRow, () => { previewSize.value = undefined; });
+watch(() => {
+  const row = activeRow.value;
+  const nodeId = row?.kind === "node" ? row.id : row?.kind === "output" ? selectedNode.value?.id : undefined;
+  return nodeId && canvasId.value ? `${canvasId.value}|${nodeId}` : "";
+}, (key, _previous, onCleanup) => {
+  const [id, nodeId] = key.split("|");
+  highlighted.value = !!id && !!nodeId && sources.highlightNode({ canvasId: id, nodeId, reveal: false });
+  if (!highlighted.value) return void sources.highlightNode(undefined);
+  // 停留片刻才平移画布，避免鼠标划过列表时画布来回跳。
+  const timer = setTimeout(() => sources.highlightNode({ canvasId: id!, nodeId: nodeId!, reveal: true }), 260);
+  onCleanup(() => clearTimeout(timer));
+});
 watch(rows, async (items, previous) => {
   const previousId = previous[activeIndex.value]?.id;
   const retainedIndex = items.findIndex(item => item.id === previousId);
@@ -373,6 +400,7 @@ watch([visible, visibleRows, activeIndex, loading], async () => {
   }
 });
 onBeforeUnmount(() => {
+  sources.highlightNode(undefined);
   clearTimeout(searchTimer);
   requestController?.abort();
   selectionController?.abort();
@@ -385,6 +413,30 @@ defineExpose({ handleKeydown, openMenu, closeMenu });
   flex-shrink: 0;
 
   &.mentionOverlay { position: fixed; z-index: 3001; font-size: 13px; }
+
+  .mentionPreview {
+    position: absolute;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    box-sizing: border-box;
+    width: 240px;
+    padding: 8px;
+    border: 1px solid var(--el-border-color-light);
+    border-radius: var(--el-card-border-radius, 4px);
+    background: var(--el-bg-color-overlay);
+    box-shadow: var(--el-box-shadow-light);
+    color: var(--el-text-color-primary);
+    pointer-events: none;
+
+    &.left { right: calc(100% + 8px); }
+    &.right { left: calc(100% + 8px); }
+    .previewMedia { border-radius: 4px; }
+    .previewName { font-size: 13px; font-weight: 500; line-height: 18px; overflow-wrap: anywhere; }
+    .previewMeta, .previewHint { color: var(--el-text-color-secondary); font-size: 11px; overflow-wrap: anywhere; }
+    .previewHint { color: var(--el-color-primary); }
+  }
 
   .mentionButton { width: 24px; height: 24px; padding: 0; }
 
@@ -443,7 +495,7 @@ defineExpose({ handleKeydown, openMenu, closeMenu });
           align-items: center;
           gap: 8px;
           width: 100%;
-          height: 52px;
+          height: 60px;
           box-sizing: border-box;
           padding: 8px 7px;
           border: 0;

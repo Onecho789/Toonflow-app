@@ -388,6 +388,13 @@ const mentionSource: MentionCanvasSource = {
     if (!node) throw new Error("节点已删除，请重新选择");
     return mentionNodeOutputs(node);
   },
+  highlightNode(target) {
+    for (const panel of instances.values()) if (panel !== activeInstance.value) panel.highlightMentionNode(undefined);
+    const panel = activeInstance.value;
+    if (!panel) return false;
+    if (!target || mentionInstance(target.canvasId) !== panel) return panel.highlightMentionNode(undefined), false;
+    return panel.highlightMentionNode(target.nodeId, target.reveal);
+  },
   selectCanvas(canvasId, nodeId, outputId) {
     const panel = mentionInstance(canvasId);
     if (!panel) return;

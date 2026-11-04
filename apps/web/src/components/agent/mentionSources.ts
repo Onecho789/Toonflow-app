@@ -65,5 +65,9 @@ export function useMentionSources(getDirectory: () => string | undefined) {
     selectAsset({ path, signal }: { path: string; signal?: AbortSignal }) {
       return request<AgentMention>("selectAsset", { path }, signal);
     },
+    // 只有当前显示的画布能高亮；不传目标时清除高亮。
+    highlightNode(target?: { canvasId: string; nodeId: string; reveal: boolean }) {
+      return getCanvasSource?.()?.highlightNode?.(target) ?? false;
+    },
   };
 }

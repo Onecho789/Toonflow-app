@@ -404,6 +404,41 @@ function getCanvasContext() {
   return canvasId.value || canvasMenuRef.value?.initialized ? createCanvasContext(canvasId.value, canvasController.signal, workspaceController.signal) : undefined;
 }
 const canvasReady = computed(() => !!canvasId.value && !nodeListLoading.value && nodeLoads.size === 0);
+
+// @ 提及菜单选中节点时临时描边，只改 DOM 类名，不写入节点数据和保存文件。
+let mentionHighlightId = "";
+function mentionNodeElement(nodeId: string) {
+  return [...(canvasElement.value?.querySelectorAll<HTMLElement>(".vue-flow__node") ?? [])].find(element => element.dataset.id === nodeId);
+}
+function highlightMentionNode(nodeId?: string, reveal = false) {
+  if (mentionHighlightId !== nodeId) {
+    if (mentionHighlightId) mentionNodeElement(mentionHighlightId)?.classList.remove("mentionHighlight");
+    mentionHighlightId = "";
+  }
+  const node = nodeId ? flow.findNode(nodeId) : undefined;
+  const element = nodeId ? mentionNodeElement(nodeId) : undefined;
+  if (!nodeId || !node || !element || !canvasElement.value) return false;
+  mentionHighlightId = nodeId;
+  element.classList.add("mentionHighlight");
+  if (!reveal) return true;
+  // 只平移不缩放；对话框盖住画布右侧时，把节点移到未遮挡区域的中间。
+  const bounds = canvasElement.value.getBoundingClientRect();
+  const panel = document.getElementById("agentPanel");
+  const panelBounds = panel?.offsetParent ? panel.getBoundingClientRect() : undefined;
+  const right = panelBounds && panelBounds.left > bounds.left + 200 && panelBounds.left < bounds.right ? panelBounds.left : bounds.right;
+  const { zoom, x, y } = viewport.value;
+  const width = (node.dimensions.width || 220) * zoom;
+  const height = (node.dimensions.height || 128) * zoom;
+  const left = bounds.left + x + node.computedPosition.x * zoom;
+  const top = bounds.top + y + node.computedPosition.y * zoom;
+  if (left >= bounds.left + 16 && left + width <= right - 16 && top >= bounds.top + 16 && top + height <= bounds.bottom - 16) return true;
+  void flow.setViewport({
+    zoom,
+    x: (bounds.left + right) / 2 - bounds.left - (node.computedPosition.x * zoom + width / 2),
+    y: bounds.height / 2 - (node.computedPosition.y * zoom + height / 2),
+  }, { duration: 200 });
+  return true;
+}
 provide("canvas", getCanvasContext);
 defineExpose({ canvasId, canvasReady, getCanvasContext, addNodeAtPointer, readDocumentNode, saveDocumentNode, mountDocumentNode, observeDocumentNode, prepareCanvasDelete, flushSave: flushCanvasSave, cancelSave: cancelCanvasSave,
   canUndo, canRedo, changeHistory, assetsVisible, snapEnabled, showEdges,
@@ -416,7 +451,7 @@ defineExpose({ canvasId, canvasReady, getCanvasContext, addNodeAtPointer, readDo
     return canvasMenuRef.value.getCanvases(signal);
   },
   syncCanvasPath: (previous: string, target: string) => canvasMenuRef.value?.syncCanvasPath(previous, target),
-  getMentionNodes: () => flow.nodes.value, findMentionNode: flow.findNode,
+  getMentionNodes: () => flow.nodes.value, findMentionNode: flow.findNode, highlightMentionNode,
   getRetainedNodes: canvasHistory.getRetainedNodes,
   get canvasListReady() { return canvasMenuRef.value?.initialized ?? false; },
   get saveBusy() { return savePaused; }, get loadError() { return canvasMenuRef.value?.loadError ?? ""; },
@@ -1402,6 +1437,13 @@ const defaultEdgeOptions = markRaw({
 
   &:has(.selectionConnection) :deep(.vue-flow__node:not(.selected) .nodeHandle.target .handleIcon) {
     opacity: 1;
+  }
+
+  :deep(.vue-flow__node.mentionHighlight) {
+    border-radius: var(--el-border-radius-base);
+    outline: 3px solid var(--el-color-primary);
+    outline-offset: 4px;
+    box-shadow: 0 0 0 8px var(--el-color-primary-light-8);
   }
 
   :deep(.vue-flow__nodesselection-rect) {

@@ -868,6 +868,15 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 
 改动的上游文件：无，`modelContextLimits.ts` 是我们的文件。
 
+## @ 提及预览、对话框缩放与长选项换行（2026-11-05）
+
+- @ 提及菜单：悬停或方向键选中带图的行时，在菜单旁显示 224px 大图预览，附名称、原图尺寸和节点短编号 `#xxxx`（取节点 id 末 4 位字母数字）；列表缩略图放大到 48px，行高 60。选中画布节点时临时描边高亮（只加 DOM 类名 `mentionHighlight`，不写节点数据），停留 260ms 后若节点不在可见区，只平移不缩放地移到未被对话框遮挡区域的中间；菜单关闭即清除。
+- 节点标题栏在名称后显示同一短编号，悬停显示完整 id；保存的节点名称不变。
+- 悬浮对话框：四边和四角都可拖动缩放（热区 8px），右下角显示斜纹手柄；最小 320×240，宽度只受屏幕限制。新增最大化/还原按钮，双击标题栏也能切换，最大化时四周留 15px。宽高、位置、停靠和最大化状态存入设置 `stores["maimai.agentPanel"]`，停手 400ms 后写入，加载与窗口变化时按屏幕夹紧。停靠模式仍只能拖左边。
+- askUser 卡片：选项逐行纵向排列、自动换行，单选框与复选框对齐首行；表单内的单选、多选组同样纵向排列；下拉选项用 `popperClass: askUserSelectPopper` 换行显示。超过 200 字的选项默认折叠为 3 行，带“展开/收起”，点击不会选中该项。
+
+改动的上游文件：`packages/nodeScaffold/src/nodeSkeleton.vue`（`labelId` 短编号）、`apps/web/src/pages/workspace/panels/canvas/index.vue`（`highlightMentionNode` 及暴露、`mentionHighlight` 样式）、`canvasHost.vue`（`mentionSource.highlightNode`）、`apps/web/src/components/agent/mentionMenu.vue`、`mentionThumbnail.vue`（`size`/`fit` 属性与 `dimensions` 事件）、`mentionSources.ts`、`apps/server/src/agent/mentionSources.ts`（`MentionCanvasSource.highlightNode` 可选方法）、`apps/web/src/pages/workspace/components/floatingAgent.vue`（缩放逻辑整体重写）、`packages/tools/askUser/src/questionCard.vue`。冲突时保留上述新增接口与样式；`floatingAgent.vue` 若上游改动缩放，以本版的 `resizeTo` 统一逻辑为基础合入。节点短编号需要重建节点插件后生效。
+
 ## 分镜表节点与角色库（2026-11-04）
 
 - 新增节点插件 `packages/nodes/storyboardNode`（remote-storyboardNode，「分镜表」）：镜头表含镜号、景别、画面描述、台词/旁白、时长（秒）、绑定角色，可增删和拖动排序；读取上游文本节点剧本，复用 nodeAi `ai.generate` 调用已配置的文本模型拆分镜头。
