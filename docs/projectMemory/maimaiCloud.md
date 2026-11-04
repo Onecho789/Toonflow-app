@@ -80,7 +80,7 @@ Grok 当前修订：f8f85bef333fecb4da9ecfdb267a9cbad30472092346ed9a252c15138fda
 
 ## 桌面本地安装包 2.1.4（2026-11-04）
 
-- 源码提交：92bae921a0df5e26245c3af6d8c0ce96a60dd464（修复 6edc944），分支 codex/simplifyMediaModels，未推送。修复图片下载「EUNKNOWN: unknown error, uv_spawn」：另存为 exe 无法启动时改用系统 PowerShell 弹窗，两者都失败时提示安全软件拦截。
+- 源码提交：92bae921a0df5e26245c3af6d8c0ce96a60dd464（修复 6edc944），分支 codex/simplifyMediaModels，2026-11-04 已推送 origin。修复图片下载「EUNKNOWN: unknown error, uv_spawn」：另存为 exe 无法启动时改用系统 PowerShell 弹窗，两者都失败时提示安全软件拦截。
 - 版本快照：D:\2api-codes\maimai\client\build\desktop\releases\2.1.4。安装包 `MaiMaiStudio-2.1.4-Setup.exe` 55,557,551 字节，SHA256 `f2e9dcf70bd70383a7ca794eeb84f6c079a17d085d4d08ab76aac188bf4415c8`；清单 version=2.1.4、hash=2tgxuqgucfqv9。
 - 打包退出 0、7-Zip `Everything is Ok`，兜底逻辑在包内确认存在。本地交付，未运行安装器，GitHub 仍为 2.1.0、更新源仍为空。详情、证据和回退见 releaseWorkflow.md 及 `docs/history/saveDialogDesktop21420261104/`。
 

@@ -88,7 +88,7 @@ bun run release:desktop <新的桌面版本> --initial
 
 ### 本地完整安装包 2.1.4（2026-11-04）
 
-- 源码提交：92bae921a0df5e26245c3af6d8c0ce96a60dd464（版本），修复提交 6edc944eb733324100ba604471f2175c2ae8a9ee，分支 codex/simplifyMediaModels，未推送。修复下载时「选择保存位置失败：EUNKNOWN: unknown error, uv_spawn」：saveFileDialog.exe 进程无法创建时改用系统 PowerShell 弹出同一另存为窗口；两者都失败时提示可能被火绒、360 等安全软件拦截。
+- 源码提交：92bae921a0df5e26245c3af6d8c0ce96a60dd464（版本），修复提交 6edc944eb733324100ba604471f2175c2ae8a9ee，分支 codex/simplifyMediaModels，2026-11-04 已推送 origin。修复下载时「选择保存位置失败：EUNKNOWN: unknown error, uv_spawn」：saveFileDialog.exe 进程无法创建时改用系统 PowerShell 弹出同一另存为窗口；两者都失败时提示可能被火绒、360 等安全软件拦截。
 - 构建命令：`bun run release:desktop 2.1.4 --initial`，退出 0（去掉代理变量、PATH 前置 System32）。
 - 版本快照：D:\2api-codes\maimai\client\build\desktop\releases\2.1.4。
 - 安装包：`MaiMaiStudio-2.1.4-Setup.exe`，55,557,551 字节；SHA256 `f2e9dcf70bd70383a7ca794eeb84f6c079a17d085d4d08ab76aac188bf4415c8`。
