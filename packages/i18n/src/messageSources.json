@@ -4543,6 +4543,9 @@
   "音频生成": [
     "apps/web/src/pages/workspace/panels/canvas/components/canvasEmpty.vue"
   ],
+  "分镜表": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasEmpty.vue"
+  ],
   "项目名称": [
     "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
   ],
