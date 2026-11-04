@@ -33,6 +33,20 @@ Import-Clixml -LiteralPath 'C:\Users\Administrator\.codex\serverConnections\maim
 
 ## 当前线上版本（2026-11-04）
 
+2026-11-04 16:01（北京时间）已更新到 **2.13.0-20261105**。
+镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.13.0-20261105
+摘要：sha256:e68dab3651eb0754d61b201f88cf9fdcb38ed121b2f2a63f95d7185a83dea8ae
+源码提交：5838803a5c7a1548b063e7aeebcb8a8f3d41eb9b（goRewrite，已推送 origin）；Go 内嵌 VCS 与 OCI revision 均为此提交，vcs.modified=false。
+
+本次上线 Anthropic 原生协议与提供商卡片：新增 anthropic 渠道类型与 /v1/messages 原生透传（x-api-key 鉴权、Anthropic 格式错误、含缓存 token 的计量）；路由按“类型 + 协议”匹配，协议不符返回 protocol_mismatch；后台新建渠道改为提供商卡片选择（内置 OpenAI 兼容与 Claude 预设，上传协议显示为插件），模型登记带协议。客户端对应提交 df0087a 把 messages 映射为 anthropic-messages，尚未打包桌面版。
+无数据库迁移，schema 仍为 61。现有 2 个文本模型协议为 responses、渠道为 openai，不受影响。
+部署仅原子替换 .env 的 IMAGE（其他字段不变、600），Compose 仅重建 app。
+应用 running=true、restarts=0；activeVideo=0、activeImage=0、pendingUsage=0；Redis PONG、Bun 1.4.3。启动日志版本 2.13.0-20261105，启动 2026-11-04T08:01:58Z。
+内网及公网 HTTPS 首页、/admin/channels、/admin/models、/api/pay/config 均 200；匿名 /api/admin/channels/types、/api/admin/models/missing、/v1/models 均 401；匿名 POST /v1/messages 返回 Anthropic 格式 401（authentication_error），无效 x-api-key 401。
+发布前在本机临时库用假 Anthropic 上游完成流式透传、计费、协议不符拒绝与浏览器卡片页验收；生产未登录后台、未新建 anthropic 渠道、未发起生成，生产回退未执行。
+
+### 上次发布：2.12.0-20261104
+
 2026-11-04 已更新到 **2.12.0-20261104**。
 镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.12.0-20261104
 摘要：sha256:4a3f17e7cd527784d681e15ea4ec44d6ac7db17d838c67f4f0a9faea17028d92
@@ -141,6 +155,15 @@ docker compose -f docker-compose.yml up -d --no-deps --wait --wait-timeout 60 --
 
 ## 本次备份与回退
 
+目录：/opt/maimai-cloud/backups/anthropicRelease20261105（权限700）。
+包含 envBefore、composeBefore.yml、imageBefore.txt、stateBefore.txt（模型协议与渠道类型）、databaseBefore.dump、databaseContents.txt、envAfter、releaseRollback.sh。
+数据库备份：1123162 字节，权限600；SHA256 66579d2b8af3ffa2337ac24d551f1d11a2b2da5ab6e08d1f5c18ee7b9a68ab08；pg_restore --list 168 行。
+旧镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.12.0-20261104。
+回退入口：/opt/maimai-cloud/backups/anthropicRelease20261105/releaseRollback.sh（权限700，SHA256 e066e46e2dd13f883bdd377d8e4a684ce915a0c1a1c82dc76cbf4c493f89d2cc，与本地副本一致，sh -n 通过）；本次未执行回退。
+回退只在镜像与 .env 仍为本次发布状态时恢复旧 IMAGE 并重建 app；本次无迁移，不恢复数据库。发布后新建的 anthropic 渠道和 messages 模型旧镜像不认，回退前先停用。
+
+### 上次发布备份与回退（2.12.0）
+
 目录：/opt/maimai-cloud/backups/pricingRelease20261104（权限700）。
 包含 envBefore、composeBefore.yml、imageBefore.txt、stateBefore.txt（含迁移前各模型旧价格）、databaseBefore.dump、databaseContents.txt、envAfter、releaseRollback.sh。
 数据库备份：1121452 字节，权限600；SHA256 525fd72e0a82fc51bd419da55eaa9f95785402c83bbe654f41ad748627f136ac；pg_restore --list 165 行。
@@ -171,6 +194,10 @@ SHA256：0380f7ecfafac0036fbc7c41a08cdb992e6aa1501620c96ed1d6a9b215bca523
 生产回退脚本仅执行 bash -n 与内嵌 Python 语法检查，本次没有在生产运行回退。此前备份仍保留。
 
 ## 本次交付记录
+
+D:\2api-codes\maimai\docs\history\anthropicRelease20261105\（releasePrepare.txt、releaseDeployCommand.txt、releaseVerify.txt、releaseRollback.sh）
+
+### 2.12.0 发布记录
 
 D:\2api-codes\maimai\docs\history\pricingRelease20261104\（releasePrepare.txt、releaseDeployCommand.txt、releaseVerify.txt、releaseRollback.sh）
 
