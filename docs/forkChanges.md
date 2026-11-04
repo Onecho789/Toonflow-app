@@ -846,3 +846,10 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 - 本次使用 `release:desktop 2.1.4 --initial` 构建 Windows x64 完整包，更新源配置保持原值。
 
 改动的上游文件：`electrobun.config.ts` 更新 `app.version`；冲突时保留本 fork 的桌面版本号。
+
+## 云端 Claude 原生协议（2026-11-05）
+
+- 麦麦云文本模型新增协议 `messages`（Anthropic 原生 `/v1/messages`），客户端映射为 pi-ai 的 `anthropic-messages`，思考参数由 SDK 按 Claude 原生格式发送。
+- Anthropic SDK 自己拼 `/v1/messages`，这类模型的 `baseUrl` 用 `cloudUrl`（不带 `/v1`）；OpenAI 两种协议仍用 `gatewayUrl`。请求仍经 `sessionFetch`，带 `Authorization: Bearer` 与默认分组头。
+
+改动的上游文件：`apps/server/src/utils/ai/index.ts`（`cloudProtocols` 加 `messages`，`getConfiguredModel` 按协议选 `baseUrl`）、`apps/server/src/utils/cloud/models.ts`（`generationPaths` 文本路径加 `messages`，使分组头生效）。冲突时保留协议映射与按协议选择的 `baseUrl`，不要把 Anthropic 的地址改回带 `/v1` 的网关地址，否则请求变成 `/v1/v1/messages`。

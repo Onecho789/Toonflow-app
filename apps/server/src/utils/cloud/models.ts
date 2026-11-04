@@ -60,7 +60,7 @@ export function getCloudDefault(type: CloudModel["type"]) {
   return { model: typeof value?.model === "string" ? value.model : undefined, group: typeof value?.group === "string" ? value.group : undefined };
 }
 
-const generationPaths: [RegExp, CloudModel["type"]][] = [[/^\/v1\/(chat\/completions|responses)$/, "text"], [/^\/v1\/images\/(generations|tasks)$/, "image"], [/^\/v1\/videos$/, "video"]];
+const generationPaths: [RegExp, CloudModel["type"]][] = [[/^\/v1\/(chat\/completions|responses|messages)$/, "text"], [/^\/v1\/images\/(generations|tasks)$/, "image"], [/^\/v1\/videos$/, "video"]];
 
 // 生成请求按模型类型取设置里的默认分组，返回 undefined 表示不带请求头（云端走 default）。
 // 所请求模型不在该分组时回退 default；模型没有 default 分组时用它的第一个分组。

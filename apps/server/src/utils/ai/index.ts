@@ -6,7 +6,7 @@ import type { Context, KnownApi, Model, ThinkingLevelMap } from "@earendil-works
 import { thinkingLevels, type ThinkingLevel } from "@/lib/modelReasoning";
 import { z } from "zod";
 import conf from "@/utils/conf";
-import { getApiKey, sessionFetch } from "@/utils/cloud";
+import { cloudUrl, getApiKey, sessionFetch } from "@/utils/cloud";
 import { cloudPriceText, cloudProviderId, gatewayUrl, getCloudDefault, listCloudModels } from "@/utils/cloud/models";
 import { readReference } from "@/utils/media/generation";
 import { findModelContextLimits } from "@/utils/ai/modelContextLimits";
@@ -48,7 +48,7 @@ export function getModelLimits(providerId: string, model: TextModel) {
 
 const positiveInteger = (value: unknown) => Number.isSafeInteger(value) && (value as number) > 0 ? value as number : undefined;
 
-const cloudProtocols = { chat: "openai-completions", responses: "openai-responses" } as const;
+const cloudProtocols = { chat: "openai-completions", responses: "openai-responses", messages: "anthropic-messages" } as const;
 
 // 文本模型统一来自麦麦云目录，旧对话里保存的其他 providerId 按模型 ID 匹配。
 async function cloudTextModels(refresh = false) {
@@ -69,9 +69,11 @@ export async function getConfiguredModel(_providerId: string, modelId: string) {
   const found = (await cloudTextModels()).find(item => item.model.id === modelId);
   if (!found) throw Object.assign(new Error(conf.get("cloudSession") ? "所选模型已下架或不存在，请重新选择" : "请先登录麦麦云账号"), { status: 400 });
   const { model, protocol } = found;
-  const provider = { apiUrl: gatewayUrl, apiKey: getApiKey(), protocol };
+  // Anthropic SDK 自己拼 /v1/messages，baseUrl 给站点根地址；OpenAI SDK 只拼 /chat/completions 等，要带 /v1。
+  const baseUrl = protocol === "anthropic-messages" ? cloudUrl : gatewayUrl;
+  const provider = { apiUrl: baseUrl, apiKey: getApiKey(), protocol };
   const limits = getModelLimits(cloudProviderId, model);
-  return { provider, model: { ...model, ...getModelReasoning(model, protocol), contextWindow: limits.contextWindow, maxOutputTokens: limits.maxTokens }, baseUrl: gatewayUrl };
+  return { provider, model: { ...model, ...getModelReasoning(model, protocol), contextWindow: limits.contextWindow, maxOutputTokens: limits.maxTokens }, baseUrl };
 }
 
 // isDefault 标出设置里的默认模型，供没有已保存选择的对话和节点默认选中。
