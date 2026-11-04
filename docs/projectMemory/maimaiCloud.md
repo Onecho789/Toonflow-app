@@ -33,6 +33,17 @@ Import-Clixml -LiteralPath 'C:\Users\Administrator\.codex\serverConnections\maim
 
 ## 当前线上版本（2026-11-04）
 
+2026-11-04 18:19（北京时间）已更新到 **2.14.1-20261105**。
+镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.14.1-20261105
+摘要：sha256:a71db7c173ed9714da919a5a8806d706ea436f3302d824ee222c6626e42dfeef
+源码提交：92da8edf8db89e33172be870137e02139bf83d84（goRewrite，已推送 origin），vcs.modified=false。
+
+本次去掉文本模型“最大输出”参数（与 new-api 一致，输出上限由调用方 max_tokens 决定；客户端缺省按内置模型表，再缺省 32768）。后台表单与列表不再显示，保存时丢弃 meta.maxOutputTokens。迁移 63→64 清除已存值：claude-opus-5-5 16384、gpt-6-astra 128384、gpt-6.1-sol 128000（原值在备份数据库中）。
+应用 running=true、restarts=0，启动 2026-11-04T10:19:29Z；部署前后活动任务与未结算用量均为 0；内网及公网首页、/admin/models、/admin/pricing、/api/pay/config 200，匿名 /api/admin/models、/v1/models 401；env 600、diff 仅 IMAGE。
+备份与回退：/opt/maimai-cloud/backups/maxOutputRelease20261105（databaseBefore.dump 11395115 字节 SHA256 1c755f3a…、releaseRollback.sh SHA256 08ee313d…），回退到 2.14.0-20261105；证据 docs/history/maxOutputRelease20261105/。生产回退未执行。
+
+### 上次发布：2.14.0-20261105
+
 2026-11-04 17:40（北京时间）已更新到 **2.14.0-20261105**。
 镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.14.0-20261105
 摘要：sha256:b64ec602aa67a17d88dd8ee52a48c4cd360a805a2f07bc8d89fdba4dc664d1da
