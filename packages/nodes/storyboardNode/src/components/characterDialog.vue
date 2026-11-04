@@ -44,11 +44,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, shallowRef } from "vue";
 import { ElAlert, ElButton, ElDialog, ElInput, ElLoading, ElMessage, ElMessageBox } from "element-plus";
 import { IconCircleCheck, IconLoader2, IconMoodSmile, IconPhotoPlus, IconTrash, IconUserPlus, IconX } from "@tabler/icons-vue";
 import { useNodeFiles } from "@toonflow/nodes-scaffold/runtime";
-import { errorMessage, libraryPath, loadCharacterLibrary, saveCharacterLibrary, uploadCharacterImage, type Character } from "../characterLibrary";
+import { cloneCharacters, errorMessage, libraryPath, loadCharacterLibrary, saveCharacterLibrary, uploadCharacterImage, type Character } from "../characterLibrary";
 import characterImage from "./characterImage.vue";
 
 const visible = defineModel<boolean>({ required: true });
@@ -64,9 +64,9 @@ const uploadingId = ref("");
 const fileInput = ref<HTMLInputElement>();
 const busy = computed(() => loading.value || saving.value || !!uploadingId.value);
 let files: ReturnType<typeof getWorkspaceFiles> | undefined;
-let state: Awaited<ReturnType<typeof loadCharacterLibrary>> | undefined;
+const state = shallowRef<Awaited<ReturnType<typeof loadCharacterLibrary>>>();
 let pickingCharacter: Character | undefined;
-const dirty = computed(() => !!state && JSON.stringify(draft.value) !== JSON.stringify(state.characters));
+const dirty = computed(() => !!state.value && JSON.stringify(draft.value) !== JSON.stringify(state.value.characters));
 
 async function load() {
   loading.value = true;
@@ -75,8 +75,8 @@ async function load() {
   try {
     // ACT: 打开弹窗时固定工作区，切换项目后需重新打开。
     files = getWorkspaceFiles();
-    state = await loadCharacterLibrary(files);
-    draft.value = structuredClone(state.characters);
+    state.value = await loadCharacterLibrary(files);
+    draft.value = cloneCharacters(state.value.characters);
   } catch (error) {
     loadError.value = errorMessage(error, "角色库读取失败");
   } finally {
@@ -86,7 +86,7 @@ async function load() {
 
 function onClosed() {
   draft.value = [];
-  state = undefined;
+  state.value = undefined;
 }
 
 function addCharacter() {
@@ -127,17 +127,18 @@ async function uploadImages(event: Event) {
 }
 
 async function save() {
-  if (!files || !state || busy.value) return;
+  const library = state.value;
+  if (!files || !library || busy.value) return;
   if (draft.value.some(item => !item.name.trim())) return ElMessage.warning("请为每个角色填写名称");
   const names = draft.value.map(item => item.name.trim());
   if (new Set(names).size !== names.length) return ElMessage.warning("角色名称不能重复，拆分镜头时按名称匹配角色");
   saving.value = true;
   try {
     const characters = draft.value.map(item => ({ ...item, name: item.name.trim(), description: item.description.trim() }));
-    await saveCharacterLibrary(files, state, characters);
-    draft.value = structuredClone(state.characters);
+    await saveCharacterLibrary(files, library, characters);
+    draft.value = cloneCharacters(library.characters);
     saved.value = true;
-    emit("saved", state.characters);
+    emit("saved", library.characters);
   } catch (error) {
     ElMessage.error(errorMessage(error, "角色库保存失败"));
   } finally {

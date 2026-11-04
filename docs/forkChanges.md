@@ -860,6 +860,7 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 - 每行「生成画面」在右侧创建 remote-imageGenerationNode，提示词为画面描述；绑定角色的设定图以 remote-imageNode 上游节点连到其 `in` 输入作为参考图，同一分镜表内按图片路径复用。未改 nodeScaffold，使用 `useVueFlow` 与宿主 `batchCanvasHistory`。
 - 角色库保存在当前工作区 `角色库.json`（`{ characters: [{ id, name, description, images }] }`），设定图上传到 `assets/角色库/`；节点内弹窗管理，读写逻辑全部在插件内，节点文案不接入多语言。
 - 结构化镜头保存在 `node.data.shots`：`{ id, number, shotSize, description, dialogue, duration, characterIds, imageNodeId? }`。
+- 合并后实测修复（2026-11-05）：角色库弹窗打开时 `structuredClone` 无法复制 reactive 代理，改为 `cloneCharacters` 按纯数据深拷贝；库状态改用 `shallowRef`，修正编辑后「保存」按钮一直禁用。
 
 改动的上游文件：`apps/web/src/components/settings/panels/general/nodeMenuSettings.vue` 新增图标映射，`apps/web/src/pages/workspace/panels/canvas/components/canvasEmpty.vue` 新增「分镜表」快捷入口；`packages/i18n/src/locales/*.json` 与 `messageSources.json` 新增一条文案；`bun.lock`。冲突时保留这两处注册项与新增文案。
 
@@ -887,5 +888,6 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 - 画布菜单新增“导出画布 JSON”“导入画布 JSON”：导出包含节点、连线与视口，媒体保持工作区相对路径，经另存为窗口保存；导入时校验 `toonflowCanvas` 标识与 `toonflowCanvasExport` 版本，重新生成节点和连线 id，以不冲突的名称新建画布并给出友好错误提示。
 - 选区工具栏的“宫格排列”已存在，本次未改。
 - Agent 画布工具新增 `connectGroup`（把分组整体连到目标节点输入端口）与 `exportCanvas`（导出当前画布 JSON），同步更新工具说明、提示词与 readme。
+- 合并后实测修复（2026-11-05）：`canvasFiles.ts` 的 `remapNodeReferences` 额外换新成片时间线片段 key、分镜表 `shots[].imageNodeId` 与角色参考图 `storyboardReference.storyboardId`，导入画布与创建副本后时间线排序/时长设置和分镜表关联不再丢失。冲突时保留这段字段映射。
 
 改动的上游文件：`apps/web/src/pages/workspace/panels/canvas/components/groupNode.vue`、`canvasMenu.vue`、`index.vue`、`useCanvasTools.ts`，新增 `groupInputs.ts`；`packages/tools/canvas/src/runtime.ts`、`build.ts`、`readme.md`；`packages/i18n/src/locales/*.json` 与 `messageSources.json` 新增 22 条文案。冲突时保留组输出端口与派生隐藏连线逻辑、`canvasMenu` 暴露的 `exportCanvas`、两个新工具操作以及新增文案。

@@ -27,6 +27,18 @@ export function remapNodeReferences(node: Pick<Node, "data">, ids: ReadonlyMap<s
       tag.html = tag.html.replace(/(data-reference-id=["'])([^"']+)(["'])/g, (_match: string, before: string, value: string, after: string) => before + remapReference(value) + after);
     }
   }
+  // ACT: 成片时间线片段 key（来源节点|端口|序号）与分镜表的节点引用写在节点数据里，按已知字段逐一换成新 id；只替换本次一起复制的节点。
+  const clips = node.data?.timeline?.clips;
+  if (Array.isArray(clips)) for (const clip of clips) {
+    if (typeof clip?.key !== "string") continue;
+    const [source, ...rest] = clip.key.split("|");
+    if (ids.has(source)) clip.key = [ids.get(source), ...rest].join("|");
+  }
+  const reference = node.data?.storyboardReference;
+  if (typeof reference?.storyboardId === "string" && ids.has(reference.storyboardId)) reference.storyboardId = ids.get(reference.storyboardId);
+  if (Array.isArray(node.data?.shots)) for (const shot of node.data.shots) {
+    if (typeof shot?.imageNodeId === "string" && ids.has(shot.imageNodeId)) shot.imageNodeId = ids.get(shot.imageNodeId);
+  }
 }
 
 export async function findRemainingCanvas(files: Files, excludedPath: string, signal?: AbortSignal) {

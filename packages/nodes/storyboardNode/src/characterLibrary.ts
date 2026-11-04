@@ -26,6 +26,11 @@ export function errorMessage(error: unknown, fallback: string) {
   return (error as FileError)?.response?.data?.message || (error instanceof Error ? error.message : fallback);
 }
 
+// 角色库状态是 reactive 代理，structuredClone 无法复制代理，按纯数据深拷贝。
+export function cloneCharacters(characters: Character[]): Character[] {
+  return characters.map(({ id, name, description, images }) => ({ id, name, description, images: [...images] }));
+}
+
 export function imageMimeType(path: string) {
   return imageTypes[path.split(".").at(-1)?.toLowerCase() ?? ""] ?? "image/png";
 }
@@ -62,7 +67,7 @@ export async function saveCharacterLibrary(files: WorkspaceFiles, state: Library
     });
     state.snapshot = await files.readTextSnapshot(libraryPath);
   }
-  state.characters = structuredClone(value.characters);
+  state.characters = cloneCharacters(value.characters);
 }
 
 export async function uploadCharacterImage(files: WorkspaceFiles, file: File) {
