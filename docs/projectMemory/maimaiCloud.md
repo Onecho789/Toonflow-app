@@ -31,7 +31,21 @@ Import-Clixml -LiteralPath 'C:\Users\Administrator\.codex\serverConnections\maim
 
 其他凭据（root 密码、管理员账号、.env 密钥、测试账号、镜像仓库、new-api 服务器说明）统一记在 D:\2api-codes\资料\maimaiCredentials.md，条目清单见 [releaseWorkflow.md](releaseWorkflow.md) 的凭据小节；该文件不能复制进 Git 仓库，内容不抄进本记录。
 
-## 上次已验收的线上版本（2026-11-03）
+## 当前线上版本（2026-11-04）
+
+2026-11-04 已更新到 **2.12.0-20261104**。
+镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.12.0-20261104
+摘要：sha256:4a3f17e7cd527784d681e15ea4ec44d6ac7db17d838c67f4f0a9faea17028d92
+源码提交：43ea5b7d570cace0ecf6d0b331c10c6332290fc9（goRewrite，已推送 origin）；Go 内嵌 VCS 与 OCI revision 均为此提交，vcs.modified=false。
+
+本次上线模型管理与定价改造（对齐 new-api）：定价改为倍率（模型倍率 1 = 每百万输入 token 2 美元，补全倍率乘输出；图片/视频按次美元价），按 settings `pricing.usdRate`=7.2 换元；定价单独存 model_pricing，可先于模型登记；未定价模型不对外提供（503 pricing_not_configured）。后台新增缺失模型登记、批量操作与筛选、分页签编辑抽屉（描述、标签）及“模型定价”页（表格/JSON、汇率）。
+数据库迁移 56→61。生产 6 个模型全部换算为定价、无未定价模型：gpt-6-astra、gpt-6.1-sol 倍率 0.0694…、补全 4（输入 1 元、输出 4 元每百万 token，不变）；两个 gpt-image-2.5 与两个 grok-imagine-video 按次 0.01388… 美元（0.1 元，不变）。models 旧价格列保留供回退。
+部署仅原子替换 .env 的 IMAGE（其他字段不变、600），Compose 仅重建 app。
+应用 running=true、restarts=0；activeVideo=0、activeImage=0、pendingUsage=0；Redis PONG、Bun 1.4.3。启动日志版本 2.12.0-20261104，启动 2026-11-04T06:04:30Z。
+内网及公网 HTTPS 首页、/admin/models、/admin/pricing、/api/pay/config 均 200；匿名 GET /api/admin/models、/api/admin/models/missing、/api/admin/pricing、PUT /api/admin/pricing/rate、GET /v1/models 均 401。
+发布前在本机临时库完成迁移逐模型对比、22 项接口冒烟与浏览器验收；生产未登录后台、未改价格、未发起生成，生产回退未执行。
+
+### 上次发布：2.11.0-20261103
 
 2026-11-03 已更新到 **2.11.0-20261103**。
 镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.11.0-20261103
@@ -64,7 +78,13 @@ Grok 当前修订：f8f85bef333fecb4da9ecfdb267a9cbad30472092346ed9a252c15138fda
 上次版本已验证能力400、源码新旧版本读取、默认升级、自定义与恢复版本重启保留。本次发布前无活跃视频任务、无 pending 用量记录，发布中未新发起生成。
 视频编辑/延长等宿主入参及上游特殊计费未扩展，现有失败退款规则保留。
 
-## 桌面本地安装包 2.1.3（2026-11-04）
+## 桌面本地安装包 2.1.4（2026-11-04）
+
+- 源码提交：92bae921a0df5e26245c3af6d8c0ce96a60dd464（修复 6edc944），分支 codex/simplifyMediaModels，未推送。修复图片下载「EUNKNOWN: unknown error, uv_spawn」：另存为 exe 无法启动时改用系统 PowerShell 弹窗，两者都失败时提示安全软件拦截。
+- 版本快照：D:\2api-codes\maimai\client\build\desktop\releases\2.1.4。安装包 `MaiMaiStudio-2.1.4-Setup.exe` 55,557,551 字节，SHA256 `f2e9dcf70bd70383a7ca794eeb84f6c079a17d085d4d08ab76aac188bf4415c8`；清单 version=2.1.4、hash=2tgxuqgucfqv9。
+- 打包退出 0、7-Zip `Everything is Ok`，兜底逻辑在包内确认存在。本地交付，未运行安装器，GitHub 仍为 2.1.0、更新源仍为空。详情、证据和回退见 releaseWorkflow.md 及 `docs/history/saveDialogDesktop21420261104/`。
+
+## 上次桌面本地安装包 2.1.3（2026-11-04）
 
 - 源码提交：2a64f19e65085e431b2a14756ea7788d4fc1b2fa，分支 codex/simplifyMediaModels；包含功能提交 7dc6f0a 的默认小手与工具顺序调整，进入工作区固定 selectedTool=hand，顺序为「添加 → 小手 → 框选箭头」。
 - 构建命令：`bun run release:desktop 2.1.3 --initial`，退出 0。Bun 1.4.3；Windows x64；完整重建 Web、9 个节点插件、tools、ext、MCP 与桌面宿主。
@@ -121,6 +141,15 @@ docker compose -f docker-compose.yml up -d --no-deps --wait --wait-timeout 60 --
 
 ## 本次备份与回退
 
+目录：/opt/maimai-cloud/backups/pricingRelease20261104（权限700）。
+包含 envBefore、composeBefore.yml、imageBefore.txt、stateBefore.txt（含迁移前各模型旧价格）、databaseBefore.dump、databaseContents.txt、envAfter、releaseRollback.sh。
+数据库备份：1121452 字节，权限600；SHA256 525fd72e0a82fc51bd419da55eaa9f95785402c83bbe654f41ad748627f136ac；pg_restore --list 165 行。
+旧镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.11.0-20261103。
+回退入口：/opt/maimai-cloud/backups/pricingRelease20261104/releaseRollback.sh（权限700，SHA256 7ffa8fcd608715321083cdcc2aac599d1dc39d36522a03441d115feb5301b5df，与本地副本一致，sh -n 通过）；本次未执行回退。
+回退只在镜像与 .env 仍为本次发布状态时恢复旧 IMAGE 并重建 app；保留 model_pricing 等新表，不恢复数据库。旧镜像读 models 旧价格列，发布后在新后台改的价格回退后不生效。
+
+### 上次发布备份与回退（2.11.0）
+
 目录：/opt/maimai-cloud/backups/mailangRelease20261103（权限700）。
 包含 envBefore、composeBefore.yml、imageBefore.txt、stateBefore.json、databaseBefore.dump、databaseContents.txt、envAfter、stateAfter.json、releaseRollback.sh。
 数据库备份：1115013字节，权限600；SHA256 dd4ca850abdc01e74b0f24d64877a25126b4003b4a9251f39d30d74e86af4b2b；pg_restore --list退出0、目录154行。
@@ -142,6 +171,10 @@ SHA256：0380f7ecfafac0036fbc7c41a08cdb992e6aa1501620c96ed1d6a9b215bca523
 生产回退脚本仅执行 bash -n 与内嵌 Python 语法检查，本次没有在生产运行回退。此前备份仍保留。
 
 ## 本次交付记录
+
+D:\2api-codes\maimai\docs\history\pricingRelease20261104\（releasePrepare.txt、releaseDeployCommand.txt、releaseVerify.txt、releaseRollback.sh）
+
+### 2.11.0 发布记录
 
 D:\2api-codes\maimai\docs\history\mailangRelease20261103\releaseDeployment.txt
 D:\2api-codes\maimai\docs\history\mailangRelease20261103\releaseCloud.txt

@@ -1,6 +1,6 @@
 # 麦麦打包、发布与部署
 
-2026-11-03 从旧对话、旧记忆和实际源码整理，2026-11-04 补充桌面 2.1.3 本地安装包交付记录。云端线上状态仍来自上次发布验收。
+2026-11-03 从旧对话、旧记忆和实际源码整理，2026-11-04 补充桌面 2.1.3、2.1.4 本地安装包交付记录及云端 2.12.0-20261104 发布。
 
 ## 工作目录与记忆
 
@@ -16,7 +16,7 @@
 
 两个子目录分别管理 Git。根目录继续作为共享记忆维护入口；根级 AGENTS.md 与 docs/ 下的 releaseWorkflow.md、maimaiCloud.md、localEnvNotes.md 同步到两个仓库的 docs/projectMemory/ 并分别提交、推送，单独克隆时可从该目录的 readme.md 查看。每次更新共享记忆后同步两份副本；docs/history/ 中的历史证据与构建日志另作本机备份。
 
-当前桌面本地安装包为 **2.1.3**，提交 2a64f19e65085e431b2a14756ea7788d4fc1b2fa，分支 codex/simplifyMediaModels；上次公开发布为 2.1.0。云端版本为 **2.11.0-20261103**，提交 d5be9f858ec2e3c5f596849e238dae79b57bec6d，分支 goRewrite。两个版本号各自维护，后续先读实际 HEAD、分支和工作区。
+当前桌面本地安装包为 **2.1.4**，提交 92bae921a0df5e26245c3af6d8c0ce96a60dd464，分支 codex/simplifyMediaModels；上次公开发布为 2.1.0。云端版本为 **2.12.0-20261104**，提交 43ea5b7d570cace0ecf6d0b331c10c6332290fc9，分支 goRewrite。两个版本号各自维护，后续先读实际 HEAD、分支和工作区。
 
 ## Windows 桌面打包
 
@@ -86,6 +86,18 @@ bun run release:desktop <新的桌面版本> --initial
 - 构建日志、原始/修改后版本配置、差异及副本回退证据：`docs/history/canvasDesktop21320261104/`。ROLLBACK.sh 仅在独立配置副本恢复 app.version=2.1.2，SHA256 与原始配置一致；实际源码和产物保持 2.1.3，不更换已安装程序。
 - 旧 2.1.2 安装包保留在其原快照目录；打包前已核对 SHA256 与旧记录一致。共享记忆修改前副本保存在本轮证据目录的 memoryBefore/。
 
+### 本地完整安装包 2.1.4（2026-11-04）
+
+- 源码提交：92bae921a0df5e26245c3af6d8c0ce96a60dd464（版本），修复提交 6edc944eb733324100ba604471f2175c2ae8a9ee，分支 codex/simplifyMediaModels，未推送。修复下载时「选择保存位置失败：EUNKNOWN: unknown error, uv_spawn」：saveFileDialog.exe 进程无法创建时改用系统 PowerShell 弹出同一另存为窗口；两者都失败时提示可能被火绒、360 等安全软件拦截。
+- 构建命令：`bun run release:desktop 2.1.4 --initial`，退出 0（去掉代理变量、PATH 前置 System32）。
+- 版本快照：D:\2api-codes\maimai\client\build\desktop\releases\2.1.4。
+- 安装包：`MaiMaiStudio-2.1.4-Setup.exe`，55,557,551 字节；SHA256 `f2e9dcf70bd70383a7ca794eeb84f6c079a17d085d4d08ab76aac188bf4415c8`。
+- 更新归档：`stable-win-x64-MaiMaiStudio.tar.zst`，58,250,765 字节；SHA256 `cc32def22fa323dca8d672aa8c7aabc9b672f1caedfc26faf101b1f5439a9e81`。
+- 更新清单：`stable-win-x64-update.json`，209 字节；SHA256 `5ae4e345ce53e9340ed22ea21b45128a5a9ceba82f9f1d810b959bf753624504`；version=2.1.4、stable/win/x64、hash=2tgxuqgucfqv9。
+- 验证：desktop、i18n typecheck 退出 0；用安装包自带 Bun 1.4.0 复现同一 EUNKNOWN 后兜底窗口弹出，保存、取消、双重失败提示均按预期。打包退出 0；7-Zip `Everything is Ok`；三资产与 artifacts 哈希一致；归档 1727 项、9 个节点齐全，app/bun/index.js 含兜底代码。
+- 本次为本地安装包交付；GitHub 公开版本仍为 2.1.0，更新源仍为空。未运行安装器，真实安全软件拦截场景未复现。构建后 apps/web/src/types/components.d.ts 出现自动生成声明漂移，未提交。
+- 证据与回退：`docs/history/saveDialogDesktop21420261104/`（VERIFICATION.txt、build.log、before/、fix.patch、ROLLBACK.sh、memoryBefore/）。ROLLBACK.sh 只在副本恢复 2.1.3 配置并已执行校验通过；撤回修复用 `git revert 92bae92 6edc944`。2.1.3 三资产 SHA256 构建前后不变。
+
 
 ## 云端镜像构建
 
@@ -145,7 +157,7 @@ docker compose -f docker-compose.yml up -d --no-deps --wait --wait-timeout 60 --
 
 每次成功发布后更新 maimaiCloud.md 与本文件，并保存本次版本的构建、发布、验收和回退证据。
 
-上次可回退镜像是 2.10.3-202611030129；备份 /opt/maimai-cloud/backups/mailangRelease20261103。历史 releaseRollback.sh 固定了当次旧/新镜像与 envBefore/envAfter，不能直接用于未来新版本。它只恢复 IMAGE 并重建 app，保留新增表、兑换码、协议和账目，不自动恢复数据库。上次只验证过回退脚本语法，未执行生产回退。
+2.12.0 发布构建上下文 D:\2api-codes\maimai\cloud\build\release20261104，证据 docs/history/pricingRelease20261104/。当前可回退镜像是 2.11.0-20261103；备份 /opt/maimai-cloud/backups/pricingRelease20261104，回退脚本同目录。2.12.0 起有迁移 57-61（model_pricing），回退旧镜像时新表保留、旧价格列仍可用。更早的可回退镜像是 2.10.3-202611030129；备份 /opt/maimai-cloud/backups/mailangRelease20261103。历史 releaseRollback.sh 固定了当次旧/新镜像与 envBefore/envAfter，不能直接用于未来新版本。它只恢复 IMAGE 并重建 app，保留新增表、兑换码、协议和账目，不自动恢复数据库。上次只验证过回退脚本语法，未执行生产回退。
 
 ## 保留与整理
 
