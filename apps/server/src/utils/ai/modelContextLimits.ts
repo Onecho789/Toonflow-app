@@ -1,5 +1,5 @@
 // ACT: 完整 ID 优先，其次匹配规范化名称和有限别名；两项上限均优先于用户配置和 Pi 内置模型目录。
-// 单位为 token；原有条目于 2026-09-20 核对，新增条目于 2026-10-26 核对官方标准 API 上限。
+// 单位为 token；原有条目于 2026-09-20 核对，新增条目于 2026-10-26 核对官方标准 API 上限，Claude 于 2026-11-05 复核。
 const modelContextLimits: { id: string | RegExp; contextWindow: number; maxTokens: number }[] = [
   { id: "deepseek-v4.1-flash", contextWindow: 1048576, maxTokens: 393216 },
   { id: /(?:^|-)deepseek-?v-?4-1-?flash-[0-9]+$/, contextWindow: 1048576, maxTokens: 393216 },
@@ -52,15 +52,24 @@ const modelContextLimits: { id: string | RegExp; contextWindow: number; maxToken
   { id: "gemini-2.5-flash", contextWindow: 1048576, maxTokens: 65536 },
   { id: "gemini-2.5-flash-lite", contextWindow: 1048576, maxTokens: 65536 },
 
-  // Claude：标准 Messages API，未采用 Batch API 的 300K 输出上限。
-  // https://platform.claude.com/docs/en/models/overview
+  // Claude：标准 Messages API，未采用 Batch API 的 300K 输出上限；2026-11-05 按官方型号页补齐 5.5 与旧版。
+  // https://platform.claude.com/docs/en/about-claude/models/overview
+  // https://platform.claude.com/docs/en/models/{型号}/overview，如 opus-5-5、opus-4-8、opus-4-5
   // https://platform.claude.com/docs/en/build-with-claude/context-windows
-  // https://platform.claude.com/docs/en/models/sonnet-4-6/overview
   // https://platform.claude.com/docs/es/models/sonnet-4-5/overview
   { id: "claude-fable-5-1", contextWindow: 1000000, maxTokens: 128000 },
+  { id: "claude-opus-5-5", contextWindow: 1000000, maxTokens: 128000 },
+  { id: "claude-sonnet-5-5", contextWindow: 1000000, maxTokens: 128000 },
+  { id: "claude-haiku-5-5", contextWindow: 1000000, maxTokens: 128000 },
+  { id: "claude-fable-5", contextWindow: 1000000, maxTokens: 128000 },
+  { id: "claude-mythos-5", contextWindow: 1000000, maxTokens: 128000 },
   { id: "claude-opus-5", contextWindow: 1000000, maxTokens: 128000 },
   { id: "claude-sonnet-5", contextWindow: 1000000, maxTokens: 128000 },
+  { id: "claude-opus-4-8", contextWindow: 1000000, maxTokens: 128000 },
+  { id: "claude-opus-4-7", contextWindow: 1000000, maxTokens: 128000 },
   { id: "claude-opus-4-6", contextWindow: 1000000, maxTokens: 128000 },
+  { id: "claude-opus-4-5", contextWindow: 200000, maxTokens: 64000 },
+  { id: "claude-opus-4-5-20251101", contextWindow: 200000, maxTokens: 64000 },
   { id: "claude-sonnet-4-6", contextWindow: 1000000, maxTokens: 128000 },
   { id: "claude-sonnet-4-5", contextWindow: 200000, maxTokens: 64000 },
   { id: "claude-sonnet-4-5-20250929", contextWindow: 200000, maxTokens: 64000 },

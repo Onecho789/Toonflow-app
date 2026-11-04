@@ -854,6 +854,13 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 
 改动的上游文件：`apps/server/src/utils/ai/index.ts`（`cloudProtocols` 加 `messages`，`getConfiguredModel` 按协议选 `baseUrl`）、`apps/server/src/utils/cloud/models.ts`（`generationPaths` 文本路径加 `messages`，使分组头生效）。冲突时保留协议映射与按协议选择的 `baseUrl`，不要把 Anthropic 的地址改回带 `/v1` 的网关地址，否则请求变成 `/v1/v1/messages`。
 
+## Claude 内置上限按官方补齐（2026-11-05）
+
+- `modelContextLimits.ts` 按 Claude 官方型号页补齐 5.5 系列（`claude-opus-5-5`、`claude-sonnet-5-5`、`claude-haiku-5-5`）及旧版 `claude-fable-5`、`claude-mythos-5`、`claude-opus-4-8`、`claude-opus-4-7`（均 1M 上下文、128K 输出），以及 `claude-opus-4-5`（200K / 64K）。此前 `claude-opus-5-5` 匹配不到条目，输出上限回退为 32768。
+- 仍取同步 Messages API 的上限，不采用 Batch API 的 300K 输出 beta。
+
+改动的上游文件：无，`modelContextLimits.ts` 是我们的文件。
+
 ## 分镜表节点与角色库（2026-11-04）
 
 - 新增节点插件 `packages/nodes/storyboardNode`（remote-storyboardNode，「分镜表」）：镜头表含镜号、景别、画面描述、台词/旁白、时长（秒）、绑定角色，可增删和拖动排序；读取上游文本节点剧本，复用 nodeAi `ai.generate` 调用已配置的文本模型拆分镜头。
