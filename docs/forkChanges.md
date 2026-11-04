@@ -871,3 +871,12 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 - 任务恢复：`node.data.generationTask` 记录任务编号与请求摘要；服务端把图片、视频任务写入数据目录 `mediaTasks.json`（`writeAtomic`），重启后继续轮询麦麦云；云端已无该任务时以 410 友好提示失败。节点卸载不再取消图片/视频任务，停止和删除仍会取消本地等待（麦麦云任务无法撤回）。
 
 改动的上游文件：`apps/server/src/utils/media/{cloud,generation,tasks}.ts`、`apps/server/src/routes/ai/media/{generate,price}.ts`、`packages/nodeScaffold/src/nodeAi.ts`、`packages/nodeShared/src/useNodeGeneration.ts` 与 `package.json`（新增 `useResultNodes`、`generationState`、`mediaResults` 导出）、图片/视频生成节点的 `index.vue` 与 `generationSettings.vue`。冲突时保留请求体顶层 `n` 字段、任务持久化与恢复轮询、`resumeMedia`/`onTask` 接口及节点的重试与拆分逻辑。
+
+## 成片时间线节点（2026-11-04）
+
+- 新增节点插件 `packages/nodes/timelineNode`（`timelineNode`，显示名「成片时间线」）。「画面片段」端口可接多个视频/图片节点，「配音/BGM」端口可接多个音频节点。
+- 画面轨用缩略图展示片段，支持拖动或 Alt+左右键排序。图片默认 3 秒，视频可设入点和出点。上游节点 `data.shots[].duration` 有值时作为默认时长，读不到则忽略。
+- 「合成导出」通过现有的浏览器端 ffmpeg 调用（`/api/ffmpeg/execute`）拼接画面并混入配乐，显示进度，可随时取消，失败或取消时清理输出目录。成片写入 `assets/<uuid>/video.mp4`，在右侧生成视频节点，同时写入本节点「成片输出」端口。
+- 「导出 EDL」在前端生成 CMX 3600 剪辑表（只含画面轨）并下载。未做 FCPXML。
+
+改动的上游文件：无。只新增插件目录和 `bun.lock` 中的 workspace 条目。需要在 `nodeMenuSettings.vue` 的 `nodeIcons` 中注册 `remote-timelineNode` 图标（`IconTimeline`），由主会话统一补上。
