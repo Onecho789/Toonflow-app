@@ -853,3 +853,12 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 - Anthropic SDK 自己拼 `/v1/messages`，这类模型的 `baseUrl` 用 `cloudUrl`（不带 `/v1`）；OpenAI 两种协议仍用 `gatewayUrl`。请求仍经 `sessionFetch`，带 `Authorization: Bearer` 与默认分组头。
 
 改动的上游文件：`apps/server/src/utils/ai/index.ts`（`cloudProtocols` 加 `messages`，`getConfiguredModel` 按协议选 `baseUrl`）、`apps/server/src/utils/cloud/models.ts`（`generationPaths` 文本路径加 `messages`，使分组头生效）。冲突时保留协议映射与按协议选择的 `baseUrl`，不要把 Anthropic 的地址改回带 `/v1` 的网关地址，否则请求变成 `/v1/v1/messages`。
+
+## 分镜表节点与角色库（2026-11-04）
+
+- 新增节点插件 `packages/nodes/storyboardNode`（remote-storyboardNode，「分镜表」）：镜头表含镜号、景别、画面描述、台词/旁白、时长（秒）、绑定角色，可增删和拖动排序；读取上游文本节点剧本，复用 nodeAi `ai.generate` 调用已配置的文本模型拆分镜头。
+- 每行「生成画面」在右侧创建 remote-imageGenerationNode，提示词为画面描述；绑定角色的设定图以 remote-imageNode 上游节点连到其 `in` 输入作为参考图，同一分镜表内按图片路径复用。未改 nodeScaffold，使用 `useVueFlow` 与宿主 `batchCanvasHistory`。
+- 角色库保存在当前工作区 `角色库.json`（`{ characters: [{ id, name, description, images }] }`），设定图上传到 `assets/角色库/`；节点内弹窗管理，读写逻辑全部在插件内，节点文案不接入多语言。
+- 结构化镜头保存在 `node.data.shots`：`{ id, number, shotSize, description, dialogue, duration, characterIds, imageNodeId? }`。
+
+改动的上游文件：`apps/web/src/components/settings/panels/general/nodeMenuSettings.vue` 新增图标映射，`apps/web/src/pages/workspace/panels/canvas/components/canvasEmpty.vue` 新增「分镜表」快捷入口；`packages/i18n/src/locales/*.json` 与 `messageSources.json` 新增一条文案；`bun.lock`。冲突时保留这两处注册项与新增文案。
