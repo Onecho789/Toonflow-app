@@ -879,7 +879,7 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 - 「合成导出」通过现有的浏览器端 ffmpeg 调用（`/api/ffmpeg/execute`）拼接画面并混入配乐，显示进度，可随时取消，失败或取消时清理输出目录。成片写入 `assets/<uuid>/video.mp4`，在右侧生成视频节点，同时写入本节点「成片输出」端口。
 - 「导出 EDL」在前端生成 CMX 3600 剪辑表（只含画面轨）并下载。未做 FCPXML。
 
-改动的上游文件：无。只新增插件目录和 `bun.lock` 中的 workspace 条目。需要在 `nodeMenuSettings.vue` 的 `nodeIcons` 中注册 `remote-timelineNode` 图标（`IconTimeline`），由主会话统一补上。
+改动的上游文件：无。只新增插件目录和 `bun.lock` 中的 workspace 条目。合并时已在 `apps/web/src/components/settings/panels/general/nodeMenuSettings.vue` 的 `nodeIcons` 中注册 `remote-timelineNode`（`IconTimeline`）；空画布快捷入口不加，时间线需要上游素材。冲突时保留该注册项。
 
 ## 画布组输入、JSON 导入导出与 Agent 工具（2026-11-04）
 

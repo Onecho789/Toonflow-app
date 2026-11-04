@@ -123,7 +123,7 @@ import axios from "axios";
 import { translate } from "@toonflow/i18n/vue";
 import { computed, onBeforeUnmount, onMounted, ref, watch, type Component } from "vue";
 import { ElMessage, type InputInstance } from "element-plus";
-import { IconBox, IconFolder, IconFolderOpen, IconFolderMinus, IconRestore, IconChevronRight, IconEdit, IconEye, IconEyeOff, IconPlus, IconDragDrop, IconFileText, IconPhoto, IconVideo, IconMusic, IconMusicBolt, IconCube3dSphere, IconPhotoAi, IconCameraAi, IconLayoutList } from "@tabler/icons-vue";
+import { IconBox, IconFolder, IconFolderOpen, IconFolderMinus, IconRestore, IconChevronRight, IconEdit, IconEye, IconEyeOff, IconPlus, IconDragDrop, IconFileText, IconPhoto, IconVideo, IconMusic, IconMusicBolt, IconCube3dSphere, IconPhotoAi, IconCameraAi, IconLayoutList, IconTimeline } from "@tabler/icons-vue";
 import { normalizeNodeMenu, resolveNodeMenu, serializeNodeMenu, type NodeMenuItem } from "@toonflow/server/nodeMenu";
 import { generalSettings, updateGeneralSettings } from "@/stores/settings";
 
@@ -141,6 +141,7 @@ const nodeIcons: Record<string, Component> = {
   "remote-imageGenerationNode": IconPhotoAi,
   "remote-videoGenerationNode": IconCameraAi,
   "remote-storyboardNode": IconLayoutList,
+  "remote-timelineNode": IconTimeline,
 };
 const installedNodes = ref<{ type: string; label: string; enabled: boolean }[]>([]);
 const installedTypes = computed(() => new Set(installedNodes.value.map(node => node.type)));
