@@ -1,6 +1,6 @@
 # 麦麦打包、发布与部署
 
-2026-11-03 从旧对话、旧记忆和实际源码整理，2026-11-04 补充桌面 2.1.3、2.1.4 本地安装包交付记录及云端 2.12.0-20261104、2.13.0-20261105、2.14.0-20261105、2.14.1-20261105 发布。
+2026-11-03 从旧对话、旧记忆和实际源码整理，2026-11-04 补充桌面 2.1.3、2.1.4、2.1.5 本地安装包交付记录及云端 2.12.0-20261104、2.13.0-20261105、2.14.0-20261105、2.14.1-20261105 发布。
 
 ## 工作目录与记忆
 
@@ -16,7 +16,7 @@
 
 两个子目录分别管理 Git。根目录继续作为共享记忆维护入口；根级 AGENTS.md 与 docs/ 下的 releaseWorkflow.md、maimaiCloud.md、localEnvNotes.md 同步到两个仓库的 docs/projectMemory/ 并分别提交、推送，单独克隆时可从该目录的 readme.md 查看。每次更新共享记忆后同步两份副本；docs/history/ 中的历史证据与构建日志另作本机备份。
 
-当前桌面本地安装包为 **2.1.4**，提交 92bae921a0df5e26245c3af6d8c0ce96a60dd464，分支 codex/simplifyMediaModels；上次公开发布为 2.1.0。云端版本为 **2.14.1-20261105**，提交 92da8edf8db89e33172be870137e02139bf83d84，分支 goRewrite。客户端 df0087a（messages 协议映射）已推送，未打包。两个版本号各自维护，后续先读实际 HEAD、分支和工作区。
+当前桌面本地安装包为 **2.1.5**，提交 a643650cb324a9b49ed486de794557d177f5c4c7，分支 codex/simplifyMediaModels；上次公开发布为 2.1.0。云端版本为 **2.14.1-20261105**，提交 92da8edf8db89e33172be870137e02139bf83d84，分支 goRewrite。两个版本号各自维护，后续先读实际 HEAD、分支和工作区。
 
 ## Windows 桌面打包
 
@@ -85,6 +85,17 @@ bun run release:desktop <新的桌面版本> --initial
 - 本次为本地安装包交付；GitHub 公开版本仍为 2.1.0，更新源仍为空。安装器留给用户运行测试，原有 AGENTS.md 修改保留。
 - 构建日志、原始/修改后版本配置、差异及副本回退证据：`docs/history/canvasDesktop21320261104/`。ROLLBACK.sh 仅在独立配置副本恢复 app.version=2.1.2，SHA256 与原始配置一致；实际源码和产物保持 2.1.3，不更换已安装程序。
 - 旧 2.1.2 安装包保留在其原快照目录；打包前已核对 SHA256 与旧记录一致。共享记忆修改前副本保存在本轮证据目录的 memoryBefore/。
+
+### 本地完整安装包 2.1.5（2026-11-05）
+
+- 源码提交：a643650cb324a9b49ed486de794557d177f5c4c7（版本），分支 codex/simplifyMediaModels。包含 2.1.4 之后全部客户端提交：messages 协议映射、分镜表与角色库、成片时间线、生成节点增强、画布组输入与 JSON 导入导出、角色库修复，以及 f7daa19 的 Claude 内置上限（claude-opus-5-5 等 1M / 128K）。
+- 构建命令：`bun run release:desktop 2.1.5 --initial`，退出 0（去掉代理变量、PATH 前置 System32）。Bun 1.4.3；Windows x64。
+- 版本快照：D:\2api-codes\maimai\client\build\desktop\releases\2.1.5。
+- 安装包：`MaiMaiStudio-2.1.5-Setup.exe`，55,603,692 字节；SHA256 `564d51d824ba3ca15c308e300fe3f8c58c40badc89bef66d4f3be1b8d9eda9a0`。
+- 更新归档：`stable-win-x64-MaiMaiStudio.tar.zst`，58,277,069 字节；SHA256 `b83e5ccd3c91c4e427f28b10a718c6d369a23ec7dbd2532d0577a0eff0752cc2`。
+- 更新清单：`stable-win-x64-update.json`，209 字节；SHA256 `9cd11cfa389a70ac62413856fdec83d7dc045c50e00accc4b83052e3c5a974f7`；version=2.1.5、stable/win/x64、hash=2otkef5rvimk0。
+- 验证：server tsc 退出 0；打包退出 0；快照与 artifacts 哈希一致。本机未装 7-Zip，改用 Bun 解压归档核对：1729 项，Resources/version.json 为 2.1.5，11 个节点插件（新增 storyboardNode、timelineNode）齐全，app/bun/index.js 含 claude-opus-5-5 条目。NSIS 安装包未做 7-Zip 完整性检查。
+- 本次为本地安装包交付；GitHub 公开版本仍为 2.1.0，更新源仍为空。未运行安装器；router.ts、components.d.ts 的工作区漂移未提交。回退：安装 2.1.4 快照中的安装包。
 
 ### 本地完整安装包 2.1.4（2026-11-04）
 
