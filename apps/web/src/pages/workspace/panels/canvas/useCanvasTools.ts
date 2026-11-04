@@ -8,6 +8,7 @@ import useWorkspaceFiles from "@/lib/workspaceFiles";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { arrangeCanvas } from "./arrangeCanvas";
 import { canvasEdgeSummary, canvasNodeSummary, createCanvasQueries, isCanvasRead } from "./canvasQueries";
+import { getGroupConnections, getGroupMembers, groupOutputHandle, isGroupInputEdge } from "./groupInputs";
 
 export function useCanvasTools(options: {
   availableNodes: Ref<{ type: string; label: string }[]>;
@@ -18,6 +19,7 @@ export function useCanvasTools(options: {
     addCanvas(name?: string, signal?: AbortSignal): Promise<string>;
     switchCanvas(canvasId: string, signal?: AbortSignal): Promise<void>;
     renameCanvas(canvasId: string, name: string, signal?: AbortSignal): Promise<void>;
+    exportCanvas(signal?: AbortSignal): Promise<{ saved: boolean; fileName: string; nodeCount: number; edgeCount: number }>;
   };
   getCanvasBinding(): { id: string; signal: AbortSignal };
   resolveCanvasContext?(id: string): CanvasContext | undefined;
@@ -237,12 +239,48 @@ export function useCanvasTools(options: {
         await nextTick();
         return { edges: entries.map(entry => canvasEdgeSummary(flow.findEdge(entry.id)!)) };
       }
+      case "connectGroup": {
+        const { groupId, target, targetHandle } = canvasSchemas.connectGroup.parse(request.args);
+        const group = findNode(groupId);
+        const targetNode = findNode(target);
+        if (group.type !== "canvasGroup") throw new Error(`节点不是分组：${groupId}`);
+        if (!flow.nodesConnectable.value || targetNode.connectable === false) throw new Error(`节点不允许连接：${groupId} -> ${target}`);
+        const members = getGroupMembers(group, flow.getNodes.value);
+        if (!members.length) throw new Error(`分组内没有可连接的节点：${groupId}`);
+        if (getGroupConnections(group, targetNode, targetHandle, flow.getNodes.value, flow.getEdges.value) === undefined) {
+          throw new Error(`分组连接无效：${groupId} -> ${target}，请检查目标输入端口、组内成员的数据类型以及目标节点的数量限制`);
+        }
+        let edge = flow.getEdges.value.find(item => item.source === groupId && item.sourceHandle === groupOutputHandle
+          && item.target === target && item.targetHandle === targetHandle);
+        if (!edge) {
+          if (group.connectable === false) group.connectable = true;
+          const id = crypto.randomUUID();
+          flow.addEdges([{ id, source: groupId, sourceHandle: groupOutputHandle, target, targetHandle }]);
+          await nextTick();
+          edge = flow.findEdge(id);
+          if (!edge) throw new Error(`分组连接未能创建：${groupId} -> ${target}`);
+        }
+        const groupEdgeId = edge.id;
+        const memberEdges = flow.getEdges.value.filter(item => item.data?.groupInput === groupEdgeId);
+        return {
+          edge: canvasEdgeSummary(edge),
+          memberEdges: memberEdges.slice(0, 100).map(canvasEdgeSummary),
+          memberEdgeCount: memberEdges.length,
+          truncated: memberEdges.length > 100,
+          nodeIds: [groupId, target],
+        };
+      }
+      case "exportCanvas": {
+        canvasSchemas.exportCanvas.parse(request.args);
+        return options.menu().exportCanvas(signal);
+      }
       case "deleteEdges": {
         const { edgeIds } = canvasSchemas.deleteEdges.parse(request.args);
         edgeIds.forEach(edgeId => {
           const edge = flow.findEdge(edgeId);
           if (!edge) throw new Error(`连线不存在：${edgeId}`);
           if (edge.deletable === false) throw new Error(`连线不允许删除：${edgeId}`);
+          if (isGroupInputEdge(edge)) throw new Error(`连线由分组输入自动生成：${edgeId}，请删除对应的分组连线 ${String(edge.data?.groupInput ?? "")}`);
         });
         const nodeIds = [...new Set(edgeIds.flatMap(id => {
           const edge = flow.findEdge(id)!;

@@ -32,13 +32,26 @@
       @mousedown.stop
       @click.stop
       @dblclick.stop />
+    <handle
+      :id="groupOutputHandle"
+      class="groupHandle nodrag nopan"
+      type="source"
+      :position="Position.Right"
+      :connectable="!readOnly"
+      :isValidConnection="validateGroupConnection"
+      title="组输出：把组内图片和文本整体作为参考输入"
+      aria-label="组输出">
+      <icon-circle-dashed class="handleIcon" :size="18" aria-hidden="true" />
+    </handle>
   </div>
 </template>
 
 <script setup lang="ts">
 import { inject, nextTick, onBeforeUnmount, ref, shallowRef, watch } from "vue";
-import { useVueFlow, type GraphNode, type NodeProps } from "@vue-flow/core";
+import { Handle, Position, useVueFlow, type GraphNode, type NodeProps, type ValidConnectionFunc } from "@vue-flow/core";
 import { ElMessage } from "element-plus";
+import { IconCircleDashed } from "@tabler/icons-vue";
+import { getGroupConnections, groupOutputHandle } from "../groupInputs";
 
 const props = withDefaults(defineProps<NodeProps & { readOnly?: boolean }>(), { readOnly: false });
 const flow = useVueFlow();
@@ -147,6 +160,20 @@ watch(() => props.readOnly, readOnly => {
   finishResize();
 });
 
+// 旧分组创建时禁用了连接；组输出端口需要节点可连接，成员连线仍由目标规则校验。
+watch(() => props.readOnly, readOnly => {
+  const node = flow.findNode(props.id);
+  if (!readOnly && node && node.connectable === false) node.connectable = true;
+}, { immediate: true });
+
+const validateGroupConnection: ValidConnectionFunc = (connection, context) => {
+  const group = flow.findNode(props.id);
+  const target = context.targetNode ?? flow.findNode(connection.target);
+  if (props.readOnly || !group || !target || connection.source !== props.id || connection.sourceHandle !== groupOutputHandle || !connection.targetHandle) return false;
+  const connections = getGroupConnections(group, target, connection.targetHandle, flow.getNodes.value, flow.getEdges.value);
+  return !!connections;
+};
+
 watch(
   () => props.readOnly ? [] : flow.getNodes.value.filter(node => node.parentNode === props.id),
   children => {
@@ -211,6 +238,27 @@ watch(
     font-size: 12px;
   }
 
+  .groupHandle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    right: -12px;
+    border: 0;
+    border-radius: var(--ui-radius-large);
+    background: var(--el-bg-color);
+    color: var(--el-text-color-secondary);
+    transition: color 120ms ease-out, transform 120ms ease-out;
+
+    &:hover {
+      color: var(--el-color-primary);
+      transform: translate(50%, -50%) translateY(-1px);
+    }
+
+    .handleIcon { pointer-events: none; }
+  }
+
   .resizeCorner {
     position: absolute;
     width: 9px;
@@ -228,5 +276,9 @@ watch(
     &.bottomLeft { bottom: -5px; left: -5px; cursor: nesw-resize; }
     &.bottomRight { bottom: -5px; right: -5px; cursor: nwse-resize; }
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .groupNode .groupHandle { transition: none; }
 }
 </style>
