@@ -34,8 +34,12 @@ export type NodeImageRequest = {
   images?: { path: string; mimeType: string }[];
   ratio?: string;
   size?: string;
+  // 一次生成的图片张数，缺省 1 张，服务端限制 1–4。
+  n?: number;
   other?: Record<string, unknown>;
 };
+// onTask 在提交前拿到任务编号，节点可写入 node.data，重启后用 resumeMedia 继续领取结果。
+export type NodeMediaOptions = { onTask?: (taskId: string) => void };
 export type NodeImageResult = { path: string; mimeType: string; mediaType: "image" };
 export type NodeVideoRequest = Omit<MediaGenerationRequest, "size"> & { directory: string; outputDirectory: string };
 export type NodeVideoResult = { path: string; mimeType: string; mediaType: "video" };
@@ -175,7 +179,8 @@ function createMediaTasks() {
     }
   }
 
-  function wait(directory: string, taskId: string, signal: AbortSignal) {
+  // cancelOn 给出时只有它中止才取消服务端任务；节点卸载等其他中止只停止等待，任务留给下次恢复。
+  function wait(directory: string, taskId: string, signal: AbortSignal, cancelOn?: AbortSignal) {
     signal.throwIfAborted();
     return new Promise<NonNullable<MediaTaskResult["data"]>>((resolve, reject) => {
       const cleanup = () => {
@@ -183,7 +188,7 @@ function createMediaTasks() {
         signal.removeEventListener("abort", abort);
         if (!pending.size && !cancellations.size) { clearTimeout(timer); timer = undefined; }
       };
-      const abort = () => { cleanup(); cancel(directory, taskId); reject(signal.reason); };
+      const abort = () => { cleanup(); if (!cancelOn || cancelOn.aborted) cancel(directory, taskId); reject(signal.reason); };
       pending.set(taskId, {
         directory,
         finish(result) {
@@ -359,10 +364,15 @@ export function useNodeAi() {
     }
   }
 
-  async function generateMedia<T extends "image" | "video" | "audio">(mediaType: T, input: NodeImageRequest | NodeVideoRequest | NodeAudioRequest, signal?: AbortSignal) {
+  async function generateMedia<T extends "image" | "video" | "audio">(mediaType: T, input: NodeImageRequest | NodeVideoRequest | NodeAudioRequest, signal?: AbortSignal, options: NodeMediaOptions = {}) {
     const waitingSignal = requestSignal(signal);
     waitingSignal.throwIfAborted();
     const taskId = crypto.randomUUID();
+    // 图片和视频任务可恢复：只有调用方的 signal 中止才取消，节点卸载不取消。音频沿用卸载即取消。
+    const recoverable = mediaType !== "audio";
+    const cancelOn = recoverable ? signal ?? new AbortController().signal : undefined;
+    const shouldCancel = () => !cancelOn || cancelOn.aborted;
+    options.onTask?.(taskId);
     // 提交使用独立超时；用户取消立即结束等待，提交收尾后再取消，避免先取消后登记的竞态。
     const submitted = fetch("/api/ai/media/generate", {
       method: "POST",
@@ -378,22 +388,29 @@ export function useNodeAi() {
       waitingSignal.throwIfAborted();
       if (started.taskId !== taskId) throw new Error("生成任务响应无效，无法确认任务状态，请确认麦麦工坊服务端已更新后重试。");
     } catch (error) {
-      void submitted.then(() => mediaTasks.cancel(input.directory, taskId), () => mediaTasks.cancel(input.directory, taskId));
+      if (shouldCancel()) void submitted.then(() => mediaTasks.cancel(input.directory, taskId), () => mediaTasks.cancel(input.directory, taskId));
       throw error;
     } finally {
       waitingSignal.removeEventListener("abort", abort);
     }
     // 生成结束后通知宿主刷新麦麦云余额。
-    try { return await mediaTasks.wait(input.directory, taskId, waitingSignal) as { path: string; mimeType: string; mediaType: T }[]; }
+    try { return await mediaTasks.wait(input.directory, taskId, waitingSignal, cancelOn) as { path: string; mimeType: string; mediaType: T }[]; }
     finally { window.dispatchEvent(new Event("toonflow:media-generated")); }
   }
 
-  function generateImage(input: NodeImageRequest, signal?: AbortSignal) {
-    return generateMedia("image", input, signal);
+  // 继续等待已提交的图片或视频任务（如应用重启后）；signal 中止时取消任务。
+  async function resumeMedia<T extends "image" | "video">(_mediaType: T, directory: string, taskId: string, signal?: AbortSignal) {
+    const cancelOn = signal ?? new AbortController().signal;
+    try { return await mediaTasks.wait(directory, taskId, requestSignal(signal), cancelOn) as { path: string; mimeType: string; mediaType: T }[]; }
+    finally { window.dispatchEvent(new Event("toonflow:media-generated")); }
   }
 
-  function generateVideo(input: NodeVideoRequest, signal?: AbortSignal) {
-    return generateMedia("video", input, signal);
+  function generateImage(input: NodeImageRequest, signal?: AbortSignal, options?: NodeMediaOptions) {
+    return generateMedia("image", input, signal, options);
+  }
+
+  function generateVideo(input: NodeVideoRequest, signal?: AbortSignal, options?: NodeMediaOptions) {
+    return generateMedia("video", input, signal, options);
   }
 
   function generateAudio(input: NodeAudioRequest, signal?: AbortSignal) {
@@ -450,5 +467,5 @@ export function useNodeAi() {
     return { text, ...(reasoning ? { reasoning } : {}) };
   }
 
-  return { getModels, getMediaModels, getMediaPrice, generateImage, generateVideo, generateAudio, generate };
+  return { getModels, getMediaModels, getMediaPrice, generateImage, generateVideo, generateAudio, resumeMedia, generate };
 }

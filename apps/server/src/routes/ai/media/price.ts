@@ -10,7 +10,11 @@ export default Router().post("/", validateFields({
   directory: z.string().min(1).max(4096).optional(), mediaType: z.enum(["image", "video", "audio"]),
 }), async (req, res) => {
   u.mcpControl.assertAppRequest(req);
-  const { directory, mediaType, ...request } = req.body;
+  const { directory, mediaType, n, ...request } = req.body;
+  if (n !== undefined && (mediaType !== "image" || !Number.isInteger(n) || n < 1 || n > 4)) {
+    res.status(400).json(error("图片张数须为 1 到 4 的整数", null, 400));
+    return;
+  }
   const schema = (mediaType === "image" ? imageGenerationSchema : mediaType === "video" ? videoGenerationSchema : audioGenerationSchema).extend({ prompt: z.string().trim().max(100000) });
   const parsed = schema.safeParse(request, validationOptions());
   if (!parsed.success) {
@@ -24,7 +28,7 @@ export default Router().post("/", validateFields({
   req.socket.once("close", close);
   try {
     const cwd = directory ? await u.workspace.resolveWorkspace(req, directory) : undefined;
-    const price = await u.mediaGeneration.getMediaPrice(cwd, mediaType, parsed.data, controller.signal);
+    const price = await u.mediaGeneration.getMediaPrice(cwd, mediaType, { ...parsed.data, n }, controller.signal);
     if (!res.destroyed) res.set("Cache-Control", "no-store").json(success(price));
   } catch (err) {
     if (!controller.signal.aborted) throw err;
