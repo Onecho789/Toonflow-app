@@ -880,3 +880,12 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 - 「导出 EDL」在前端生成 CMX 3600 剪辑表（只含画面轨）并下载。未做 FCPXML。
 
 改动的上游文件：无。只新增插件目录和 `bun.lock` 中的 workspace 条目。需要在 `nodeMenuSettings.vue` 的 `nodeIcons` 中注册 `remote-timelineNode` 图标（`IconTimeline`），由主会话统一补上。
+
+## 画布组输入、JSON 导入导出与 Agent 工具（2026-11-04）
+
+- 分组节点新增“组输出”端口：从分组连到目标节点后，宿主侧按组内成员自动派生隐藏连线（id 前缀 `groupInput:`），目标节点沿用现有 `useNodeReferences` 读取组内图片和文本；组连线删除后派生连线随之清理，单独删除派生连线会被拒绝。
+- 画布菜单新增“导出画布 JSON”“导入画布 JSON”：导出包含节点、连线与视口，媒体保持工作区相对路径，经另存为窗口保存；导入时校验 `toonflowCanvas` 标识与 `toonflowCanvasExport` 版本，重新生成节点和连线 id，以不冲突的名称新建画布并给出友好错误提示。
+- 选区工具栏的“宫格排列”已存在，本次未改。
+- Agent 画布工具新增 `connectGroup`（把分组整体连到目标节点输入端口）与 `exportCanvas`（导出当前画布 JSON），同步更新工具说明、提示词与 readme。
+
+改动的上游文件：`apps/web/src/pages/workspace/panels/canvas/components/groupNode.vue`、`canvasMenu.vue`、`index.vue`、`useCanvasTools.ts`，新增 `groupInputs.ts`；`packages/tools/canvas/src/runtime.ts`、`build.ts`、`readme.md`；`packages/i18n/src/locales/*.json` 与 `messageSources.json` 新增 22 条文案。冲突时保留组输出端口与派生隐藏连线逻辑、`canvasMenu` 暴露的 `exportCanvas`、两个新工具操作以及新增文案。

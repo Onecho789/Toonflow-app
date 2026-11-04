@@ -16,6 +16,9 @@
               <el-input v-model="searchQuery" :prefixIcon="IconSearch" placeholder="搜索画布" aria-label="搜索画布" clearable @keydown.esc.stop="searchQuery = ''" />
               <el-button class="iconButton" text :icon="IconFolderPlus" :disabled="pickerBusy || editingId !== null || folderDraft !== null" title="新建文件夹" aria-label="新建画布文件夹" @click="startFolder" />
               <el-button class="iconButton" text :icon="IconPlus" :disabled="pickerBusy || editingId !== null || folderDraft !== null" title="新增画布" aria-label="新增画布" @click="handleAddCanvas" />
+              <el-button class="iconButton" text :icon="IconFileExport" :disabled="pickerBusy || editingId !== null || !activeCanvasId" title="导出画布 JSON" aria-label="导出画布 JSON" @click="handleExportCanvas" />
+              <el-button class="iconButton" text :icon="IconFileImport" :disabled="pickerBusy || editingId !== null || folderDraft !== null" title="导入画布 JSON" aria-label="导入画布 JSON" @click="importInput?.click()" />
+              <input ref="importInput" type="file" accept=".json,application/json" hidden aria-label="选择画布 JSON 文件" @change="handleImportCanvas" />
             </div>
             <el-scrollbar v-loading="loadingTree" maxHeight="min(440px, calc(100dvh - 198px))">
               <el-tree v-if="canvasListVisible" ref="canvasTree" class="canvasTree" :data="treeEntries" nodeKey="path" :props="{ label: 'name', isLeaf: entry => entry.type === 'file' || entry.draft || entry.empty === true }" lazy :load="loadTreeNode" :defaultExpandedKeys="expandedFolders" :autoExpandParent="false" :icon="IconChevronRight" :currentNodeKey="activeCanvasId" :filterNodeMethod="filterEntry" highlightCurrent emptyText="" @nodeClick="selectEntry" @nodeExpand="expandFolder" @nodeCollapse="collapseFolder">
@@ -71,13 +74,16 @@
 import axios from "axios";
 import { translate } from "@toonflow/i18n/vue";
 import { computed, inject, nextTick, onBeforeUnmount, ref, shallowRef, watch, type ShallowRef } from "vue";
-import { Panel, useVueFlow, type FlowExportObject } from "@vue-flow/core";
+import { Panel, useVueFlow, type Edge, type FlowExportObject, type Node, type ViewportTransform } from "@vue-flow/core";
 import { ElMessage, ElMessageBox, type DropdownInstance, type FilterNodeMethodFunction, type InputInstance, type LoadFunction, type TreeInstance } from "element-plus";
-import { IconVector, IconCheck, IconChevronDown, IconChevronUp, IconChevronRight, IconDots, IconFolder, IconFolderOpen, IconFolderPlus, IconPlus, IconSearch } from "@tabler/icons-vue";
+import { IconVector, IconCheck, IconChevronDown, IconChevronUp, IconChevronRight, IconDots, IconFolder, IconFolderOpen, IconFolderPlus, IconPlus, IconSearch, IconFileExport, IconFileImport } from "@tabler/icons-vue";
+import { useNodeEvent } from "@toonflow/nodes-scaffold/nodeEvent";
+import saveFile from "@/lib/saveFile";
 import { useWorkspaceStore } from "@/stores/workspace";
 import useWorkspaceFiles from "@/lib/workspaceFiles";
 import { getCanvasAssetDirectories, isCanvasFile } from "@/pages/workspace/canvasFile";
-import { findRemainingCanvas } from "../canvasFiles";
+import { findRemainingCanvas, remapNodeReferences } from "../canvasFiles";
+import { isGroupInputEdge } from "../groupInputs";
 import { cloudBalance, cloudBalanceText, cloudBalanceError, cloudBalanceLoading, loadCloudBalance } from "@/stores/cloudAccount";
 import mailangBalance from "@/components/mailangBalance.vue";
 
@@ -120,7 +126,9 @@ const newCanvasId = ref<string | null>(null);
 const nameInput = ref<InputInstance>();
 const canvasName = ref("");
 const renameError = ref("");
-const { toObject, setNodes, setEdges, setViewport } = useVueFlow();
+const flow = useVueFlow();
+const { toObject, setNodes, setEdges, setViewport } = flow;
+const importInput = ref<HTMLInputElement>();
 type CanvasEntry = { path: string; name: string; type: "file" | "directory"; children?: CanvasEntry[]; empty?: boolean; draft?: boolean };
 const folders = inject<ShallowRef<CanvasEntry[]>>("canvasFolders", shallowRef<CanvasEntry[]>([]));
 const loadedDirectories = inject<ShallowRef<string[]>>("canvasLoadedDirectories", shallowRef<string[]>([]));
@@ -804,7 +812,152 @@ function syncDocumentNode(canvasId: string, nodeId: string, handleId: string, te
   else if (inline) (data.outputs ??= {})[handleId] = { dataType: "STRING", value: text };
 }
 
-defineExpose({ getCanvases, peekCanvases, initialized, addCanvas, switchCanvas, renameCanvas, syncCanvasPath, syncDocumentNode, loadError });
+const canvasExportVersion = 1;
+type CanvasExport = { toonflowCanvas: true; toonflowCanvasExport: number; nodes: Node[]; edges: Edge[]; viewport: ViewportTransform };
+
+/** 导出当前画布；素材保留工作区相对路径，文本等节点正文按复制规则内联，导入时不依赖原节点文件。 */
+async function exportCanvas(signal?: AbortSignal) {
+  const directory = getCanvasDirectory(signal);
+  const canvas = canvases.value.find(item => item.id === activeCanvasId.value);
+  if (!canvas) throw new Error("请先选择画布");
+  busy.value = true;
+  try {
+    await props.flushSave();
+    checkCanvasDirectory(directory, signal);
+    if (activeCanvasId.value !== canvas.id) throw new Error("画布已切换，请重新导出");
+    const snapshot = toObject();
+    const nodes = await Promise.all(snapshot.nodes.map(async node => {
+      const patch = node.type === "canvasGroup" ? {} : await useNodeEvent(node.id, flow).emit("copy");
+      const data = { ...node.data, ...patch };
+      if (data.generationStatus === "running") delete data.generationStatus;
+      Reflect.deleteProperty(node, "initialized");
+      return JSON.parse(JSON.stringify({ ...node, data })) as Node;
+    }));
+    checkCanvasDirectory(directory, signal);
+    if (activeCanvasId.value !== canvas.id) throw new Error("画布已切换，请重新导出");
+    // 分组展开的隐藏连线由分组连线重新生成，不写入导出文件。
+    const edges = snapshot.edges.filter(edge => !isGroupInputEdge(edge)).map(({ interactionWidth: _width, ...edge }) => edge);
+    const payload: CanvasExport = { toonflowCanvas: true, toonflowCanvasExport: canvasExportVersion, nodes, edges, viewport: snapshot.viewport };
+    const fileName = `${canvas.name.split("/").at(-1) || "画布"}.json`;
+    const saved = await saveFile(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }), fileName);
+    return { saved, fileName, nodeCount: nodes.length, edgeCount: edges.length };
+  } finally {
+    if (props.directory === directory) busy.value = false;
+  }
+}
+
+async function handleExportCanvas() {
+  const directory = props.directory;
+  try {
+    const result = await exportCanvas();
+    if (result.saved) ElMessage.success("画布 JSON 已导出");
+  } catch (err) {
+    if (props.directory === directory) ElMessage.error(errorMessage(err, "导出画布失败"));
+  }
+}
+
+function parseCanvasExport(text: string): CanvasExport {
+  let data: Partial<CanvasExport> | null;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error("画布 JSON 解析失败，请确认文件内容完整");
+  }
+  if (!data || typeof data !== "object" || data.toonflowCanvas !== true) throw new Error("这不是麦麦工坊的画布 JSON 文件");
+  const version = data.toonflowCanvasExport;
+  if (version !== undefined && (!Number.isInteger(version) || version < 1 || version > canvasExportVersion)) {
+    throw new Error("画布 JSON 版本不受支持，请升级客户端后再导入");
+  }
+  const viewport = data.viewport ?? { x: 0, y: 0, zoom: 1 };
+  if (!Array.isArray(data.nodes) || !Array.isArray(data.edges)
+    || ![viewport.x, viewport.y, viewport.zoom].every(Number.isFinite) || viewport.zoom <= 0
+    || data.nodes.some(node => !node || typeof node !== "object" || typeof node.id !== "string" || !node.id || typeof node.type !== "string"
+      || !node.position || ![node.position.x, node.position.y].every(Number.isFinite))) {
+    throw new Error("画布 JSON 格式无效：节点或视口数据不完整");
+  }
+  const ids = new Set(data.nodes.map(node => node.id));
+  if (ids.size !== data.nodes.length || data.edges.some(edge => !edge || typeof edge !== "object" || !ids.has(edge.source) || !ids.has(edge.target))) {
+    throw new Error("画布 JSON 格式无效：节点重复或连线指向不存在的节点");
+  }
+  return { toonflowCanvas: true, toonflowCanvasExport: version ?? canvasExportVersion, nodes: data.nodes, edges: data.edges, viewport };
+}
+
+function importedCanvasName(fileName: string) {
+  const name = fileName.replace(/\.json$/i, "").replace(/[<>:"/\\|?*\x00-\x1f]/g, " ").replace(/[. ]+$/, "").trim().slice(0, 100);
+  return !name || /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i.test(name) ? "导入画布" : name;
+}
+
+/** 把画布 JSON 导入为新画布；节点和连线换用新 id，名称冲突时自动追加序号。 */
+async function importCanvas(file: File, signal?: AbortSignal) {
+  const directory = getCanvasDirectory(signal);
+  if (file.size > 50 * 1024 * 1024) throw new Error("画布 JSON 不能超过 50 MB");
+  const data = parseCanvasExport(await file.text());
+  checkCanvasDirectory(directory, signal);
+  busy.value = true;
+  try {
+    const files = useWorkspaceFiles(directory);
+    const ids = new Map(data.nodes.map(node => [node.id, crypto.randomUUID()]));
+    const nodes = await Promise.all(data.nodes.map(async source => {
+      const node = JSON.parse(JSON.stringify(source)) as Node;
+      const nodeData = node.data ??= {};
+      // ACT: 直接保存的画布文件可能只引用节点正文路径；导入时尽力读取为内联正文，读取失败则保留节点并清空路径。
+      if (typeof nodeData.textPath === "string") {
+        if (typeof nodeData.textSnapshot !== "string") nodeData.textSnapshot = await files.readText(nodeData.textPath, undefined, signal).catch(() => undefined);
+        delete nodeData.textPath;
+      }
+      if (typeof nodeData.modelPath === "string") {
+        nodeData.modelSnapshot ??= await files.readJson(nodeData.modelPath, signal).catch(() => undefined);
+        delete nodeData.modelPath;
+      }
+      if (nodeData.generationStatus === "running") delete nodeData.generationStatus;
+      remapNodeReferences(node, ids);
+      Reflect.deleteProperty(node, "initialized");
+      return { ...node, id: ids.get(source.id)!, parentNode: source.parentNode ? ids.get(source.parentNode) : undefined, selected: false };
+    }));
+    const edges = data.edges.filter(edge => !isGroupInputEdge(edge)).map(edge => ({
+      ...edge, id: crypto.randomUUID(), source: ids.get(edge.source)!, target: ids.get(edge.target)!, selected: false,
+    }));
+    const flowData = { nodes, edges, viewport: { x: data.viewport.x, y: data.viewport.y, zoom: data.viewport.zoom } };
+    const baseName = importedCanvasName(file.name);
+    let canvas: Canvas | undefined;
+    for (let number = 1; !canvas; number++) {
+      checkCanvasDirectory(directory, signal);
+      if (number > 999) throw new Error("同名画布过多，请先重命名导入文件");
+      const name = number === 1 ? baseName : `${baseName} ${number}`;
+      const id = `${name}.json`;
+      try {
+        await files.writeJson(id, { toonflowCanvas: true, ...flowData }, true);
+        canvas = { id, name, flow: flowData };
+      } catch (err) {
+        if (!axios.isAxiosError<{ data?: { code?: string } }>(err) || err.response?.status !== 409 || err.response.data.data?.code !== "EEXIST") throw err;
+      }
+    }
+    checkCanvasDirectory(directory);
+    canvases.value = [...canvases.value, canvas];
+    signal?.throwIfAborted();
+    await applyCanvas(canvas.id, directory, signal);
+    canvasListVisible.value = false;
+    return { id: canvas.id, name: canvas.name, nodeCount: nodes.length, edgeCount: edges.length };
+  } finally {
+    if (props.directory === directory) busy.value = false;
+  }
+}
+
+async function handleImportCanvas(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = "";
+  if (!file || !props.directory) return;
+  const directory = props.directory;
+  try {
+    const result = await importCanvas(file);
+    ElMessage.success(`已导入为画布「${result.name}」`);
+  } catch (err) {
+    if (props.directory === directory) ElMessage.error(errorMessage(err, "导入画布失败"));
+  }
+}
+
+defineExpose({ getCanvases, peekCanvases, initialized, addCanvas, switchCanvas, renameCanvas, exportCanvas, syncCanvasPath, syncDocumentNode, loadError });
 </script>
 
 <style lang="scss" scoped>
