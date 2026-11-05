@@ -446,7 +446,7 @@ function highlightMentionNode(nodeId?: string, reveal = false) {
   return true;
 }
 provide("canvas", getCanvasContext);
-defineExpose({ canvasId, canvasReady, getCanvasContext, addNodeAtPointer, readDocumentNode, saveDocumentNode, mountDocumentNode, observeDocumentNode, prepareCanvasDelete, flushSave: flushCanvasSave, cancelSave: cancelCanvasSave,
+defineExpose({ canvasId, canvasReady, getCanvasContext, addNodeAtPointer, addNodeFromButton,readDocumentNode, saveDocumentNode, mountDocumentNode, observeDocumentNode, prepareCanvasDelete, flushSave: flushCanvasSave, cancelSave: cancelCanvasSave,
   canUndo, canRedo, changeHistory, assetsVisible, snapEnabled, showEdges,
   arrangeNodes: () => canvasControlsRef.value?.arrangeNodes(),
   get canArrange() { return canvasControlsRef.value?.canArrange ?? false; },
@@ -694,6 +694,17 @@ function addNodeAtPointer() {
   if (!rect) return;
   const position = pointerPosition ?? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
   void nodeMenuRef.value?.openMenu(new MouseEvent("contextmenu", { clientX: position.x, clientY: position.y }), true);
+}
+
+// 工具栏“添加”：菜单贴着按钮弹出，新节点放在可视区中心（与空画布快捷按钮相同的偏移）。
+function addNodeFromButton(element: HTMLElement) {
+  if (!props.active || props.settingsVisible || !project.value?.directory || !canvasReady.value) return;
+  const rect = canvasElement.value?.getBoundingClientRect();
+  if (!rect) return;
+  const center = screenToFlowCoordinate({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+  const bounds = element.getBoundingClientRect();
+  const event = new MouseEvent("contextmenu", { clientX: bounds.left + bounds.width / 2, clientY: bounds.top });
+  void nodeMenuRef.value?.openMenu(event, true, [], undefined, [], { element, position: { x: center.x - 200, y: center.y - 160 } });
 }
 
 async function changeHistory(direction: "undo" | "redo") {

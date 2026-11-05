@@ -16,7 +16,7 @@
     trigger="contextmenu"
     virtualTriggering
     :virtualRef="menuAnchor"
-    placement="bottom-start"
+    :placement="menuPlacement"
     :popperOptions="{ strategy: 'fixed', modifiers: [{ name: 'preventOverflow', options: { altAxis: true, padding: 8 } }] }"
     :showArrow="false"
     :showTimeout="0"
@@ -137,6 +137,7 @@ const deleting = ref(false);
 const pasting = ref(false);
 const directNodes = ref(false);
 const menuAnchor = shallowRef({ getBoundingClientRect: () => new DOMRect() });
+const menuPlacement = ref<"bottom-start" | "top">("bottom-start");
 const flow = useVueFlow();
 const { addNodes, screenToFlowCoordinate, onPaneContextMenu, onSelectionContextMenu, onPaneClick, onMoveStart } = flow;
 let nodePosition = { x: 0, y: 0 };
@@ -236,7 +237,8 @@ flow.onConnectEnd((event) => {
   void openMenu(event, true, [], { node, id: handle.id, type: handle.type, start: { ...handle } });
 });
 
-async function openMenu(event: MouseEvent | TouchEvent, nodesOnly = false, selection: GraphNode[] = [], handle?: DraggedHandle, group: GraphNode[] = []) {
+// anchor 用于工具栏按钮：菜单贴在按钮上方弹出，新节点放到 anchor.position（画布坐标）。
+async function openMenu(event: MouseEvent | TouchEvent, nodesOnly = false, selection: GraphNode[] = [], handle?: DraggedHandle, group: GraphNode[] = [], anchor?: { element: HTMLElement; position: { x: number; y: number } }) {
   event.preventDefault();
   event.stopPropagation();
   if (disabled) return;
@@ -253,8 +255,15 @@ async function openMenu(event: MouseEvent | TouchEvent, nodesOnly = false, selec
   const point = "changedTouches" in event ? event.changedTouches[0] : event;
   if (!point) return;
   const { clientX, clientY } = point;
-  nodePosition = screenToFlowCoordinate({ x: clientX, y: clientY });
-  menuAnchor.value = { getBoundingClientRect: () => new DOMRect(clientX, clientY, 0, 0) };
+  if (anchor) {
+    nodePosition = { ...anchor.position };
+    menuAnchor.value = { getBoundingClientRect: () => anchor.element.getBoundingClientRect() };
+    menuPlacement.value = "top";
+  } else {
+    nodePosition = screenToFlowCoordinate({ x: clientX, y: clientY });
+    menuAnchor.value = { getBoundingClientRect: () => new DOMRect(clientX, clientY, 0, 0) };
+    menuPlacement.value = "bottom-start";
+  }
   if (handle) {
     const bounds = flow.vueFlowRef.value!.getBoundingClientRect();
     // ACT: VueFlow 在释放后清空拖线；菜单期间复用其预览，避免创建临时节点或边。

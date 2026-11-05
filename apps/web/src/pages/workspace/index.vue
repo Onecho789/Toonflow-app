@@ -39,7 +39,7 @@
         <el-card v-if="activePanel === 'canvas'" class="toolMenu" shadow="never" :bodyStyle="{ padding: '2px 4px' }">
           <div class="toolMenuContent" role="toolbar" aria-label="画布工具">
             <el-tooltip :content="canvasToolTooltip('添加节点', 'addNode')" placement="top" :showArrow="false" :hideAfter="0" :enterable="false" :triggerKeys="[]">
-              <el-button class="toolButton addNodeButton" :disabled="!canvasPanelRef?.canvasReady || settingsVisible" aria-label="添加节点" aria-haspopup="menu" @click="canvasPanelRef?.addNodeAtPointer()">
+              <el-button class="toolButton addNodeButton" :disabled="!canvasPanelRef?.canvasReady || settingsVisible" aria-label="添加节点" aria-haspopup="menu" @click="canvasPanelRef?.addNodeFromButton($event.currentTarget as HTMLElement)">
                 <icon-plus :size="18" aria-hidden="true" />
                 <span>添加</span>
               </el-button>

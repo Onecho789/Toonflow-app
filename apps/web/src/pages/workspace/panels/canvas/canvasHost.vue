@@ -412,6 +412,7 @@ const mentionSource: MentionCanvasSource = {
 
 defineExpose({ canvasId, canvasReady, canvasListReady, getCanvasContext, readDocumentNode, readDocumentNodes, focusDocumentNode, saveDocumentNode, mountDocumentNode, observeDocumentNode, resolveDocumentNodeFile, performFileAction, flushSave, cancelSave,
   addNodeAtPointer: () => activeInstance.value?.addNodeAtPointer(),
+  addNodeFromButton: (element: HTMLElement) => activeInstance.value?.addNodeFromButton(element),
   openNodeSearch: () => activeInstance.value?.openNodeSearch(),
   get canUndo() { return activeInstance.value?.canUndo ?? false; },
   get canRedo() { return activeInstance.value?.canRedo ?? false; },

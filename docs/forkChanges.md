@@ -1015,3 +1015,13 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 改动的上游文件：`apps/web/src/pages/projects/index.vue`、`apps/web/src/pages/home/projectCover.vue`。
 
 新增文件：`apps/web/src/pages/home/projectCoverFile.ts`、`apps/web/src/pages/projects/projectCoverPicker.vue`。
+
+## 工具栏“添加”菜单锚定按钮（2026-11-06）
+
+- 底部工具栏“添加”按钮的节点菜单改为贴在按钮正上方弹出，选中的新节点放在画布可视区中心（偏移与空画布快捷按钮一致：-200, -160）。以前按钮复用 Tab 的 `addNodeAtPointer`，鼠标离开画布后退回中心，菜单浮在画布中间、离按钮很远。
+- Tab、右键、双击、拖线松手仍在鼠标处向下弹出，行为不变。
+- `nodeMenu.vue` 的 `openMenu` 新增可选 `anchor`（按钮元素 + 节点画布坐标），有它时 `placement` 切为 `top`。
+
+改动的上游文件：`apps/web/src/pages/workspace/index.vue`、`panels/canvas/{index,canvasHost}.vue`、`panels/canvas/components/nodeMenu.vue`。
+
+冲突时保留：`addNodeFromButton` 与 `openMenu` 的 `anchor` 参数、动态 `menuPlacement`。
