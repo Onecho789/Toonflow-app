@@ -90,7 +90,7 @@ bun run release:desktop <新的桌面版本> --initial
 
 - 源码提交：e32a441（版本），功能提交 0bad74d，分支 codex/simplifyMediaModels，未推送 origin。内容：批量结果卡片按钮（36px、13px 加粗）、序号与节点「N 张」/打包下载徽标（36px、14px）加大；设置页分组框未选默认模型时提示先选模型，模型只有一个分组时说明。
 - 构建命令：`bun run release:desktop 2.1.15 --initial`，退出 0；去掉代理变量、PATH 前置 System32，curl 取得的 CDN 地址传入 `webView2BootstrapperUrl`。
-- 版本快照：D:api-codes\maimai\clientuild\desktopeleases.1.15。
+- 版本快照：D:\2api-codes\maimai\client\build\desktop\releases\2.1.15。
 - 安装包：`MaiMaiStudio-2.1.15-Setup.exe`，66,447,493 字节；SHA256 `43371f13d58379c1bebb38ecfd34e06d1f97db97215c3193abaec20057b552e9`。
 - 更新归档：`stable-win-x64-MaiMaiStudio.tar.zst`，69,831,550 字节；SHA256 `55074b707c8a3090bb99b13c53f020610d4e90703bc74c4735ee26dd6740a2f5`。
 - 更新清单：`stable-win-x64-update.json`，209 字节；SHA256 `4bbe2cd4a6640cdb11642beca9f141b0a85441aa547bed04b64fb2ca04f06a98`；version=2.1.15、stable/win/x64、hash=6ber37vpso4f。
