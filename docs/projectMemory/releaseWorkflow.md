@@ -16,7 +16,7 @@
 
 两个子目录分别管理 Git。根目录继续作为共享记忆维护入口；根级 AGENTS.md 与 docs/ 下的 releaseWorkflow.md、maimaiCloud.md、localEnvNotes.md 同步到两个仓库的 docs/projectMemory/ 并分别提交、推送，单独克隆时可从该目录的 readme.md 查看。每次更新共享记忆后同步两份副本；docs/history/ 中的历史证据与构建日志另作本机备份。
 
-当前桌面本地安装包为 **2.1.16**，提交 d844475，分支 codex/simplifyMediaModels（未推送）；上次公开发布为 2.1.0。云端版本为 **2.18.0-20261106**，提交 ebeb7c188dd3c95921d0314b3cf24dd6c628d184，分支 uiRedesign（未推送）。两个版本号各自维护，后续先读实际 HEAD、分支和工作区。
+当前桌面本地安装包为 **2.1.16**，提交 d844475，分支 codex/simplifyMediaModels（2026-11-06 已推送 origin 至 9568676）；上次公开发布为 2.1.0。云端版本为 **2.18.0-20261106**，提交 ebeb7c188dd3c95921d0314b3cf24dd6c628d184，分支 uiRedesign（已推送 origin 至 9bbc7cc）。两个版本号各自维护，后续先读实际 HEAD、分支和工作区。
 
 ## Windows 桌面打包
 
@@ -88,7 +88,7 @@ bun run release:desktop <新的桌面版本> --initial
 
 ### 本地完整安装包 2.1.16（2026-11-06）
 
-- 源码提交：d844475（版本），功能提交 c5873a8（gpt-image-2.6 GIF 动图）、cb47588（批量结果当前卡操作与副本位置）、4859d69（工具栏添加菜单锚定），分支 codex/simplifyMediaModels，未推送 origin。配套云端 2.18.0-20261106。
+- 源码提交：d844475（版本），功能提交 c5873a8（gpt-image-2.6 GIF 动图）、cb47588（批量结果当前卡操作与副本位置）、4859d69（工具栏添加菜单锚定），分支 codex/simplifyMediaModels，2026-11-06 已推送 origin（至 9568676）。配套云端 2.18.0-20261106。
 - 构建命令：`bun run release:desktop 2.1.16 --initial`，退出 0；去掉代理变量、PATH 前置 System32，curl 取得的 CDN 地址传入 `webView2BootstrapperUrl`。日志 docs/history/gifRelease20261106/desktopBuild2116.log。
 - 版本快照：D:\2api-codes\maimai\client\build\desktop\releases\2.1.16。
 - 安装包：`MaiMaiStudio-2.1.16-Setup.exe`，66,455,255 字节；SHA256 `ff1889f0a62f58b38ca9dda9e1215e324a74cd6a639c2c41a03d25e095248e3a`。
