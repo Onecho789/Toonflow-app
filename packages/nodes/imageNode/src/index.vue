@@ -11,23 +11,26 @@
     :style="{ width: previewUrl && imageWidth ? `${imageWidth + 18}px` : undefined }">
     <template v-if="editor?.mode" #top><div ref="paintToolbar" /></template>
     <template #topActions>
-      <el-button class="panoramaButton" :icon="IconPanoramaHorizontal" :disabled="uploading || editor?.busy || lighting?.generating || multiAngle?.generating || gridSplit?.splitting || inpaintPrompt?.creating || panorama?.busy || !previewUrl" text title="全景图" aria-label="全景图" @click.stop="panorama?.open($event)">全景图<icon-chevron-down class="menuChevron" :size="14" /></el-button>
-      <el-button :icon="IconBrush" :disabled="uploading || lighting?.generating || multiAngle?.generating || panorama?.busy || !previewUrl || gridSplit?.splitting" text title="局部重绘" aria-label="局部重绘" @click.stop="startEditor('inpaint')">局部重绘</el-button>
-      <el-button :icon="IconSun" :disabled="uploading || lighting?.generating || multiAngle?.generating || panorama?.busy || !previewUrl || gridSplit?.splitting" text title="打光" aria-label="打光" @click.stop="openLighting">打光</el-button>
-      <el-button :icon="IconCameraRotate" :disabled="uploading || lighting?.generating || multiAngle?.generating || panorama?.busy || !previewUrl || gridSplit?.splitting" text title="多角度" aria-label="多角度" @click.stop="openMultiAngle">多角度</el-button>
-      <el-button :icon="IconLayoutGrid" :disabled="uploading || lighting?.generating || multiAngle?.generating || panorama?.busy || !previewUrl" :loading="gridSplit?.splitting" text title="宫格切分" aria-label="宫格切分" @click.stop="gridSplit?.open($event)">宫格切分</el-button>
-      <el-button
-        :icon="IconTransfer"
-        :loading="uploading"
-        :disabled="lighting?.generating || multiAngle?.generating || panorama?.busy"
-        text
-        title="替换图片"
-        aria-label="替换图片"
-        @click.stop="fileInput?.click()">替换图片</el-button>
-      <imageTools ref="tools" :src="previewUrl" :source="outputFile" :active="node.selected" :disabled="uploading || editor?.busy || lighting?.generating || multiAngle?.generating || panorama?.busy || gridSplit?.splitting" />
+      <span class="toolbarGroup" :class="{ iconOnly: !showLabels }">
+        <el-button v-if="visible('panorama')" class="panoramaButton" :icon="IconPanoramaHorizontal" :disabled="uploading || editor?.busy || lighting?.generating || multiAngle?.generating || gridSplit?.splitting || inpaintPrompt?.creating || panorama?.busy || !previewUrl" text title="全景图" aria-label="全景图" @click.stop="panorama?.open($event)">全景图<icon-chevron-down class="menuChevron" :size="14" /></el-button>
+        <el-button v-if="visible('inpaint')" :icon="IconBrush" :disabled="uploading || lighting?.generating || multiAngle?.generating || panorama?.busy || !previewUrl || gridSplit?.splitting" text title="局部重绘" aria-label="局部重绘" @click.stop="startEditor('inpaint')">局部重绘</el-button>
+        <el-button v-if="visible('lighting')" :icon="IconSun" :disabled="uploading || lighting?.generating || multiAngle?.generating || panorama?.busy || !previewUrl || gridSplit?.splitting" text title="打光" aria-label="打光" @click.stop="openLighting">打光</el-button>
+        <el-button v-if="visible('multiAngle')" :icon="IconCameraRotate" :disabled="uploading || lighting?.generating || multiAngle?.generating || panorama?.busy || !previewUrl || gridSplit?.splitting" text title="多角度" aria-label="多角度" @click.stop="openMultiAngle">多角度</el-button>
+        <el-button v-if="visible('gridSplit')" :icon="IconLayoutGrid" :disabled="uploading || lighting?.generating || multiAngle?.generating || panorama?.busy || !previewUrl" :loading="gridSplit?.splitting" text title="宫格切分" aria-label="宫格切分" @click.stop="gridSplit?.open($event)">宫格切分</el-button>
+        <el-button
+          v-if="visible('replace')"
+          :icon="IconTransfer"
+          :loading="uploading"
+          :disabled="lighting?.generating || multiAngle?.generating || panorama?.busy"
+          text
+          title="替换图片"
+          aria-label="替换图片"
+          @click.stop="fileInput?.click()">替换图片</el-button>
+        <imageTools ref="tools" :src="previewUrl" :source="outputFile" :active="node.selected" :tools="toolIds" @command="runTool" :disabled="uploading || editor?.busy || lighting?.generating || multiAngle?.generating || panorama?.busy || gridSplit?.splitting" />
+      </span>
     </template>
     <template #topRightActions>
-      <el-button :icon="IconPencil" :disabled="uploading || lighting?.generating || multiAngle?.generating || panorama?.busy || !previewUrl || gridSplit?.splitting" text title="标记" aria-label="标记" @click.stop="startEditor('mark')" />
+      <el-button v-if="visible('mark')" :icon="IconPencil" :disabled="uploading || lighting?.generating || multiAngle?.generating || panorama?.busy || !previewUrl || gridSplit?.splitting" text title="标记" aria-label="标记" @click.stop="startEditor('mark')" />
     </template>
     <div class="imageContent nopan" :class="{ empty: !outputFile }" @dblclick.stop="previewVisible = !!previewUrl && !editor?.mode">
       <imageEditor
@@ -79,6 +82,7 @@ import imagePanorama from "./components/imagePanorama.vue";
 import imageMultiAngle from "./components/imageMultiAngle.vue";
 import imageTools from "./components/imageTools.vue";
 import type { InpaintDraftInput } from "./imageInpaint";
+import { useImageToolbar, type ImageToolId } from "./imageToolbar";
 
 defineOptions({
   inheritAttrs: false,
@@ -107,6 +111,8 @@ const panorama = ref<InstanceType<typeof imagePanorama>>();
 const uploading = ref(false);
 const tools = ref<InstanceType<typeof imageTools>>();
 const previewVisible = ref(false);
+const { visible, showLabels } = useImageToolbar();
+const toolIds: ImageToolId[] = ["panorama", "inpaint", "lighting", "multiAngle", "gridSplit", "replace", "mark"];
 const imageWidth = ref(0);
 
 const outputFile = computed(() => outputs.value.image?.dataType === "IMAGE" ? outputs.value.image.value : undefined);
@@ -164,6 +170,16 @@ function openPanorama() {
   multiAngleVisible.value = false;
 }
 
+// 工具栏中隐藏的节点工具从“更多”菜单回到这里执行
+function runTool(id: ImageToolId, anchor: HTMLElement) {
+  if (id === "panorama") void panorama.value?.open(anchor);
+  else if (id === "inpaint" || id === "mark") startEditor(id);
+  else if (id === "lighting") openLighting();
+  else if (id === "multiAngle") openMultiAngle();
+  else if (id === "gridSplit") gridSplit.value?.open(anchor);
+  else if (id === "replace") fileInput.value?.click();
+}
+
 function openLighting() {
   if (uploading.value || editor.value?.busy || inpaintPrompt.value?.creating || lighting.value?.generating || multiAngle.value?.generating || panorama.value?.busy || gridSplit.value?.splitting || !previewUrl.value) return;
   editor.value?.cancel();
@@ -216,6 +232,12 @@ function showError(error: unknown, fallback: string) {
 </script>
 
 <style scoped lang="scss">
+.toolbarGroup {
+  display: contents;
+
+  &.iconOnly :deep(.el-button > span:not(.el-icon)) { display: none; }
+}
+
 .panoramaButton {
   &[aria-expanded="true"] .menuChevron { transform: rotate(180deg); }
 }

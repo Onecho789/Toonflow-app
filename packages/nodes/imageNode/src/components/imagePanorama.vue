@@ -64,9 +64,9 @@ defineExpose({ open, busy, visible });
 
 watch(() => props.src, () => { visible.value = false; }, { flush: "sync" });
 
-async function open(event: MouseEvent) {
+async function open(anchor: MouseEvent | HTMLElement) {
   if (props.disabled || busy.value || !props.src) return;
-  trigger.value = event.currentTarget as HTMLElement;
+  trigger.value = anchor instanceof HTMLElement ? anchor : anchor.currentTarget as HTMLElement;
   await nextTick();
   dropdown.value?.handleOpen();
 }

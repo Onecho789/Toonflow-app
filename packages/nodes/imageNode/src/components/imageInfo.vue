@@ -69,9 +69,9 @@ watch([visible, () => props.src], async ([open, src]) => {
   } catch { /* 信息只是附加展示 */ }
 });
 
-function open(event: MouseEvent) {
+function open(anchor: MouseEvent | HTMLElement) {
   if (!props.src) return;
-  trigger.value = event.currentTarget as HTMLElement;
+  trigger.value = anchor instanceof HTMLElement ? anchor : anchor.currentTarget as HTMLElement;
   visible.value = !visible.value;
 }
 

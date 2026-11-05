@@ -95,9 +95,9 @@ onSelectionStart(() => { visible.value = false; });
 onMoveStart(() => { visible.value = false; });
 onBeforeUnmount(() => splitController?.abort());
 
-function open(event: MouseEvent) {
+function open(anchor: MouseEvent | HTMLElement) {
   if (props.disabled || !props.src) return;
-  trigger.value = event.currentTarget as HTMLElement;
+  trigger.value = anchor instanceof HTMLElement ? anchor : anchor.currentTarget as HTMLElement;
   visible.value = !visible.value;
 }
 

@@ -139,6 +139,7 @@
         "jsqr": "1.4.0",
         "lodash-es": "^4.18.1",
         "marked": "18.0.13",
+        "onnxruntime-web": "1.31.1",
         "pinia": "^4.0.3",
         "pinia-plugin-persistedstate": "^4.7.1",
         "semver": "7.8.0",
@@ -521,6 +522,7 @@
         "@toonflow/node-shared": "workspace:*",
         "@toonflow/nodes-scaffold": "workspace:*",
         "@types/three": "0.184.0",
+        "onnxruntime-web": "1.31.1",
         "typescript": "~6.0.3",
         "vite": "^8.2.2",
         "vue-tsc": "^3.3.11",
@@ -2117,6 +2119,8 @@
 
     "finalhandler": ["finalhandler@2.1.1", "https://registry.npmmirror.com/finalhandler/-/finalhandler-2.1.1.tgz", { "dependencies": { "debug": "^4.4.0", "encodeurl": "^2.0.0", "escape-html": "^1.0.3", "on-finished": "^2.4.1", "parseurl": "^1.3.3", "statuses": "^2.0.1" } }, "sha512-S8KoZgRZN+a5rNwqTxlZZePjT/4cnm0ROV70LedRHZ0p8u9fRID0hJUZQpkKLzro8LfmC8sx23bY6tVNxv8pQA=="],
 
+    "flatbuffers": ["flatbuffers@25.9.23", "https://registry.npmmirror.com/flatbuffers/-/flatbuffers-25.9.23.tgz", {}, "sha512-MI1qs7Lo4Syw0EOzUl0xjs2lsoeqFku44KpngfIduHBYvzm8h2+7K8YMQh1JtVVVrUvhLpNwqVi4DERegUJhPQ=="],
+
     "follow-redirects": ["follow-redirects@1.16.0", "http://registry.npm.taobao.org/follow-redirects/-/follow-redirects-1.16.0.tgz", { "peerDependencies": { "debug": "*" }, "optionalPeers": ["debug"] }, "sha512-y5rN/uOsadFT/JfYwhxRS5R7Qce+g3zG97+JrtFZlC9klX/W5hD7iiLzScI4nZqUS7DNUdhPgw4xI8W2LuXlUw=="],
 
     "form-data": ["form-data@4.0.6", "http://registry.npm.taobao.org/form-data/-/form-data-4.0.6.tgz", { "dependencies": { "asynckit": "^0.4.0", "combined-stream": "^1.0.8", "es-set-tostringtag": "^2.1.0", "hasown": "^2.0.4", "mime-types": "^2.1.35" } }, "sha512-vKatAh4SlVfgbv+YtmhiRjhEMJsYpsG1Y2rMQtR+SVSbytsSD1YGzDIcrAJmdFec88u/+VoGmxnl+80gL1tRCQ=="],
@@ -2166,6 +2170,8 @@
     "grok-mermaid": ["grok-mermaid@0.2.2", "https://registry.npmmirror.com/grok-mermaid/-/grok-mermaid-0.2.2.tgz", {}, "sha512-XcJEP5dDC8liHBh52mlLjU18fNvu1ckFsu0QpIG3+APZ270fsj9wxpiA6cOURmbUEuoMVgjbC2+UYgTdCqqgzA=="],
 
     "guarded-fetch": ["guarded-fetch@0.1.3", "https://registry.npmmirror.com/guarded-fetch/-/guarded-fetch-0.1.3.tgz", { "dependencies": { "ipaddr.js": "2.2.0", "undici": "7.29.0" } }, "sha512-PSaNyJk8VJlUVEhMHPXT/Z/WgNrLBh43WaYQJiu1qvyCuPQA+kgFMNmAOxI3GU3uXrCkO/xRW11XjcswrksYOA=="],
+
+    "guid-typescript": ["guid-typescript@1.0.9", "https://registry.npmmirror.com/guid-typescript/-/guid-typescript-1.0.9.tgz", {}, "sha512-Y8T4vYhEfwJOTbouREvG+3XDsjr8E3kIr7uf+JZ0BYloFsttiHU0WfvANVsR7TxNUJa/WpCnw/Ino/p+DeBhBQ=="],
 
     "hachure-fill": ["hachure-fill@0.5.2", "https://registry.npmmirror.com/hachure-fill/-/hachure-fill-0.5.2.tgz", {}, "sha512-3GKBOn+m2LX9iq+JC1064cSFprJY4jL1jCXTcpnfER5HYE2l/4EfWSGzkPa/ZDBmYI0ZOEj5VHV/eKnPGkHuOg=="],
 
@@ -2505,6 +2511,10 @@
 
     "oniguruma-to-es": ["oniguruma-to-es@4.3.6", "https://registry.npmmirror.com/oniguruma-to-es/-/oniguruma-to-es-4.3.6.tgz", { "dependencies": { "oniguruma-parser": "^0.12.2", "regex": "^6.1.0", "regex-recursion": "^6.0.2" } }, "sha512-csuQ9x3Yr0cEIs/Zgx/OEt9iBw9vqIunAPQkx19R/fiMq2oGVTgcMqO/V3Ybqefr1TBvosI6jU539ksaBULJyA=="],
 
+    "onnxruntime-common": ["onnxruntime-common@1.31.1", "https://registry.npmmirror.com/onnxruntime-common/-/onnxruntime-common-1.31.1.tgz", {}, "sha512-F+nnYNiQtmNJ95V6R/isBJqiVpdANCrsMEg1OaF+Bkbl3GAtzWLR7Ng17Ld0QtYtYJyotOHPJzOQn1Y6PLZjpg=="],
+
+    "onnxruntime-web": ["onnxruntime-web@1.31.1", "https://registry.npmmirror.com/onnxruntime-web/-/onnxruntime-web-1.31.1.tgz", { "dependencies": { "flatbuffers": "^25.1.24", "guid-typescript": "^1.0.9", "long": "^5.2.3", "onnxruntime-common": "1.31.1", "platform": "^1.3.6", "protobufjs": "^7.2.4" } }, "sha512-5GeH+bWQ+HxM10z7erGlsWqryrwMbSvm/1tkIsKTT48g0fI19VXVVC435t4t7VsPdSQeS7NmuZPXrQ73k82URw=="],
+
     "openai": ["openai@6.40.0", "https://registry.npmmirror.com/openai/-/openai-6.40.0.tgz", { "peerDependencies": { "ws": "^8.18.0", "zod": "^3.25 || ^4.0" }, "optionalPeers": ["ws", "zod"] }, "sha512-MWtTjd/gQt4jpbji61NTgFWJLoY/PdRJ6wG9/ZDRMYNMlBKrCrSlkLI+KgHP1vR1qT6LKSAyAqIxno6lcK9JiA=="],
 
     "option-validator": ["option-validator@2.0.6", "https://registry.npmmirror.com/option-validator/-/option-validator-2.0.6.tgz", { "dependencies": { "kind-of": "^6.0.3" } }, "sha512-tmZDan2LRIRQyhUGvkff68/O0R8UmF+Btmiiz0SmSw2ng3CfPZB9wJlIjHpe/MKUZqyIZkVIXCrwr1tIN+0Dzg=="],
@@ -2550,6 +2560,8 @@
     "pkce-challenge": ["pkce-challenge@5.0.1", "https://registry.npmmirror.com/pkce-challenge/-/pkce-challenge-5.0.1.tgz", {}, "sha512-wQ0b/W4Fr01qtpHlqSqspcj3EhBvimsdh0KlHhH8HRZnMsEa0ea2fTULOXOS9ccQr3om+GcGRk4e+isrZWV8qQ=="],
 
     "pkg-types": ["pkg-types@2.3.3", "https://registry.npmmirror.com/pkg-types/-/pkg-types-2.3.3.tgz", { "dependencies": { "confbox": "^0.3.1", "exsolve": "^1.1.1", "pathe": "^2.0.3" } }, "sha512-j/lCFdcppV0JxWpCEITdbDltBxPP6cHT+yNJ6Go2OgoSA9518X847X9z0p6LtA4Nc16+eQzCZjRrWanTGvHJ5w=="],
+
+    "platform": ["platform@1.3.6", "https://registry.npmmirror.com/platform/-/platform-1.3.6.tgz", {}, "sha512-fnWVljUchTro6RiCFvCXBbNhJc2NijN7oIQxbwsyL0buWJPG85v81ehlHI9fXrJsMNgTofEoWIQeClKpgxFLrg=="],
 
     "points-on-curve": ["points-on-curve@0.2.0", "https://registry.npmmirror.com/points-on-curve/-/points-on-curve-0.2.0.tgz", {}, "sha512-0mYKnYYe9ZcqMCWhUjItv/oHjvgEsfKvnUTg8sAtnHr3GVy7rGkXCb6d5cSyqrWqL4k81b9CPg3urd+T7aop3A=="],
 

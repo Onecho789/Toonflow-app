@@ -60,7 +60,7 @@
         <div class="sectionHead"><span class="sectionLabel">生成张数</span><span class="sectionHint">单次最多 {{ maxCount }} 张</span></div>
         <div class="countOptions" role="group" aria-label="生成张数">
           <button
-            v-for="item in maxCount"
+            v-for="item in quickCount"
             :key="item"
             type="button"
             class="countButton"
@@ -68,6 +68,10 @@
             :aria-pressed="count === item"
             @click="count = item">{{ item }}</button>
         </div>
+        <label v-if="maxCount > quickCount" class="countCustom">
+          <span>自定义张数</span>
+          <el-input-number v-model="count" :min="1" :max="maxCount" :step="1" stepStrictly :valueOnClear="1" size="small" :disabled="disabled" controlsPosition="right" aria-label="自定义生成张数" />
+        </label>
       </section>
 
       <section class="settingSection switchList">
@@ -88,7 +92,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { ElButton, ElPopover, ElSegmented, ElSwitch } from "element-plus";
+import { ElButton, ElInputNumber, ElPopover, ElSegmented, ElSwitch } from "element-plus";
 import { IconChevronDown, IconChevronUp, IconX } from "@tabler/icons-vue";
 import type { NodeMediaModel } from "@toonflow/nodes-scaffold/runtime";
 import modelForm from "@toonflow/node-shared/modelForm";
@@ -105,6 +109,8 @@ const transparent = defineModel<boolean>("transparent", { required: true });
 // 自定义像素“宽x高”，空串表示按分辨率档位与比例取像素。
 const pixels = defineModel<string>("pixels", { required: true });
 
+// 与 infinite-canvas 一致：前 10 张给快捷按钮，更多张数用数字输入。
+const quickCount = computed(() => Math.min(10, props.maxCount));
 const qualityOptions = [
   { label: "自动", value: "auto" },
   { label: "高", value: "high" },
@@ -327,8 +333,19 @@ function ratioStyle(value: string, box = 16) {
 
   .countOptions {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 8px;
+  }
+
+  .countCustom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+    color: var(--el-text-color-regular);
+    font-size: 13px;
+
+    .el-input-number { width: 110px; }
   }
 
   .countButton {

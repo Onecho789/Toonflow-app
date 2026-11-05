@@ -11,7 +11,8 @@
     "./imageEditor": "./src/components/imageEditor.vue",
     "./imageGridSplit": "./src/components/imageGridSplit.vue",
     "./imageInpaintPrompt": "./src/components/imageInpaintPrompt.vue",
-    "./imageTools": "./src/components/imageTools.vue"
+    "./imageTools": "./src/components/imageTools.vue",
+    "./imageToolbar": "./src/imageToolbar.ts"
   },
   "scripts": {
     "build": "vite build",
@@ -29,8 +30,9 @@
   },
   "devDependencies": {
     "@toonflow/node-shared": "workspace:*",
-    "@types/three": "0.184.0",
     "@toonflow/nodes-scaffold": "workspace:*",
+    "@types/three": "0.184.0",
+    "onnxruntime-web": "1.31.1",
     "typescript": "~6.0.3",
     "vite": "^8.2.2",
     "vue-tsc": "^3.3.11"

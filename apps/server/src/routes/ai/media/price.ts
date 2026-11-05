@@ -11,8 +11,8 @@ export default Router().post("/", validateFields({
 }), async (req, res) => {
   u.mcpControl.assertAppRequest(req);
   const { directory, mediaType, n, ...request } = req.body;
-  if (n !== undefined && (mediaType !== "image" || !Number.isInteger(n) || n < 1 || n > 8)) {
-    res.status(400).json(error("图片张数须为 1 到 8 的整数", null, 400));
+  if (n !== undefined && (mediaType !== "image" || !Number.isInteger(n) || n < 1 || n > 15)) {
+    res.status(400).json(error("图片张数须为 1 到 15 的整数", null, 400));
     return;
   }
   const schema = (mediaType === "image" ? imageGenerationSchema : mediaType === "video" ? videoGenerationSchema : audioGenerationSchema).extend({ prompt: z.string().trim().max(100000) });

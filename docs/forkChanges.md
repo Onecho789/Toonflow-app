@@ -955,7 +955,7 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
   - 放大：前端缩放到 1K/2K/4K，可选高质量逐级 2 倍、双线性或像素风。
   - 裁剪和放大的结果都在右侧生成新的图片节点并自动连线。
   - 反推提示词：在下方生成预填反推指令的文本节点并连线。
-  - 没有做 AI 超分，infinite-canvas 也没有实现。
+  - AI 超分见下一节「本地 AI 超分」。
 - 多张结果改为堆叠卡片：节点背后叠最多 3 层，右上角显示「N 张 >」。点击后在节点右侧展开结果浮层，可选当前输出、查看大图、单张拆分或全部拆分。`nodeSkeleton` 新增 `#aside` 插槽和 `stackLayers` 属性；`mediaResults` 改为浮层样式，新增 `close` 事件。
 - 图像设置面板重新排版，分区并加大间距，按需滚动。分区如下：
   - 质量：自动、高、中、低。
@@ -977,3 +977,25 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 新增文件：`imageNode/src/useDerivedImageNode.ts`、`useReversePrompt.ts`，以及 `components/{imageTools,imageInfo,imageCrop,imageUpscale}.vue`。
 
 冲突时保留：`#aside` 和 `stackLayers`、`imageOther()` 的合并逻辑、张数上限 8、`pixels` 计价。
+
+## 自定义张数、工具栏自定义与本地 AI 超分（2026-11-05）
+
+- 张数上限从 8 提到 15。图像设置保留 1–10 快捷按钮，另加「自定义张数」数字框（1–15），超过 8 张由麦麦云拆批并行生成（需云端同步部署，见 cloud `image.go` 的 `imageBatch`/`imageFanout`）。
+- 工具栏自定义（参考 infinite-canvas）：「更多」菜单底部新增「自定义工具栏」对话框，含节点预览、快捷工具勾选（x/y 计数）、显示按钮文字开关和恢复默认。设置存在浏览器 `localStorage` 的 `maimai-image-toolbar-v1`，只记录隐藏项；两个插件包各有一份模块状态，保存后用 `maimaiImageToolbarChange` 事件互相同步。默认隐藏裁剪、放大、反推提示词。
+  - 隐藏的工具出现在「更多」菜单里：`imageTools` 自带的工具直接执行，节点自己的工具（全景图、局部重绘、打光等）通过 `command` 事件交回节点的 `runTool`。
+  - `imageInfo`、`imageGridSplit`、`imagePanorama` 的 `open` 改为同时接受鼠标事件或锚点元素；`mediaHistory` 新增 `hideTrigger` 属性和 `open` 方法。
+- 本地 AI 超分：用 Real-ESRGAN general x4v3（BSD-3，来源 Hugging Face `vlad-grig/realesr-general-x4v3-onnx` 提交 `0e95d93e`）在本机经 onnxruntime-web 1.31.1 推理。有 WebGPU 时用 fp16 模型，否则回退 WASM 单线程 fp32 模型。256 像素分块、16 像素重叠；×2 由 ×4 结果缩小，透明通道单独保留，输出长边上限 8192。结果生成新的图片节点「超分 ×N」。
+  - 模型放在 `apps/web/public/superResolution/`（约 7 MB，随仓库提交）。运行时 `ort.webgpu.bundle.min.mjs` 与 `ort-wasm-simd-threaded.asyncify.wasm`（28.7 MB）由 `apps/web/vite.config.ts` 的 `superResolutionRuntime` 插件在开发时代理、构建时复制到同一目录。插件单文件不携带 wasm。
+  - `wasmPaths` 只能传 `{ wasm }`；传目录前缀会让 bundle 另去请求不存在的 `.mjs` 胶水文件。
+
+改动的上游文件：
+- `packages/nodes/imageNode/src/index.vue`、`package.json`（新增 `./imageToolbar` 导出与 `onnxruntime-web` 开发依赖）
+- `packages/nodes/imageNode/src/components/{imageTools,imageInfo,imageGridSplit,imagePanorama}.vue`
+- `packages/nodes/imageGenerationNode/src/index.vue`、`components/generationSettings.vue`
+- `packages/nodeShared/src/components/mediaHistory.vue`
+- `apps/server/src/routes/ai/media/{generate,price}.ts`
+- `apps/web/vite.config.ts`、`apps/web/package.json`
+
+新增文件：`imageNode/src/{imageToolbar,superResolve}.ts`、`components/{imageToolbarSettings,imageSuperResolve}.vue`，`apps/web/public/superResolution/`（两份模型与 `LICENSE.txt`）。
+
+冲突时保留：工具栏外层的 `toolbarGroup` 包裹与各按钮的 `visible()` 判断、`runTool`、张数上限 15、`superResolutionRuntime` 插件。

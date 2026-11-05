@@ -12,20 +12,22 @@
     :style="{ width: (previewUrl || inpaintGuideUrl) && imageWidth ? `${imageWidth + 18}px` : undefined }">
     <template v-if="editor?.mode" #top><div ref="paintToolbar" /></template>
     <template #topActions>
-      <el-button class="panoramaButton" :icon="IconPanoramaHorizontal" :disabled="generating || deleting || uploading || editor?.busy || lighting?.generating || multiAngle?.generating || gridSplit?.splitting || panorama?.busy || !previewUrl" text title="全景图" aria-label="全景图" @click.stop="panorama?.open($event)">全景图<icon-chevron-down class="menuChevron" :size="14" /></el-button>
-      <el-button :icon="IconBrush" :disabled="generating || deleting || uploading || lighting?.generating || multiAngle?.generating || panorama?.busy || !previewUrl || gridSplit?.splitting" text title="局部重绘" aria-label="局部重绘" @click.stop="startEditor('inpaint')">局部重绘</el-button>
-      <el-button :icon="IconSun" :disabled="generating || deleting || uploading || lighting?.generating || multiAngle?.generating || panorama?.busy || !previewUrl || gridSplit?.splitting" text title="打光" aria-label="打光" @click.stop="openLighting">打光</el-button>
-      <el-button :icon="IconCameraRotate" :disabled="generating || deleting || uploading || lighting?.generating || multiAngle?.generating || panorama?.busy || !previewUrl || gridSplit?.splitting" text title="多角度" aria-label="多角度" @click.stop="openMultiAngle">多角度</el-button>
-      <el-button :icon="IconLayoutGrid" :disabled="generating || deleting || uploading || lighting?.generating || multiAngle?.generating || panorama?.busy || !previewUrl" :loading="gridSplit?.splitting" text title="宫格切分" aria-label="宫格切分" @click.stop="gridSplit?.open($event)">宫格切分</el-button>
-      <el-button :icon="IconArrowsSplit2" :disabled="generating || deleting || uploading || !outputFile" text title="拆分为图片节点" aria-label="拆分为图片节点" @click.stop="splitResults(data.results?.length ? data.results : outputFile ? [outputFile] : [])">拆分为节点</el-button>
-      <copyPrompt :text="data.prompt" />
-      <mediaHistory mediaType="image" :current="outputFile" :disabled="generating || deleting || uploading || lighting?.generating || multiAngle?.generating || panorama?.busy" @select="outputs.image = { dataType: 'IMAGE', value: $event }" />
-      <el-button :icon="IconTransfer" :loading="uploading" :disabled="generating || deleting || lighting?.generating || multiAngle?.generating || panorama?.busy" text title="替换图片" aria-label="替换图片" @click.stop="fileInput?.click()">替换图片</el-button>
-      <imageTools ref="tools" :src="previewUrl" :source="outputFile" :prompt="data.prompt" :active="node.selected" :disabled="generating || deleting || uploading || editor?.busy || lighting?.generating || multiAngle?.generating || panorama?.busy || gridSplit?.splitting" />
-      <input ref="fileInput" type="file" accept="image/*" hidden aria-label="选择替换图片" :disabled="generating || deleting || uploading || lighting?.generating || multiAngle?.generating || panorama?.busy" @change="replaceOutput" />
+      <span class="toolbarGroup" :class="{ iconOnly: !showLabels }">
+        <el-button v-if="visible('panorama')" class="panoramaButton" :icon="IconPanoramaHorizontal" :disabled="generating || deleting || uploading || editor?.busy || lighting?.generating || multiAngle?.generating || gridSplit?.splitting || panorama?.busy || !previewUrl" text title="全景图" aria-label="全景图" @click.stop="panorama?.open($event)">全景图<icon-chevron-down class="menuChevron" :size="14" /></el-button>
+        <el-button v-if="visible('inpaint')" :icon="IconBrush" :disabled="generating || deleting || uploading || lighting?.generating || multiAngle?.generating || panorama?.busy || !previewUrl || gridSplit?.splitting" text title="局部重绘" aria-label="局部重绘" @click.stop="startEditor('inpaint')">局部重绘</el-button>
+        <el-button v-if="visible('lighting')" :icon="IconSun" :disabled="generating || deleting || uploading || lighting?.generating || multiAngle?.generating || panorama?.busy || !previewUrl || gridSplit?.splitting" text title="打光" aria-label="打光" @click.stop="openLighting">打光</el-button>
+        <el-button v-if="visible('multiAngle')" :icon="IconCameraRotate" :disabled="generating || deleting || uploading || lighting?.generating || multiAngle?.generating || panorama?.busy || !previewUrl || gridSplit?.splitting" text title="多角度" aria-label="多角度" @click.stop="openMultiAngle">多角度</el-button>
+        <el-button v-if="visible('gridSplit')" :icon="IconLayoutGrid" :disabled="generating || deleting || uploading || lighting?.generating || multiAngle?.generating || panorama?.busy || !previewUrl" :loading="gridSplit?.splitting" text title="宫格切分" aria-label="宫格切分" @click.stop="gridSplit?.open($event)">宫格切分</el-button>
+        <el-button v-if="visible('splitNodes')" :icon="IconArrowsSplit2" :disabled="generating || deleting || uploading || !outputFile" text title="拆分为图片节点" aria-label="拆分为图片节点" @click.stop="splitResults(data.results?.length ? data.results : outputFile ? [outputFile] : [])">拆分为节点</el-button>
+        <copyPrompt v-if="visible('copyPrompt')" :text="data.prompt" />
+        <mediaHistory ref="history" :hideTrigger="!visible('history')" mediaType="image" :current="outputFile" :disabled="generating || deleting || uploading || lighting?.generating || multiAngle?.generating || panorama?.busy" @select="outputs.image = { dataType: 'IMAGE', value: $event }" />
+        <el-button v-if="visible('replace')" :icon="IconTransfer" :loading="uploading" :disabled="generating || deleting || lighting?.generating || multiAngle?.generating || panorama?.busy" text title="替换图片" aria-label="替换图片" @click.stop="fileInput?.click()">替换图片</el-button>
+        <imageTools ref="tools" :src="previewUrl" :source="outputFile" :prompt="data.prompt" :active="node.selected" :tools="toolIds" @command="runTool" :disabled="generating || deleting || uploading || editor?.busy || lighting?.generating || multiAngle?.generating || panorama?.busy || gridSplit?.splitting" />
+        <input ref="fileInput" type="file" accept="image/*" hidden aria-label="选择替换图片" :disabled="generating || deleting || uploading || lighting?.generating || multiAngle?.generating || panorama?.busy" @change="replaceOutput" />
+      </span>
     </template>
     <template #topRightActions>
-      <el-button :icon="IconPencil" :disabled="generating || deleting || uploading || lighting?.generating || multiAngle?.generating || panorama?.busy || !previewUrl || gridSplit?.splitting" text title="标记" aria-label="标记" @click.stop="startEditor('mark')" />
+      <el-button v-if="visible('mark')" :icon="IconPencil" :disabled="generating || deleting || uploading || lighting?.generating || multiAngle?.generating || panorama?.busy || !previewUrl || gridSplit?.splitting" text title="标记" aria-label="标记" @click.stop="startEditor('mark')" />
     </template>
     <div v-loading="generating || uploading" class="imageContent nopan" :aria-busy="generating || uploading" @dblclick.stop="openPreview">
       <imageEditor
@@ -172,6 +174,7 @@ import imageLighting from "@toonflow/node-image/imageLighting";
 import imagePanorama from "@toonflow/node-image/imagePanorama";
 import imageMultiAngle from "@toonflow/node-image/imageMultiAngle";
 import imageTools from "@toonflow/node-image/imageTools";
+import { useImageToolbar, type ImageToolId } from "@toonflow/node-image/imageToolbar";
 import generationSettings from "./components/generationSettings.vue";
 
 defineOptions({
@@ -219,6 +222,9 @@ const multiAngle = ref<InstanceType<typeof imageMultiAngle>>();
 const multiAngleTarget = ref<HTMLElement>();
 const multiAngleVisible = ref(false);
 const panorama = ref<InstanceType<typeof imagePanorama>>();
+const history = ref<InstanceType<typeof mediaHistory>>();
+const { visible, showLabels } = useImageToolbar();
+const toolIds: ImageToolId[] = ["panorama", "inpaint", "lighting", "multiAngle", "gridSplit", "splitNodes", "copyPrompt", "history", "replace", "mark"];
 let disposed = false;
 const deleting = ref(false);
 const previewVisible = ref(false);
@@ -239,12 +245,12 @@ const selectedModel = computed(() => models.value.find((item) => JSON.stringify(
 useModelForm(data, selectedModel);
 const sizeOptions = computed(() => (selectedModel.value?.imageSizes?.length ? selectedModel.value.imageSizes : ["2K"]));
 const ratioOptions = computed(() => (selectedModel.value?.imageRatios?.length ? selectedModel.value.imageRatios : ["16:9"]));
-// ACT: 麦麦云单次最多 8 张；模型表单声明 n 字段上限时取更小值，局部重绘固定 1 张。
+// ACT: 麦麦云单次最多 15 张（超过 8 张由云端拆批并行）；模型表单声明 n 字段上限时取更小值，局部重绘固定 1 张。
 const maxCount = computed(() => {
   if (data.value.inpaint) return 1;
   const rule = selectedModel.value?.rules?.find(item => item?.field === "n") as { props?: { max?: unknown } } | undefined;
   const limit = Number(rule?.props?.max);
-  return Number.isInteger(limit) && limit >= 1 ? Math.min(8, limit) : 8;
+  return Number.isInteger(limit) && limit >= 1 ? Math.min(15, limit) : 15;
 });
 watch(maxCount, value => { if (data.value.count > value) data.value.count = value; }, { immediate: true });
 watch(
@@ -560,6 +566,18 @@ function openPanorama() {
   multiAngleVisible.value = false;
 }
 
+// 工具栏中隐藏的节点工具从“更多”菜单回到这里执行
+function runTool(id: ImageToolId, anchor: HTMLElement) {
+  if (id === "panorama") void panorama.value?.open(anchor);
+  else if (id === "inpaint" || id === "mark") startEditor(id);
+  else if (id === "lighting") openLighting();
+  else if (id === "multiAngle") openMultiAngle();
+  else if (id === "gridSplit") gridSplit.value?.open(anchor);
+  else if (id === "splitNodes") splitResults(data.value.results?.length ? data.value.results : outputFile.value ? [outputFile.value] : []);
+  else if (id === "history") history.value?.open();
+  else if (id === "replace") fileInput.value?.click();
+}
+
 function openLighting() {
   if (generating.value || deleting.value || uploading.value || editor.value?.busy || lighting.value?.generating || multiAngle.value?.generating || panorama.value?.busy || gridSplit.value?.splitting || !previewUrl.value) return;
   editor.value?.cancel();
@@ -620,7 +638,7 @@ nodeTools.register({
     modelId: z.string().min(1).optional(),
     size: z.string().min(1).optional(),
     ratio: z.string().min(1).optional(),
-    count: z.number().int().min(1).max(8).optional(),
+    count: z.number().int().min(1).max(15).optional(),
     autoSplit: z.boolean().optional(),
     quality: z.enum(["auto", "high", "medium", "low"]).optional(),
     transparent: z.boolean().optional(),
@@ -682,6 +700,12 @@ nodeTools.register({
 </script>
 
 <style scoped lang="scss">
+.toolbarGroup {
+  display: contents;
+
+  &.iconOnly :deep(.el-button > span:not(.el-icon)) { display: none; }
+}
+
 .panoramaButton {
   &[aria-expanded="true"] .menuChevron { transform: rotate(180deg); }
 }

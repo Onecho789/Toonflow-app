@@ -1,5 +1,5 @@
 <template>
-  <el-button :icon="IconHistory" :disabled="disabled" text title="历史记录" aria-label="历史记录" @click.stop="visible = true">历史记录</el-button>
+  <el-button v-if="!hideTrigger" :icon="IconHistory" :disabled="disabled" text title="历史记录" aria-label="历史记录" @click.stop="visible = true">历史记录</el-button>
   <el-dialog v-model="visible" :title="`${mediaType === 'image' ? '图片' : '视频'}历史记录`" width="min(760px, calc(100vw - 32px))" appendToBody destroyOnClose>
     <div v-loading="loading" class="mediaHistory nodrag nopan nowheel" @pointerdown.stop @mousedown.stop @dblclick.stop @keydown.stop>
       <el-alert v-if="loadError" :title="loadError" type="error" :closable="false" />
@@ -44,7 +44,8 @@ import { IconHistory } from "@tabler/icons-vue";
 import { useNodeFiles } from "@toonflow/nodes-scaffold/workspaceFiles";
 import type { NodeMediaValue } from "@toonflow/nodes-scaffold/values";
 
-const props = defineProps<{ mediaType: "image" | "video"; current?: NodeMediaValue; disabled?: boolean }>();
+// hideTrigger 时由宿主的“更多”菜单调用 open 打开
+const props = defineProps<{ mediaType: "image" | "video"; current?: NodeMediaValue; disabled?: boolean; hideTrigger?: boolean }>();
 const emit = defineEmits<{ select: [value: NodeMediaValue] }>();
 const vLoading = ElLoading.directive;
 const { id } = useNode();
@@ -69,6 +70,8 @@ watch(previewFile, () => { previewError.value = ""; }, { flush: "sync" });
 // ACT: 目录列表仅保存路径，每页显示 20 条，只读取选中文件；海量目录需服务端分页时再扩展 list。
 const previewUrl = files.useFileUrl(previewFile, () => { previewError.value = "历史文件读取失败，文件可能已被移动或删除"; });
 watch([previewFile, previewUrl], () => { previewReady.value = false; }, { flush: "sync" });
+
+defineExpose({ open: () => { if (!props.disabled) visible.value = true; } });
 
 watch(() => props.disabled, disabled => { if (disabled) visible.value = false; });
 watch(visible, async (open, _previous, onCleanup) => {
