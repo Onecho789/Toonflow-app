@@ -33,7 +33,18 @@ Import-Clixml -LiteralPath 'C:\Users\Administrator\.codex\serverConnections\maim
 
 ## 当前线上版本（2026-11-05）
 
-2026-11-05 17:49（北京时间）已更新到 **2.16.2-20261105**。
+2026-11-05 18:28（北京时间）已更新到 **2.16.3-20261105**。
+镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.16.3-20261105
+摘要：sha256:8842d526ffcd872a7d38b6bbbfe583e798f33c9e1619a0fc0dff453bccd500af
+源码提交：a181d9de7b7d13794084c7036b856ef240fd3b26（uiRedesign，已推送 origin；二进制与 web dist 均从独立 clone 构建，已删除 clone），vcs.modified=false。server/ 与 2.16.2 无差异。
+
+本次仅前端：主题由 Glass Iris 改为星云梦境（深色星云夜空、浅色梦幻紫天，紫 → 兰紫 → 粉 → 桃强调色，侧栏、余额卡、登录品牌面、首页 CTA 为夜空场景面并叠星点层）。接口与路由不变，无数据库迁移，schema 仍为 65。
+应用 running=true、restarts=0，启动 2026-11-05T10:28:20Z，日志 version=2.16.3-20261105；部署前后活动任务与未结算用量均为 0；code_cipher 列存在；Redis PONG、Bun 1.4.3；内网及公网首页、/admin、/admin/models、/admin/redemptionCodes、/console、/login、/api/pay/config 200，匿名 /api/admin/models、/api/admin/redemptionCodes/1/code、/v1/models 401；公网 index CSS（index-BbAPnHcO.css）含新主色 #6c5ce7；env 600、diff 仅 IMAGE。
+备份与回退：/opt/maimai-cloud/backups/nebulaRelease20261105（databaseBefore.dump 71921823 字节 SHA256 0ce7edb6…、releaseRollback.sh SHA256 cd601601…），回退到 2.16.2-20261105，只恢复 IMAGE；证据 docs/history/nebulaRelease20261105/，构建上下文 cloud\build\release216320261105。生产回退未执行。
+
+### 上次发布：2.16.2-20261105
+
+2026-11-05 17:49（北京时间）曾更新到 **2.16.2-20261105**。
 镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.16.2-20261105
 摘要：sha256:6047b901d93fd29d16443f955e231a4ca6668b72bbd887f48a9dc63857b785f8
 源码提交：e65b850fba38f574af2d4917bc287911097fe5fd（uiRedesign，已推送 origin；二进制与 web dist 均从独立 clone 构建，已删除 clone），vcs.modified=false。server/ 与 2.16.1 无差异。
