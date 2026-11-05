@@ -1,6 +1,6 @@
 # 麦麦打包、发布与部署
 
-2026-11-03 从旧对话、旧记忆和实际源码整理，2026-11-04 补充桌面 2.1.3、2.1.4、2.1.5、2.1.6、2.1.7、2.1.8 本地安装包交付记录及云端 2.12.0-20261104、2.13.0-20261105、2.14.0-20261105、2.14.1-20261105、2.15.0-20261105、2.15.1-20261105 发布。
+2026-11-03 从旧对话、旧记忆和实际源码整理，2026-11-04 补充桌面 2.1.3、2.1.4、2.1.5、2.1.6、2.1.7、2.1.8、2.1.9 本地安装包交付记录及云端 2.12.0-20261104、2.13.0-20261105、2.14.0-20261105、2.14.1-20261105、2.15.0-20261105、2.15.1-20261105 发布。
 
 ## 工作目录与记忆
 
@@ -16,7 +16,7 @@
 
 两个子目录分别管理 Git。根目录继续作为共享记忆维护入口；根级 AGENTS.md 与 docs/ 下的 releaseWorkflow.md、maimaiCloud.md、localEnvNotes.md 同步到两个仓库的 docs/projectMemory/ 并分别提交、推送，单独克隆时可从该目录的 readme.md 查看。每次更新共享记忆后同步两份副本；docs/history/ 中的历史证据与构建日志另作本机备份。
 
-当前桌面本地安装包为 **2.1.8**，提交 cc5ba52，分支 codex/simplifyMediaModels；上次公开发布为 2.1.0。云端版本为 **2.15.1-20261105**，提交 6b6579ff7a3c83c11c25f1f60d562ea72d111353，分支 goRewrite。两个版本号各自维护，后续先读实际 HEAD、分支和工作区。
+当前桌面本地安装包为 **2.1.9**，提交 970bec1，分支 codex/simplifyMediaModels；上次公开发布为 2.1.0。云端版本为 **2.15.1-20261105**，提交 6b6579ff7a3c83c11c25f1f60d562ea72d111353，分支 goRewrite。两个版本号各自维护，后续先读实际 HEAD、分支和工作区。
 
 ## Windows 桌面打包
 
@@ -85,6 +85,17 @@ bun run release:desktop <新的桌面版本> --initial
 - 本次为本地安装包交付；GitHub 公开版本仍为 2.1.0，更新源仍为空。安装器留给用户运行测试，原有 AGENTS.md 修改保留。
 - 构建日志、原始/修改后版本配置、差异及副本回退证据：`docs/history/canvasDesktop21320261104/`。ROLLBACK.sh 仅在独立配置副本恢复 app.version=2.1.2，SHA256 与原始配置一致；实际源码和产物保持 2.1.3，不更换已安装程序。
 - 旧 2.1.2 安装包保留在其原快照目录；打包前已核对 SHA256 与旧记录一致。共享记忆修改前副本保存在本轮证据目录的 memoryBefore/。
+
+### 本地完整安装包 2.1.9（2026-11-05）
+
+- 源码提交：970bec1（版本），功能提交 565756f，分支 codex/simplifyMediaModels。内容：图片工具栏、多图堆叠展示、图像设置面板重排与 pixels 转发；配套云端提交 de59556（uiRedesign）尚未部署。
+- 构建命令：`bun run release:desktop 2.1.9 --initial`，退出 0。环境：PATH 前置 System32。微软短链直连超时，经本机代理 curl 取得 301 的 CDN 地址传入 `webView2BootstrapperUrl`，脚本照常校验微软签名。
+- 版本快照：D:api-codes\maimai\clientuild\desktopeleases.1.9。
+- 安装包：`MaiMaiStudio-2.1.9-Setup.exe`，55,620,929 字节；SHA256 `a32e20f4a1831ade5f497aabd3abb900452f7de3f24baaddd1b71988e3fbac81`。
+- 更新归档：`stable-win-x64-MaiMaiStudio.tar.zst`，58,282,182 字节；SHA256 `62d4d0bee590705ac03922b72bcc1a3973af56d49733d04eea03652939469f80`。
+- 更新清单：`stable-win-x64-update.json`，209 字节；SHA256 `ea64aa55bad5cdc853e718754abf8451d094aa8d59c005a28446f4affa691707`；version=2.1.9、stable/win/x64、hash=2u2ec56c0xa9o。
+- 验证：快照与 artifacts 逐字节一致；解压归档 version.json 为 2.1.9，imageGenerationNode/imageNode 插件含新设置面板、堆叠角标与反推提示词，app/bun/index.js 含 1–8 张校验；未运行安装器。
+- 本地交付；GitHub 公开版本仍为 2.1.0，更新源仍为空。router.ts、components.d.ts 工作区漂移未提交。回退方式：安装 2.1.8 快照中的安装包。
 
 ### 本地完整安装包 2.1.8（2026-11-05）
 

@@ -140,7 +140,13 @@ Grok 当前修订：f8f85bef333fecb4da9ecfdb267a9cbad30472092346ed9a252c15138fda
 上次版本已验证能力400、源码新旧版本读取、默认升级、自定义与恢复版本重启保留。本次发布前无活跃视频任务、无 pending 用量记录，发布中未新发起生成。
 视频编辑/延长等宿主入参及上游特殊计费未扩展，现有失败退款规则保留。
 
-## 桌面本地安装包 2.1.8（2026-11-05）
+## 桌面本地安装包 2.1.9（2026-11-05）
+
+- 源码提交：970bec1（版本），功能提交 565756f，分支 codex/simplifyMediaModels。内容：图片工具栏（信息、裁剪、放大、反推提示词、删除节点）、多图堆叠展示、图像设置面板重排（质量、自定义宽高、透明背景、张数 1–8）。自定义宽高经 other.pixels 转发，需云端提交 de59556（分支 uiRedesign，未部署）才按面积计费。
+- 版本快照：D:api-codes\maimai\clientuild\desktopeleases.1.9。安装包 `MaiMaiStudio-2.1.9-Setup.exe` 55,620,929 字节，SHA256 `a32e20f4a1831ade5f497aabd3abb900452f7de3f24baaddd1b71988e3fbac81`；清单 version=2.1.9、hash=2u2ec56c0xa9o。
+- 打包退出 0；快照与 artifacts 一致；归档内含新设置面板、堆叠角标、反推提示词与 1–8 张校验。本地交付，未运行安装器，GitHub 仍为 2.1.0、更新源仍为空。详情见 releaseWorkflow.md。
+
+## 上次桌面本地安装包 2.1.8（2026-11-05）
 
 - 源码提交：cc5ba52（版本），功能提交 4d657b0，分支 codex/simplifyMediaModels。图片像素补齐改用与云端 2.15.1-20261105 相同的固定尺寸表，通用比例补 9:21。
 - 版本快照：D:\2api-codes\maimai\client\build\desktop\releases\2.1.8。安装包 `MaiMaiStudio-2.1.8-Setup.exe` 55,604,248 字节，SHA256 `5ec61d202d8997a8f4d2bec1a72dd113c8c9c0380f4815fcae731cb0612ccd0d`；清单 version=2.1.8、hash=x8zkapnhcppb。
