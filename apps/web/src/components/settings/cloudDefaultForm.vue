@@ -12,9 +12,11 @@
       </el-select>
     </el-form-item>
     <el-form-item :label="`${title}分组（线路）`">
-      <el-select :modelValue="group" :disabled="!selected" placeholder="选择分组" :aria-label="`${title}分组（线路）`" @change="changeGroup">
+      <!-- 分组随模型而定：未选模型时禁用并提示先选模型；只有一个分组时说明需在云端给渠道加分组。 -->
+      <el-select :modelValue="selected ? group : undefined" :disabled="!selected" :placeholder="selected ? '选择分组' : `请先选择${title}默认模型`" :aria-label="`${title}分组（线路）`" @change="changeGroup">
         <el-option v-for="item in groups" :key="item.name" :label="groupText(item)" :value="item.name" />
       </el-select>
+      <el-text v-if="selected && groups.length === 1" class="groupHint" size="small" type="info">该模型目前只有这一个分组可用</el-text>
     </el-form-item>
   </el-form>
 </template>
@@ -72,5 +74,7 @@ async function changeGroup(name: string) {
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 0 12px;
   margin-bottom: 12px;
+
+  .groupHint { margin-top: 4px; line-height: 1.4; }
 }
 </style>

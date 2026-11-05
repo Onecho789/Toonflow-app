@@ -13,13 +13,13 @@
       <span class="resultIndex" aria-hidden="true">{{ card.index + 1 }}</span>
       <div class="resultActions">
         <button type="button" :disabled="disabled" title="下载" :aria-label="`下载第 ${card.index + 1} 个结果`" @click.stop="emit('download', card.item, card.index)">
-          <icon-download :size="13" aria-hidden="true" /><span>下载</span>
+          <icon-download :size="16" aria-hidden="true" /><span>下载</span>
         </button>
         <button type="button" :disabled="disabled" title="创建副本：带上提示词和参数，以这张为输出" :aria-label="`以第 ${card.index + 1} 个结果创建副本`" @click.stop="emit('duplicate', card.item)">
-          <icon-copy-plus :size="13" aria-hidden="true" /><span>创建副本</span>
+          <icon-copy-plus :size="16" aria-hidden="true" /><span>创建副本</span>
         </button>
         <button type="button" :disabled="disabled" title="设为当前输出" :aria-label="`把第 ${card.index + 1} 个结果设为当前输出`" @click.stop="emit('select', card.item)">
-          <icon-star :size="13" class="starIcon" aria-hidden="true" /><span>设为当前</span>
+          <icon-star :size="16" class="starIcon" aria-hidden="true" /><span>设为当前</span>
         </button>
       </div>
     </div>
@@ -141,13 +141,14 @@ watch(() => props.items.map(item => item.url).join("\n"), async (_value, _previo
       position: absolute;
       bottom: 14px;
       left: 14px;
-      min-width: 20px;
-      padding: 0 6px;
+      min-width: 24px;
+      padding: 0 7px;
       border-radius: 999px;
       background: rgb(0 0 0 / 55%);
       color: #fff;
-      font-size: 11px;
-      line-height: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 24px;
       text-align: center;
       backdrop-filter: blur(8px);
     }
@@ -158,7 +159,7 @@ watch(() => props.items.map(item => item.url).join("\n"), async (_value, _previo
       right: 14px;
       left: 14px;
       display: flex;
-      gap: 4px;
+      gap: 6px;
       opacity: 0;
       transition: opacity 150ms ease-out;
 
@@ -167,17 +168,17 @@ watch(() => props.items.map(item => item.url).join("\n"), async (_value, _previo
         flex: 1;
         align-items: center;
         justify-content: center;
-        gap: 3px;
+        gap: 5px;
         min-width: 0;
-        height: 30px;
-        padding: 0 6px;
+        height: 36px;
+        padding: 0 8px;
         border: 1px solid var(--el-border-color-light);
-        border-radius: 8px;
+        border-radius: 10px;
         background: color-mix(in srgb, var(--el-bg-color) 86%, transparent);
         color: var(--el-text-color-primary);
         font: inherit;
-        font-size: 11px;
-        font-weight: 500;
+        font-size: 13px;
+        font-weight: 600;
         cursor: pointer;
         box-shadow: 0 6px 18px rgb(15 23 42 / 16%);
         backdrop-filter: blur(12px);

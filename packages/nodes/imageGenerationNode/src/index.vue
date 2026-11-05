@@ -55,7 +55,7 @@
         @click.stop="resultsExpanded = !resultsExpanded"
         @dblclick.stop>
         <span>{{ resultCount }} 张</span>
-        <icon-chevron-right class="stackChevron" :size="14" aria-hidden="true" />
+        <icon-chevron-right class="stackChevron" :size="16" aria-hidden="true" />
       </button>
       <button
         v-if="resultCount > 1 && !editor?.mode"
@@ -67,8 +67,8 @@
         title="打包下载全部图片"
         @click.stop="downloadAllResults"
         @dblclick.stop>
-        <icon-loader2 v-if="zipping" class="zipSpin" :size="14" aria-hidden="true" />
-        <icon-file-zip v-else :size="14" aria-hidden="true" />
+        <icon-loader2 v-if="zipping" class="zipSpin" :size="16" aria-hidden="true" />
+        <icon-file-zip v-else :size="16" aria-hidden="true" />
         <span>打包下载</span>
       </button>
       <generationStatus :status="generationState.status.value" :error="generationState.error.value" :canRetry="generationState.canRetry.value" :disabled="deleting || uploading" :resumed="resumed" @retry="retryGeneration" />
@@ -800,15 +800,15 @@ nodeTools.register({
     display: inline-flex;
     align-items: center;
     gap: 2px;
-    height: 30px;
-    padding: 0 10px 0 12px;
+    height: 36px;
+    padding: 0 12px 0 14px;
     border: 1px solid rgb(255 255 255 / 30%);
     border-radius: 999px;
     background: rgb(0 0 0 / 55%);
     color: #fff;
     font: inherit;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 700;
     cursor: pointer;
     backdrop-filter: blur(8px);
     transition: background-color .15s;
@@ -828,15 +828,15 @@ nodeTools.register({
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    height: 30px;
-    padding: 0 10px;
+    height: 36px;
+    padding: 0 14px;
     border: 1px solid rgb(255 255 255 / 30%);
     border-radius: 999px;
     background: rgb(0 0 0 / 55%);
     color: #fff;
     font: inherit;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 700;
     cursor: pointer;
     opacity: 0;
     backdrop-filter: blur(8px);
