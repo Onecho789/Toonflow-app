@@ -31,7 +31,19 @@ Import-Clixml -LiteralPath 'C:\Users\Administrator\.codex\serverConnections\maim
 
 其他凭据（root 密码、管理员账号、.env 密钥、测试账号、镜像仓库、new-api 服务器说明）统一记在 D:\2api-codes\资料\maimaiCredentials.md，条目清单见 [releaseWorkflow.md](releaseWorkflow.md) 的凭据小节；该文件不能复制进 Git 仓库，内容不抄进本记录。
 
-## 当前线上版本（2026-11-04）
+## 当前线上版本（2026-11-05）
+
+2026-11-05 10:13（北京时间）已更新到 **2.15.0-20261105**。
+镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.15.0-20261105
+摘要：sha256:c95a00e52372316e8ebc01414aa4d233a0f59dfe71aac51c2b9f2659e0449fbf
+源码提交：4ba121bf0d623b4a8736dd2b77d96bca7fe22d8f（goRewrite），vcs.modified=false。
+
+本次媒体模型能力改为“留空即不限制”：网关只校验声明过的 imageSizes/imageRatios，sizeMap 缺失的组合按档位换算像素（长边 = 档位 × 1024，取 64 倍数），新增 meta.rawSize（档位原样转发）；后台新建模板不再预填尺寸、时长，去掉两条必填校验。客户端对应提交 0d79d2b 补通用选项。无数据库迁移，schema 仍为 64。
+现有 6 个媒体模型都已声明尺寸、比例与时长，客户端选项不变；gpt-image-1.5、gpt-image-2 只声明 1K、没有 sizeMap，此前 size=1K 原样转发，现在换算为像素。这两个模型近期调用都因上游渠道失败，没有成功样本可对照。
+应用 running=true、restarts=0，启动 2026-11-05T02:13:13Z；部署前后活动任务与未结算用量均为 0；Redis PONG、Bun 1.4.3；内网及公网首页、/admin/models、/api/pay/config 200，匿名 /api/admin/models、/v1/models 401；env 600、diff 仅 IMAGE。
+备份与回退：/opt/maimai-cloud/backups/mediaDefaultsRelease20261105（databaseBefore.dump 79219696 字节 SHA256 c26e8a00…、releaseRollback.sh SHA256 4c71492d…），回退到 2.14.1-20261105；证据 docs/history/mediaDefaultsRelease20261105/。生产回退未执行，本次未在临时库或浏览器验收后台表单。
+
+### 上次发布：2.14.1-20261105
 
 2026-11-04 18:19（北京时间）已更新到 **2.14.1-20261105**。
 镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.14.1-20261105
@@ -117,13 +129,19 @@ Grok 当前修订：f8f85bef333fecb4da9ecfdb267a9cbad30472092346ed9a252c15138fda
 上次版本已验证能力400、源码新旧版本读取、默认升级、自定义与恢复版本重启保留。本次发布前无活跃视频任务、无 pending 用量记录，发布中未新发起生成。
 视频编辑/延长等宿主入参及上游特殊计费未扩展，现有失败退款规则保留。
 
-## 桌面本地安装包 2.1.6（2026-11-05）
+## 桌面本地安装包 2.1.7（2026-11-05）
+
+- 源码提交：40a134c（版本），功能提交 0d79d2b，分支 codex/simplifyMediaModels。后台未声明的尺寸、比例、时长、分辨率由客户端补通用选项，与云端 2.15.0-20261105 配套。
+- 版本快照：D:\2api-codes\maimai\client\build\desktop\releases\2.1.7。安装包 `MaiMaiStudio-2.1.7-Setup.exe` 55,603,645 字节，SHA256 `c68acf330ef374a98811270ff8b2cec51599b2cdfe75269981ccf0a84d21166d`；清单 version=2.1.7、hash=jvjp9gcgs7xc。
+- 打包退出 0；快照与 artifacts 一致；归档 1729 项，含新代码。本地交付，未运行安装器，GitHub 仍为 2.1.0、更新源仍为空。详情见 releaseWorkflow.md。
+
+## 上次桌面本地安装包 2.1.6（2026-11-05）
 
 - 源码提交：6f9fa48（版本），功能提交 633bcd6，分支 codex/simplifyMediaModels。包含 @ 提及大图预览与画布高亮、节点短编号、悬浮对话框自由缩放与最大化、askUser 长选项换行。
-- 版本快照：D:api-codes\maimai\clientuild\desktopeleases.1.6。安装包 `MaiMaiStudio-2.1.6-Setup.exe` 55,606,955 字节，SHA256 `7c99242eb18c10494626a78a261581fbd34dcdf721d0652b54ab3dda7aa4ba4c`；清单 version=2.1.6、hash=u1hkyk7bsm72。
+- 版本快照：D:\2api-codes\maimai\client\build\desktop\releases\2.1.6。安装包 `MaiMaiStudio-2.1.6-Setup.exe` 55,606,955 字节，SHA256 `7c99242eb18c10494626a78a261581fbd34dcdf721d0652b54ab3dda7aa4ba4c`；清单 version=2.1.6、hash=u1hkyk7bsm72。
 - 打包退出 0；快照与 artifacts 哈希一致；归档 1729 项、11 个节点插件齐全且含新代码。本地交付，未运行安装器，GitHub 仍为 2.1.0、更新源仍为空。详情见 releaseWorkflow.md。
 
-## 上次桌面本地安装包 2.1.5（2026-11-05）
+## 更早桌面本地安装包 2.1.5（2026-11-05）
 
 - 源码提交：a643650cb324a9b49ed486de794557d177f5c4c7（版本），分支 codex/simplifyMediaModels。包含 2.1.4 之后的 messages 协议映射（df0087a）、分镜表与角色库、成片时间线、生成节点增强、画布组输入与 JSON 导入导出、角色库修复（7bd6c50），以及 Claude 内置上限按官方补齐（f7daa19，claude-opus-5-5 等取 1M / 128K）。
 - 版本快照：D:\2api-codes\maimai\client\build\desktop\releases\2.1.5。安装包 `MaiMaiStudio-2.1.5-Setup.exe` 55,603,692 字节，SHA256 `564d51d824ba3ca15c308e300fe3f8c58c40badc89bef66d4f3be1b8d9eda9a0`；清单 version=2.1.5、hash=2otkef5rvimk0。

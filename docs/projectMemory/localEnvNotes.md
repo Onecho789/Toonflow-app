@@ -11,6 +11,7 @@ metadata:
 - Bun 通过 npm 全局安装（`npm install -g bun@1.4.3`），上游要求 1.4.3；1.3.14 下 server 启动会因 undici 报 `markAsUncloneable is not a function`。
 - typecheck 依赖 `.hutch/devkit`（被 gitignore）。缺失时用 `~/.hutch/npm/electrobun/2.0.1/windows-x64/bin/hutch.exe electrobun sync` 生成，必须去掉 HTTP(S)_PROXY（本机代理 127.0.0.1:7890 会导致 ReleaseDownloadFailed）。
 - 打 Windows 安装包用 `bun run package:desktop`（`build:desktop` 只构建程序、不出 NSIS Setup.exe，且会清空旧产物）。在 Git Bash 里要 `PATH="/c/Windows/System32:$PATH"` 前置，否则 GNU tar 把 `D:` 当远程主机报 `Cannot connect to D:`。产物在 `build/desktop/artifacts/MaiMaiStudio-<版本>-Setup.exe`。
+- 打包时要下载 WebView2 引导器，`go.microsoft.com` 短链经常超时或 ECONNRESET（2026-11-05 连续两次失败）。可以先用 `curl -sSD - "https://go.microsoft.com/fwlink/p/?LinkId=2124703"` 多试几次拿到 301 的 Location（`msedge.sf.dl.delivery.mp.microsoft.com/...`），再通过环境变量 `webView2BootstrapperUrl` 传给打包脚本；脚本仍会校验微软签名。
 - 本地接口测试：需带 `x-toonflow-workspace: 1` 和与 host 一致的 `Origin` 头，否则 403；用临时 TOONFLOW_DATA_DIR 与端口启动 `bun apps/server/src/index.ts`。
 
 ## 新工作目录与完整发布流程（2026-11-03）
