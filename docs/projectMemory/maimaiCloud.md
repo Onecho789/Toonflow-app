@@ -33,7 +33,18 @@ Import-Clixml -LiteralPath 'C:\Users\Administrator\.codex\serverConnections\maim
 
 ## 当前线上版本（2026-11-05）
 
-2026-11-05 18:28（北京时间）已更新到 **2.16.3-20261105**。
+2026-11-05 21:42（北京时间）已更新到 **2.16.4-20261105**。
+镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.16.4-20261105
+摘要：sha256:ce89394630aa0dd3f47c04e611fb745bfceff85166f5fc47e0292a5c169fc8f9
+源码提交：480f0c0ea54b7f5c116639d5a6dc769e4642fade（uiRedesign，已推送 origin；二进制从独立 clone 构建，已删除 clone），vcs.modified=false。web/ 与 2.16.3 无差异，复用 release216320261105 的 dist（diff -r 一致）。
+
+本次仅服务端计费与选渠道：流式断流（未收到最终 usage）按已生成字符数兜底计 completion；结算补扣允许余额变负（欠费期间预扣自然失败）；视频提交与客户端断开解耦、改按上游结果结算，已结算任务重试沿用已存状态；图片任务超时/重启丢失按预扣全额计费（interrupted，错误「服务重启，生成结果丢失」）；停机时等待后台任务最多 35 秒。请求分组下无该模型渠道时：其他分组有则 400 group_unavailable（提示可用分组），否则 503 no_available_channel。配套桌面 2.1.13（不再静默切到首个分组）。无数据库迁移，schema 仍为 65。
+应用 running=true、restarts=0，启动 2026-11-05T13:42:10Z，日志 version=2.16.4-20261105；首次预检遇 1 个进行中图片任务自动中止（未改动线上），等其结算归零后重跑；部署前后活动任务与未结算用量均为 0；code_cipher 列存在；Redis PONG、Bun 1.4.3；内网及公网首页、/admin、/admin/models、/admin/redemptionCodes、/console、/login、/api/pay/config 200，匿名 /api/admin/models、/api/admin/redemptionCodes/1/code、/v1/models 401；env 600、diff 仅 IMAGE。
+备份与回退：/opt/maimai-cloud/backups/billingRelease20261105（databaseBefore.dump 89666965 字节 SHA256 b4f5bc58…、releaseRollback.sh SHA256 3a548718…），回退到 2.16.3-20261105，只恢复 IMAGE；证据 docs/history/billingRelease20261105/，构建上下文 cloud\build\release216420261105。生产回退未执行；未在生产实际触发断流、欠费或 group_unavailable。
+
+### 上次发布：2.16.3-20261105
+
+2026-11-05 18:28（北京时间）曾更新到 **2.16.3-20261105**。
 镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.16.3-20261105
 摘要：sha256:8842d526ffcd872a7d38b6bbbfe583e798f33c9e1619a0fc0dff453bccd500af
 源码提交：a181d9de7b7d13794084c7036b856ef240fd3b26（uiRedesign，已推送 origin；二进制与 web dist 均从独立 clone 构建，已删除 clone），vcs.modified=false。server/ 与 2.16.2 无差异。
