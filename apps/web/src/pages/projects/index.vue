@@ -26,7 +26,17 @@
                   <span class="projectTime">最近打开 {{ new Date(project.lastOpenedAt).toLocaleString(locale, { hour12: false }) }}</span>
                 </span>
               </button>
-              <div class="projectActions" :class="{ exporting: exportingDirectory === project.directory }">
+              <div class="projectActions" :class="{ exporting: exportingDirectory === project.directory || coverMenuDirectory === project.directory || coverSavingDirectory === project.directory }">
+                <el-dropdown trigger="click" :disabled="creating || opening || !!coverSavingDirectory" @visibleChange="coverMenuDirectory = $event ? project.directory : ''" @command="(command: string) => coverCommand(project, command)">
+                  <el-button circle :icon="IconPhotoEdit" :loading="coverSavingDirectory === project.directory" :disabled="creating || opening || !!coverSavingDirectory" :aria-label="`设置项目 ${project.name} 的封面`" title="自定义封面" />
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item command="upload" :icon="IconUpload">上传图片</el-dropdown-item>
+                      <el-dropdown-item command="pick" :icon="IconPhoto">从项目图片选择</el-dropdown-item>
+                      <el-dropdown-item command="reset" :icon="IconRefresh" divided>恢复自动封面</el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
                 <el-button circle :icon="IconFileZip" :loading="exportingDirectory === project.directory" :disabled="creating || opening || !!exportingDirectory" :aria-label="`打包导出项目 ${project.name}`" title="打包导出 ZIP" @click="exportProject(project)" />
                 <el-button circle :icon="IconEdit" :disabled="creating || opening || exportingDirectory === project.directory" :aria-label="`重命名项目 ${project.name}`" title="重命名" @click="renameProject(project)" />
                 <el-button circle plain type="danger" :icon="IconTrash" :disabled="creating || opening || exportingDirectory === project.directory" :aria-label="`移除项目 ${project.name}`" title="从列表移除，不删除文件" @click="workspaceStore.removeProject(project.directory)" />
@@ -37,6 +47,8 @@
       </el-main>
     </el-scrollbar>
     <workspacePicker ref="relocationPicker" hideTrigger />
+    <input ref="coverInput" type="file" accept="image/*" hidden aria-label="选择封面图片" @change="uploadCover" />
+    <projectCoverPicker :directory="pickingDirectory" @close="pickingDirectory = undefined" @saved="ElMessage.success('封面已更新')" />
   </div>
 </template>
 
@@ -46,7 +58,7 @@ import axios from "axios";
 import { storeToRefs } from "pinia";
 import { computed, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { IconEdit, IconFileZip, IconTrash } from "@tabler/icons-vue";
+import { IconEdit, IconFileZip, IconPhoto, IconPhotoEdit, IconRefresh, IconTrash, IconUpload } from "@tabler/icons-vue";
 import { useWorkspaceStore, type Project } from "@/stores/workspace";
 import useWorkspaceFiles from "@/lib/workspaceFiles";
 import saveFile from "@/lib/saveFile";
@@ -54,11 +66,18 @@ import projectCover from "@/pages/home/projectCover.vue";
 import bg from "@/pages/home/bg.vue";
 import workspacePicker from "@/pages/home/workspacePicker.vue";
 import useProjectEntry from "@/pages/home/projectEntry";
+import { clearProjectCover, setProjectCover } from "@/pages/home/projectCoverFile";
+import projectCoverPicker from "./projectCoverPicker.vue";
 
 const workspaceStore = useWorkspaceStore();
 const { projectList } = storeToRefs(workspaceStore);
 const { pageLifetime, creating, opening, relocationPicker, enterWorkspace, openProject } = useProjectEntry();
 const exportingDirectory = ref("");
+const coverMenuDirectory = ref("");
+const coverSavingDirectory = ref("");
+const pickingDirectory = ref<string>();
+const coverInput = ref<HTMLInputElement>();
+let uploadingDirectory = "";
 const sortedProjects = computed(() => [...projectList.value].sort((left, right) => right.lastOpenedAt - left.lastOpenedAt));
 
 async function exportProject(project: Project) {
@@ -80,6 +99,39 @@ async function exportProject(project: Project) {
     }
     ElMessage.error(message);
   } finally { exportingDirectory.value = ""; }
+}
+
+// 自定义封面写入项目文件夹，随项目复制、导出；恢复自动即删除该文件。
+async function changeCover(directory: string, action: () => Promise<void>, done: string) {
+  coverSavingDirectory.value = directory;
+  try {
+    await action();
+    if (!pageLifetime.signal.aborted) ElMessage.success(done);
+  } catch (error) {
+    if (pageLifetime.signal.aborted) return;
+    ElMessage.error(axios.isAxiosError<{ message?: string }>(error)
+      ? error.response?.data.message || "封面设置失败，请重试"
+      : error instanceof Error ? error.message : "封面设置失败，请重试");
+  } finally { coverSavingDirectory.value = ""; }
+}
+
+function coverCommand(project: Project, command: string) {
+  if (command === "upload") {
+    uploadingDirectory = project.directory;
+    coverInput.value?.click();
+  } else if (command === "pick") pickingDirectory.value = project.directory;
+  else if (command === "reset") void changeCover(project.directory, () => clearProjectCover(project.directory), "已恢复自动封面");
+}
+
+function uploadCover(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = "";
+  const directory = uploadingDirectory;
+  uploadingDirectory = "";
+  if (!file || !directory) return;
+  if (!file.type.startsWith("image/")) return void ElMessage.warning("请选择图片文件");
+  void changeCover(directory, () => setProjectCover(directory, file), "封面已更新");
 }
 
 async function renameProject(project: Project) {

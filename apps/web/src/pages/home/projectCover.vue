@@ -9,6 +9,7 @@
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { IconFolder } from "@tabler/icons-vue";
 import useWorkspaceFiles from "@/lib/workspaceFiles";
+import { coverRevision, projectCoverPath } from "./projectCoverFile";
 
 const props = defineProps<{ directory: string }>();
 const element = ref<HTMLElement>();
@@ -27,7 +28,7 @@ onMounted(() => {
 });
 onBeforeUnmount(() => observer?.disconnect());
 
-watch([visible, () => props.directory], async ([visible, directory], _previous, onCleanup) => {
+watch([visible, () => props.directory, () => coverRevision(props.directory)], async ([visible, directory], _previous, onCleanup) => {
   coverUrl.value = "";
   failed.value = false;
   if (!visible || !directory) return;
@@ -37,11 +38,12 @@ watch([visible, () => props.directory], async ([visible, directory], _previous, 
   const files = useWorkspaceFiles(directory);
   const directories = ["assets"];
   try {
-    // ACT: 按目录层级和文件名查找首图，找到即停止；封面仍读取原图，大图优化可改用服务端缩略图。
+    // ACT: 自定义封面优先（位于首层 assets）；否则按目录层级和文件名查找首图，找到即停止；自动封面仍读取原图，大图优化可改用服务端缩略图。
     for (let index = 0; index < directories.length && !controller.signal.aborted; index++) {
       const { entries } = await files.list(directories[index]!, controller.signal).catch(() => ({ entries: [] }));
       if (controller.signal.aborted) return;
-      const image = entries.find(entry => entry.type === "file" && /\.(avif|apng|bmp|gif|ico|jpe?g|png|svg|webp)$/i.test(entry.name));
+      const image = entries.find(entry => entry.type === "file" && entry.path === projectCoverPath)
+        ?? entries.find(entry => entry.type === "file" && /\.(avif|apng|bmp|gif|ico|jpe?g|png|svg|webp)$/i.test(entry.name));
       if (image) {
         const preview = files.acquireUrl(image.path);
         release = preview.release;

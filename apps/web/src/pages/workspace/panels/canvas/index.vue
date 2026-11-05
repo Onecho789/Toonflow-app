@@ -62,7 +62,13 @@
           :error="nodeErrors[type]"
           :loading="nodeLoads.has(type) || (nodeListLoading && !nodeTypes[type] && !nodeErrors[type])" />
       </template>
-      <background v-if="canvasId && generalSettings.canvasBackgroundMode !== 'blank'" :variant="generalSettings.canvasBackgroundMode" :gap="16" :lineWidth="0.5" patternColor="var(--canvasDotColor)" />
+      <background
+        v-if="canvasId && generalSettings.canvasBackgroundMode !== 'blank'"
+        :variant="generalSettings.canvasBackgroundMode"
+        :gap="48"
+        :size="2.3 / viewport.zoom"
+        :lineWidth="1"
+        :patternColor="generalSettings.canvasBackgroundMode === 'lines' ? 'var(--canvasLineColor)' : 'var(--canvasDotColor)'" />
       <div v-if="!canvasId" class="canvasOverlay" role="status" @contextmenu.prevent @dragover.prevent @drop.prevent>
         从左上角打开一个画布，就可以开始创作啦
       </div>
@@ -1386,13 +1392,22 @@ const defaultEdgeOptions = markRaw({
 }
 
 .canvas {
-  // 浅色下 border-color 在白底上几乎看不见，改用与深色点阵对比度相近的占位灰，深色沿用原色。
-  --canvasDotColor: var(--el-text-color-placeholder);
+  // 暖灰底色与点阵/网格配色参照 infinite-canvas 的 canvasThemes；点保持固定屏幕尺寸，图层整体 40% 透明。
+  --canvasBgColor: #f4f2ed;
+  --canvasDotColor: rgb(68 64 60 / 28%);
+  --canvasLineColor: rgb(68 64 60 / 12%);
   width: 100%;
   height: 100%;
+  background: var(--canvasBgColor);
 
   html.dark & {
-    --canvasDotColor: var(--el-border-color);
+    --canvasBgColor: #181715;
+    --canvasDotColor: rgb(245 245 244 / 24%);
+    --canvasLineColor: rgb(245 245 244 / 10%);
+  }
+
+  :deep(.vue-flow__background) {
+    opacity: 0.4;
   }
 
   &.canvasUnselected :deep(.vue-flow__viewport) {
