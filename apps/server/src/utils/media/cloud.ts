@@ -24,9 +24,19 @@ async function postJson<T>(path: string, body: unknown, signal: AbortSignal) {
   return await response.json() as T;
 }
 
+// 与云端 pixelsTier 一致：自定义像素（other.pixels）按面积归入能容纳它的最低档位计费。
+function pixelsTier(pixels: unknown) {
+  const [width = 0, height = 0] = typeof pixels === "string" ? pixels.split("x").map(Number) : [];
+  if (!width || !height) return;
+  return width * height <= 2016 * 864 ? "1K" : width * height <= 2048 * 2048 ? "2K" : "4K";
+}
+
 // 与云端网关的计费公式一致，金额单位 0.0001 元；实际以云端扣费为准。
 export function estimateCost(model: CloudModel, request: MediaGenerationRequest & ImageCount) {
-  if (model.type === "image") return Math.ceil(model.pricing.unit * ((model.meta as ImageMeta).sizePrices?.[request.size ?? ""] ?? 1)) * (request.n ?? 1);
+  if (model.type === "image") {
+    const tier = pixelsTier(request.other?.pixels) ?? request.size ?? "";
+    return Math.ceil(model.pricing.unit * ((model.meta as ImageMeta).sizePrices?.[tier] ?? 1)) * (request.n ?? 1);
+  }
   const meta = model.meta as VideoMeta;
   const audio = request.generateAudio ? meta.audioPrice ?? 1 : 1;
   return Math.ceil(model.pricing.unit * (request.duration ?? 0) * (meta.resolutionPrices?.[request.resolution ?? ""] ?? 1) * audio);
@@ -44,7 +54,7 @@ type VideoMedia = { images?: MediaInput[]; videos?: MediaInput[]; audios?: Media
 const imageAssets = (data?: { b64_json?: string; url?: string }[]) =>
   (data ?? []).flatMap((item): CloudAsset[] => item.b64_json ? [{ type: "base64", data: item.b64_json }] : item.url ? [{ type: "url", url: item.url }] : []);
 
-// other 里的模型参数（如 quality、background）原样转发给云端，固定字段放在后面，不会被覆盖；size、ratio 缺省时由上游决定。
+// other 里的模型参数（如 quality、background、自定义像素 pixels）原样转发给云端，固定字段放在后面，不会被覆盖；size、ratio 缺省时由上游决定。
 function imageBody(request: MediaGenerationRequest & ImageCount, images: MediaInput[] | undefined) {
   // model 须保持在请求体第一个字段，选分组时只读请求体开头取模型 ID。
   return Object.assign({ model: request.modelId, ...request.other }, {

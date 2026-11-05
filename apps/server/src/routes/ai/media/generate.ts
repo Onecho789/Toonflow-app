@@ -11,8 +11,8 @@ export default Router().post("/", validateFields({
 }), async (req, res) => {
   // 图片张数 n 不在工具 schema 里，单独取出校验后再与请求合并。
   const { directory, mediaType, taskId, n, ...request } = req.body;
-  if (n !== undefined && (mediaType !== "image" || !Number.isInteger(n) || n < 1 || n > 4)) {
-    res.status(400).json(error("图片张数须为 1 到 4 的整数", null, 400));
+  if (n !== undefined && (mediaType !== "image" || !Number.isInteger(n) || n < 1 || n > 8)) {
+    res.status(400).json(error("图片张数须为 1 到 8 的整数", null, 400));
     return;
   }
   const parsed = (mediaType === "image" ? imageGenerationSchema : mediaType === "video" ? videoGenerationSchema : audioGenerationSchema).safeParse(request, validationOptions());

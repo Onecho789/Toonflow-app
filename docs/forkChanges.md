@@ -945,3 +945,35 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 - 合并后实测修复（2026-11-05）：`canvasFiles.ts` 的 `remapNodeReferences` 额外换新成片时间线片段 key、分镜表 `shots[].imageNodeId` 与角色参考图 `storyboardReference.storyboardId`，导入画布与创建副本后时间线排序/时长设置和分镜表关联不再丢失。冲突时保留这段字段映射。
 
 改动的上游文件：`apps/web/src/pages/workspace/panels/canvas/components/groupNode.vue`、`canvasMenu.vue`、`index.vue`、`useCanvasTools.ts`，新增 `groupInputs.ts`；`packages/tools/canvas/src/runtime.ts`、`build.ts`、`readme.md`；`packages/i18n/src/locales/*.json` 与 `messageSources.json` 新增 22 条文案。冲突时保留组输出端口与派生隐藏连线逻辑、`canvasMenu` 暴露的 `exportCanvas`、两个新工具操作以及新增文案。
+
+## 图片工具、多图堆叠与图像设置（2026-11-05）
+
+参考 infinite-canvas 的做法。
+
+- 图片节点和图片生成节点的悬浮工具栏新增「图片信息」（文件、尺寸、比例、大小、格式、提示词复制）和「更多」菜单。菜单里有裁剪、放大、反推提示词。工具栏末尾新增「删除节点」。
+  - 裁剪：预设比例加拖拽裁剪框。
+  - 放大：前端缩放到 1K/2K/4K，可选高质量逐级 2 倍、双线性或像素风。
+  - 裁剪和放大的结果都在右侧生成新的图片节点并自动连线。
+  - 反推提示词：在下方生成预填反推指令的文本节点并连线。
+  - 没有做 AI 超分，infinite-canvas 也没有实现。
+- 多张结果改为堆叠卡片：节点背后叠最多 3 层，右上角显示「N 张 >」。点击后在节点右侧展开结果浮层，可选当前输出、查看大图、单张拆分或全部拆分。`nodeSkeleton` 新增 `#aside` 插槽和 `stackLayers` 属性；`mediaResults` 改为浮层样式，新增 `close` 事件。
+- 图像设置面板重新排版，分区并加大间距，按需滚动。分区如下：
+  - 质量：自动、高、中、低。
+  - 宽高：自定义 W×H，失焦时向上对齐到 16 的倍数，并校验 gpt-image 像素范围。
+  - 分辨率和宽高比：图标网格。
+  - 生成张数：1–8。
+  - 开关：透明背景、完成后拆分。
+  - 按钮摘要形如「自动 · 4K · 1:1 · 3 张」。
+- 参数转发：质量、透明背景、自定义像素存为 `data.quality`、`data.transparent`、`data.pixels`，因为切换模型时 `other` 会被重置。请求时合并进 `other`，转发为 `quality`、`background: "transparent"`、`pixels: "WxH"`；局部重绘不带 `pixels`。
+- 张数上限从 4 提到 8，与麦麦云一致。报价有 `other.pixels` 时按面积推算档位：不超过 2016×864 为 1K，不超过 2048² 为 2K，更大为 4K。这一规则与云端 `pixelsTier` 相同。
+
+改动的上游文件：
+- `packages/nodeScaffold/src/nodeSkeleton.vue`、`nodeAi.ts`
+- `packages/nodeShared/src/components/mediaResults.vue`
+- `packages/nodes/imageNode/src/index.vue` 与 `package.json`，新增 `./imageTools` 导出
+- `packages/nodes/imageGenerationNode/src/index.vue`、`components/generationSettings.vue`
+- `apps/server/src/routes/ai/media/{generate,price}.ts`、`apps/server/src/utils/media/cloud.ts`
+
+新增文件：`imageNode/src/useDerivedImageNode.ts`、`useReversePrompt.ts`，以及 `components/{imageTools,imageInfo,imageCrop,imageUpscale}.vue`。
+
+冲突时保留：`#aside` 和 `stackLayers`、`imageOther()` 的合并逻辑、张数上限 8、`pixels` 计价。

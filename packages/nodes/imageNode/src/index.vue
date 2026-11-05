@@ -24,6 +24,7 @@
         title="替换图片"
         aria-label="替换图片"
         @click.stop="fileInput?.click()">替换图片</el-button>
+      <imageTools ref="tools" :src="previewUrl" :source="outputFile" :active="node.selected" :disabled="uploading || editor?.busy || lighting?.generating || multiAngle?.generating || panorama?.busy || gridSplit?.splitting" />
     </template>
     <template #topRightActions>
       <el-button :icon="IconPencil" :disabled="uploading || lighting?.generating || multiAngle?.generating || panorama?.busy || !previewUrl || gridSplit?.splitting" text title="标记" aria-label="标记" @click.stop="startEditor('mark')" />
@@ -76,6 +77,7 @@ import imageInpaintPrompt from "./components/imageInpaintPrompt.vue";
 import imageLighting from "./components/imageLighting.vue";
 import imagePanorama from "./components/imagePanorama.vue";
 import imageMultiAngle from "./components/imageMultiAngle.vue";
+import imageTools from "./components/imageTools.vue";
 import type { InpaintDraftInput } from "./imageInpaint";
 
 defineOptions({
@@ -103,6 +105,7 @@ const multiAngleTarget = ref<HTMLElement>();
 const multiAngleVisible = ref(false);
 const panorama = ref<InstanceType<typeof imagePanorama>>();
 const uploading = ref(false);
+const tools = ref<InstanceType<typeof imageTools>>();
 const previewVisible = ref(false);
 const imageWidth = ref(0);
 
@@ -116,6 +119,7 @@ nodeEvent.on("save", () => {
   if (uploading.value || editor.value?.busy || inpaintPrompt.value?.creating || lighting.value?.generating || multiAngle.value?.generating || panorama.value?.busy) throw new Error("图片处理中，请完成后再切换或刷新节点");
 });
 nodeEvent.on("delete", () => {
+  if (tools.value?.busy) throw new Error("图片处理中，请稍后删除节点");
   if (uploading.value || editor.value?.busy || inpaintPrompt.value?.creating || lighting.value?.generating || multiAngle.value?.generating || panorama.value?.busy) throw new Error("图片处理中，请稍后删除节点");
   uploading.value = true;
   return files.removeNodeFiles().finally(() => {

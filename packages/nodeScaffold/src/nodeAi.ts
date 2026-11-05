@@ -34,7 +34,7 @@ export type NodeImageRequest = {
   images?: { path: string; mimeType: string }[];
   ratio?: string;
   size?: string;
-  // 一次生成的图片张数，缺省 1 张，服务端限制 1–4。
+  // 一次生成的图片张数，缺省 1 张，服务端限制 1–8。
   n?: number;
   other?: Record<string, unknown>;
 };

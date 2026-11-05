@@ -72,6 +72,11 @@
                 @click.stop="emit('fullscreen')">全屏</el-button>
             </span>
           </el-tooltip>
+          <el-tooltip content="删除节点" :showArrow="false" :enterable="false" :triggerKeys="[]">
+            <span class="toolbarAction">
+              <el-button :icon="IconTrash" :loading="deleting" text type="danger" aria-label="删除节点" @click.stop="deleteNode" />
+            </span>
+          </el-tooltip>
         </el-card>
       </slot>
     </div>
@@ -85,6 +90,16 @@
       @keydown.stop
       @contextmenu.stop>
       <slot name="bottom" />
+    </div>
+    <div
+      v-if="!readOnly && !documentTarget && $slots.aside"
+      class="floatingSlot asideSlot nodrag nopan nowheel"
+      @pointerdown.stop
+      @mousedown.stop
+      @dblclick.stop
+      @keydown.stop
+      @contextmenu.stop>
+      <slot name="aside" />
     </div>
     <div v-show="!documentTarget" class="titleBar">
       <component :is="icon ?? IconBox" class="titleIcon" :size="16" aria-hidden="true" />
@@ -124,6 +139,13 @@
       </div>
     </div>
     <div class="cardContainer">
+      <!-- 批量结果叠卡：卡片后面错位的阴影层，最多 3 层。 -->
+      <div
+        v-for="layer in documentTarget ? 0 : Math.min(stackLayers, 3)"
+        :key="layer"
+        class="stackLayer"
+        :style="{ transform: `translate(${layer * 5}px, ${-layer * 5}px) rotate(${layer * 1.2}deg)`, zIndex: -layer }"
+        aria-hidden="true" />
       <el-card
         class="contentCard"
         :class="{ selected: node.selected }"
@@ -223,6 +245,8 @@ const props = withDefaults(
       downloadUrl?: string;
       downloadName?: string;
       fullscreenVisible?: boolean;
+      // 卡片后叠放的阴影层数，用来表示批量结果。
+      stackLayers?: number;
     }
   >(),
   {
@@ -232,6 +256,7 @@ const props = withDefaults(
     previewReady: true,
     readOnly: false,
     fullscreenVisible: true,
+    stackLayers: 0,
     topWidth: "20vw",
     bottomWidth: "20vw",
   }
@@ -757,6 +782,12 @@ watch(
     &.bottomSlot {
       top: calc(100% + 12px);
     }
+    /* 越过右侧连接点，顶部与卡片对齐。 */
+    &.asideSlot {
+      top: 28px;
+      left: calc(100% + 28px);
+      transform: none;
+    }
 
     .mediaToolbar {
       &:deep(.el-button) {
@@ -841,6 +872,18 @@ watch(
 
   .cardContainer {
     position: relative;
+    isolation: isolate;
+
+    .stackLayer {
+      position: absolute;
+      inset: 0;
+      border: 1px solid var(--el-border-color-light);
+      border-radius: var(--el-card-border-radius, 4px);
+      background: var(--el-bg-color);
+      box-shadow: 0 6px 18px rgb(0 0 0 / 8%);
+      transform-origin: 50% 100%;
+      pointer-events: none;
+    }
 
     .resizeCorner {
       position: absolute;
