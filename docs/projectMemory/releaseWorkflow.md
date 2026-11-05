@@ -1,6 +1,6 @@
 # 麦麦打包、发布与部署
 
-2026-11-03 从旧对话、旧记忆和实际源码整理，2026-11-04 补充桌面 2.1.3、2.1.4、2.1.5、2.1.6、2.1.7 本地安装包交付记录及云端 2.12.0-20261104、2.13.0-20261105、2.14.0-20261105、2.14.1-20261105、2.15.0-20261105 发布。
+2026-11-03 从旧对话、旧记忆和实际源码整理，2026-11-04 补充桌面 2.1.3、2.1.4、2.1.5、2.1.6、2.1.7、2.1.8 本地安装包交付记录及云端 2.12.0-20261104、2.13.0-20261105、2.14.0-20261105、2.14.1-20261105、2.15.0-20261105、2.15.1-20261105 发布。
 
 ## 工作目录与记忆
 
@@ -16,7 +16,7 @@
 
 两个子目录分别管理 Git。根目录继续作为共享记忆维护入口；根级 AGENTS.md 与 docs/ 下的 releaseWorkflow.md、maimaiCloud.md、localEnvNotes.md 同步到两个仓库的 docs/projectMemory/ 并分别提交、推送，单独克隆时可从该目录的 readme.md 查看。每次更新共享记忆后同步两份副本；docs/history/ 中的历史证据与构建日志另作本机备份。
 
-当前桌面本地安装包为 **2.1.7**，提交 40a134c，分支 codex/simplifyMediaModels；上次公开发布为 2.1.0。云端版本为 **2.15.0-20261105**，提交 4ba121bf0d623b4a8736dd2b77d96bca7fe22d8f，分支 goRewrite。两个版本号各自维护，后续先读实际 HEAD、分支和工作区。
+当前桌面本地安装包为 **2.1.8**，提交 cc5ba52，分支 codex/simplifyMediaModels；上次公开发布为 2.1.0。云端版本为 **2.15.1-20261105**，提交 6b6579ff7a3c83c11c25f1f60d562ea72d111353，分支 goRewrite。两个版本号各自维护，后续先读实际 HEAD、分支和工作区。
 
 ## Windows 桌面打包
 
@@ -85,6 +85,17 @@ bun run release:desktop <新的桌面版本> --initial
 - 本次为本地安装包交付；GitHub 公开版本仍为 2.1.0，更新源仍为空。安装器留给用户运行测试，原有 AGENTS.md 修改保留。
 - 构建日志、原始/修改后版本配置、差异及副本回退证据：`docs/history/canvasDesktop21320261104/`。ROLLBACK.sh 仅在独立配置副本恢复 app.version=2.1.2，SHA256 与原始配置一致；实际源码和产物保持 2.1.3，不更换已安装程序。
 - 旧 2.1.2 安装包保留在其原快照目录；打包前已核对 SHA256 与旧记录一致。共享记忆修改前副本保存在本轮证据目录的 memoryBefore/。
+
+### 本地完整安装包 2.1.8（2026-11-05）
+
+- 源码提交：cc5ba52（版本），功能提交 4d657b0，分支 codex/simplifyMediaModels。内容：图片像素补齐改用 infinite-canvas 固定尺寸表，表外按 gpt-image 约束换算，通用比例补 9:21，与云端 2.15.1-20261105 配套。
+- 构建命令：`bun run release:desktop 2.1.8 --initial`，退出 0。环境：PATH 前置 System32。微软短链首次 ECONNRESET，curl 取 301 也握手失败，改用 2.1.7 记录的 CDN 地址传入 `webView2BootstrapperUrl`（先确认 HTTP 200），脚本照常校验微软签名。
+- 版本快照：D:\2api-codes\maimai\client\build\desktop\releases\2.1.8。
+- 安装包：`MaiMaiStudio-2.1.8-Setup.exe`，55,604,248 字节；SHA256 `5ec61d202d8997a8f4d2bec1a72dd113c8c9c0380f4815fcae731cb0612ccd0d`。
+- 更新归档：`stable-win-x64-MaiMaiStudio.tar.zst`，58,268,447 字节；SHA256 `e27c293bcd8c5e89527aa7fc5f918fe10af2f31da17c4419931c1a9d3727a9a1`。
+- 更新清单：`stable-win-x64-update.json`，208 字节；SHA256 `021cdd7ab037d151e5444cdee49dbdd2b735f5c42246f234d1b618e65be06502`；version=2.1.8、stable/win/x64、hash=x8zkapnhcppb。
+- 验证：打包前 server tsc 退出 0；快照与 artifacts 逐字节一致；解压归档共 1729 项，version.json 为 2.1.8，app/bun/index.js 含新尺寸表（2016x864）；未运行安装器。
+- 本次为本地安装包交付；GitHub 公开版本仍为 2.1.0，更新源仍为空。router.ts、components.d.ts 的工作区漂移未提交。构建日志 docs/history/sizeTableRelease20261105/desktopBuild218.log。回退方式：安装 2.1.7 快照中的安装包。
 
 ### 本地完整安装包 2.1.7（2026-11-05）
 
@@ -194,7 +205,7 @@ docker compose -f docker-compose.yml up -d --no-deps --wait --wait-timeout 60 --
 
 每次成功发布后更新 maimaiCloud.md 与本文件，并保存本次版本的构建、发布、验收和回退证据。
 
-2.15.0 发布构建上下文 D:\2api-codes\maimai\cloud\build\release215020261105，证据 docs/history/mediaDefaultsRelease20261105/（releaseRun.sh 为一次性发布脚本，remoteRun.py 用 DPAPI 凭据经 Paramiko 执行，可作下次模板）；当前可回退镜像是 2.14.1-20261105；备份 /opt/maimai-cloud/backups/mediaDefaultsRelease20261105；本次无迁移。2.14.1 发布构建上下文 D:\2api-codes\maimai\cloud\build\release214120261105，证据 docs/history/maxOutputRelease20261105/。其可回退镜像是 2.14.0-20261105；备份 /opt/maimai-cloud/backups/maxOutputRelease20261105；迁移 64 清除 meta.maxOutputTokens，回退后该字段为空。2.14.0 发布构建上下文 D:\2api-codes\maimai\cloud\build\release214020261105，证据 docs/history/cachePricingRelease20261105/，其可回退镜像是 2.13.0-20261105；备份 /opt/maimai-cloud/backups/cachePricingRelease20261105，回退脚本同目录；迁移 62-63 只加列，回退旧镜像时列保留、缓存价不再生效。2.13.0 发布构建上下文 D:\2api-codes\maimai\cloud\build\release20261105，证据 docs/history/anthropicRelease20261105/，其可回退镜像是 2.12.0-20261104；备份 /opt/maimai-cloud/backups/anthropicRelease20261105，回退脚本同目录；本次无迁移。2.12.0 构建上下文 cloud\build\release20261104，证据 docs/history/pricingRelease20261104/，其可回退镜像是 2.11.0-20261103；备份 /opt/maimai-cloud/backups/pricingRelease20261104。2.12.0 起有迁移 57-61（model_pricing），回退旧镜像时新表保留、旧价格列仍可用。更早的可回退镜像是 2.10.3-202611030129；备份 /opt/maimai-cloud/backups/mailangRelease20261103。历史 releaseRollback.sh 固定了当次旧/新镜像与 envBefore/envAfter，不能直接用于未来新版本。它只恢复 IMAGE 并重建 app，保留新增表、兑换码、协议和账目，不自动恢复数据库。上次只验证过回退脚本语法，未执行生产回退。
+2.15.1 发布构建上下文 D:\2api-codes\maimai\cloud\build\release215120261105，证据 docs/history/sizeTableRelease20261105/（releaseRun.sh 为一次性发布脚本，remoteRun.py 用 DPAPI 凭据经 Paramiko 执行，可作下次模板）；当前可回退镜像是 2.15.0-20261105；备份 /opt/maimai-cloud/backups/sizeTableRelease20261105；本次无迁移。2.15.0 发布构建上下文 D:\2api-codes\maimai\cloud\build\release215020261105，证据 docs/history/mediaDefaultsRelease20261105/；其可回退镜像是 2.14.1-20261105；备份 /opt/maimai-cloud/backups/mediaDefaultsRelease20261105；本次无迁移。2.14.1 发布构建上下文 D:\2api-codes\maimai\cloud\build\release214120261105，证据 docs/history/maxOutputRelease20261105/。其可回退镜像是 2.14.0-20261105；备份 /opt/maimai-cloud/backups/maxOutputRelease20261105；迁移 64 清除 meta.maxOutputTokens，回退后该字段为空。2.14.0 发布构建上下文 D:\2api-codes\maimai\cloud\build\release214020261105，证据 docs/history/cachePricingRelease20261105/，其可回退镜像是 2.13.0-20261105；备份 /opt/maimai-cloud/backups/cachePricingRelease20261105，回退脚本同目录；迁移 62-63 只加列，回退旧镜像时列保留、缓存价不再生效。2.13.0 发布构建上下文 D:\2api-codes\maimai\cloud\build\release20261105，证据 docs/history/anthropicRelease20261105/，其可回退镜像是 2.12.0-20261104；备份 /opt/maimai-cloud/backups/anthropicRelease20261105，回退脚本同目录；本次无迁移。2.12.0 构建上下文 cloud\build\release20261104，证据 docs/history/pricingRelease20261104/，其可回退镜像是 2.11.0-20261103；备份 /opt/maimai-cloud/backups/pricingRelease20261104。2.12.0 起有迁移 57-61（model_pricing），回退旧镜像时新表保留、旧价格列仍可用。更早的可回退镜像是 2.10.3-202611030129；备份 /opt/maimai-cloud/backups/mailangRelease20261103。历史 releaseRollback.sh 固定了当次旧/新镜像与 envBefore/envAfter，不能直接用于未来新版本。它只恢复 IMAGE 并重建 app，保留新增表、兑换码、协议和账目，不自动恢复数据库。上次只验证过回退脚本语法，未执行生产回退。
 
 ## 保留与整理
 
