@@ -88,7 +88,7 @@ bun run release:desktop <新的桌面版本> --initial
 
 ### 本地完整安装包 2.1.11（2026-11-05）
 
-- 源码提交：21cb7da（版本），功能提交 17a20f7，分支 codex/simplifyMediaModels，未推送。内容：画布背景改用 infinite-canvas 配色（暖灰底色、半透明点阵/网格、间距 48、点固定屏幕尺寸）、项目自定义封面。
+- 源码提交：21cb7da（版本），功能提交 17a20f7，分支 codex/simplifyMediaModels，已推送 origin（至 7e9505c）。内容：画布背景改用 infinite-canvas 配色（暖灰底色、半透明点阵/网格、间距 48、点固定屏幕尺寸）、项目自定义封面。
 - 构建命令：`bun run release:desktop 2.1.11 --initial`，退出 0。首次因 go.microsoft.com 短链 ECONNRESET 失败（日志 build-attempt1-ECONNRESET.log），第二次用 curl 取得的 CDN 地址传入 `webView2BootstrapperUrl` 成功；均去掉代理变量、PATH 前置 System32。
 - 版本快照：D:\2api-codes\maimai\client\build\desktop\releases\2.1.11。
 - 安装包：`MaiMaiStudio-2.1.11-Setup.exe`，66,446,615 字节；SHA256 `7fbfd54b597dff2b9287f72efb6729cf8fb90be2f4f819382f72428b71ce7d3f`。
