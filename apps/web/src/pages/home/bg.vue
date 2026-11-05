@@ -2,7 +2,7 @@
   <div class="cosmicBg" aria-hidden="true" :style="{ background: scene.background(isDark) }">
     <canvas ref="softCanvas" class="soft" />
     <canvas ref="crispCanvas" class="crisp" />
-    <div class="grain" :style="{ backgroundImage: grainUrl, opacity: scene.grain }" />
+    <div class="grain" :style="{ backgroundImage: grainUrl, opacity: isDark ? scene.grain * 0.5 : scene.grain }" />
   </div>
 </template>
 

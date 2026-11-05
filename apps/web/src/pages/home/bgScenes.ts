@@ -66,7 +66,8 @@ function dawnScene(): BgScene {
     hue: Math.random() < 0.18 ? random(335, 350) : random(30, 48), speed: random(10, 34), sway: random(6, 22), phase: random(0, Math.PI * 2), depth: Math.random(),
   });
   return {
-    background: dark => dark ? "linear-gradient(180deg,#100a1e 0%,#22112a 55%,#3a1828 100%)" : "linear-gradient(180deg,#fffaf2 0%,#fff0e0 60%,#ffe0cc 100%)",
+    // 深色用暖炭灰入夜，不再铺紫红底，暖阳只在底部留一抹余晖。
+    background: dark => dark ? "linear-gradient(180deg,#0f0d0b 0%,#16120f 55%,#231711 100%)" : "linear-gradient(180deg,#fffaf2 0%,#fff0e0 60%,#ffe0cc 100%)",
     grain: 0.4,
     glow: "rgba(255,217,160,1)",
     init(view) {
@@ -82,7 +83,7 @@ function dawnScene(): BgScene {
       sun.addColorStop(0.3, "rgba(255,154,98,0.75)");
       sun.addColorStop(0.6, "rgba(255,111,145,0.3)");
       sun.addColorStop(1, "rgba(255,111,145,0)");
-      c.globalAlpha = (dark ? 0.62 : 0.5) * (0.85 + 0.15 * Math.sin(time * 0.6));
+      c.globalAlpha = (dark ? 0.38 : 0.5) * (0.85 + 0.15 * Math.sin(time * 0.6));
       c.fillStyle = sun;
       c.fillRect(-softPad, -softPad, width + softPad * 2, height + softPad * 2);
       // 太阳放射出的光芒，缓慢摆动、明暗交替。
@@ -92,7 +93,7 @@ function dawnScene(): BgScene {
       c.fillStyle = "rgba(255,226,170,1)";
       for (let index = 0; index < 9; index++) {
         const angle = -Math.PI * (0.12 + index * 0.095);
-        c.globalAlpha = (dark ? 0.1 : 0.12) * (0.6 + 0.4 * Math.sin(time * 0.7 + index * 1.7));
+        c.globalAlpha = (dark ? 0.06 : 0.12) * (0.6 + 0.4 * Math.sin(time * 0.7 + index * 1.7));
         c.beginPath();
         c.moveTo(0, 0);
         c.lineTo(Math.cos(angle - 0.025) * size * 1.3, Math.sin(angle - 0.025) * size * 1.3);
@@ -101,8 +102,8 @@ function dawnScene(): BgScene {
         c.fill();
       }
       c.restore();
-      radialBlob(c, width * (0.15 + Math.sin(time * 0.05) * 0.05), height * 0.2, size * 0.4, "rgba(255,143,177,1)", dark ? 0.22 : 0.2);
-      radialBlob(c, width * (0.85 + Math.cos(time * 0.04) * 0.05), height * 0.25, size * 0.38, "rgba(183,156,255,1)", dark ? 0.2 : 0.18);
+      radialBlob(c, width * (0.15 + Math.sin(time * 0.05) * 0.05), height * 0.2, size * 0.4, "rgba(255,143,177,1)", dark ? 0.08 : 0.2);
+      radialBlob(c, width * (0.85 + Math.cos(time * 0.04) * 0.05), height * 0.25, size * 0.38, "rgba(183,156,255,1)", dark ? 0.06 : 0.18);
     },
     crisp(c, view, delta) {
       c.globalCompositeOperation = view.dark ? "lighter" : "source-over";
@@ -123,7 +124,86 @@ function dawnScene(): BgScene {
   };
 }
 
-// 流星许愿：靛紫星空、斜挂的银河，流星不时划过洒下星尘，指针移动也会留下星尘。
+// 深色流星许愿的静态星空：藏蓝夜空、由底部粉紫斜升到右上蓝紫的云纹银河、暗尘带与密集星点。
+// ACT: 首次用到时在 1920×1200 离屏画布画一次并缓存为图片，按 cover 铺满；超大屏会略微放大，以后可按屏幕尺寸分档生成。
+let meteorSky = "";
+function meteorSkyImage() {
+  if (meteorSky) return meteorSky;
+  const width = 1920, height = 1200;
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const c = canvas.getContext("2d");
+  if (!c) return "";
+  const base = c.createLinearGradient(0, 0, 0, height);
+  base.addColorStop(0, "#03041a");
+  base.addColorStop(0.55, "#0b0c35");
+  base.addColorStop(1, "#1c1442");
+  c.fillStyle = base;
+  c.fillRect(0, 0, width, height);
+  const gauss = () => (Math.random() + Math.random() + Math.random() - 1.5) / 1.5;
+  // 银河沿一条从底部中间升到右上的曲线，t=0 在底部偏粉，t=1 在顶部偏蓝。
+  const band = (t: number) => {
+    const x = width * (0.46 + 0.26 * t + 0.05 * Math.sin(t * Math.PI * 1.6)), y = height * (1.08 - 1.16 * t);
+    const dx = width * 0.26 + width * 0.05 * Math.PI * 1.6 * Math.cos(t * Math.PI * 1.6), dy = -height * 1.16;
+    const length = Math.hypot(dx, dy);
+    return { x, y, nx: -dy / length, ny: dx / length, spread: width * (0.3 - 0.08 * t) };
+  };
+  c.globalCompositeOperation = "lighter";
+  radialBlob(c, width * 0.22, height * 0.12, width * 0.28, "rgba(60,90,200,1)", 0.22);
+  radialBlob(c, width * 0.47, height * 1.12, width * 0.5, "rgba(255,140,205,1)", 0.4);
+  radialBlob(c, width * 0.6, height * 0.5, width * 0.4, "rgba(110,90,230,1)", 0.22);
+  radialBlob(c, width * 0.68, height * 0.15, width * 0.25, "rgba(90,100,255,1)", 0.25);
+  for (let index = 0; index < 1400; index++) {
+    const t = Math.random(), point = band(t), offset = gauss() * point.spread;
+    const hue = 325 - t * 92 + random(-12, 12);
+    const r = random(18, 85) * (1.15 - Math.abs(offset) / point.spread * 0.6);
+    radialBlob(c, point.x + point.nx * offset, point.y + point.ny * offset, r, hsla(hue, 80, random(62, 78), 1), random(0.03, 0.075));
+  }
+  // 云团内的小亮结，让银河呈现棉絮般的纹理。
+  for (let index = 0; index < 500; index++) {
+    const t = Math.random(), point = band(t), offset = gauss() * point.spread * 0.8;
+    radialBlob(c, point.x + point.nx * offset, point.y + point.ny * offset, random(5, 18), hsla(325 - t * 92, 70, 82, 1), random(0.06, 0.14));
+  }
+  // 暗尘带沿银河中线略偏一侧，切出深色裂隙。
+  c.globalCompositeOperation = "source-over";
+  for (let index = 0; index < 420; index++) {
+    const t = random(0.08, 0.9), point = band(t), offset = (gauss() * 0.35 - 0.12) * point.spread;
+    radialBlob(c, point.x + point.nx * offset, point.y + point.ny * offset, random(10, 46), "rgba(8,8,32,1)", random(0.08, 0.2));
+  }
+  // 星点：全屏均匀铺一层，银河内再加密一层；少数亮星带光晕。
+  c.globalCompositeOperation = "lighter";
+  const star = (x: number, y: number) => {
+    const r = Math.random() ** 3 * 1.3 + 0.35;
+    const tint = pick(["255,255,255", "255,255,255", "215,225,255", "255,215,240"]);
+    c.fillStyle = `rgba(${tint},${random(0.45, 1)})`;
+    c.beginPath();
+    c.arc(x, y, r, 0, Math.PI * 2);
+    c.fill();
+    if (r > 1.35) radialBlob(c, x, y, r * 4, `rgba(${tint},1)`, 0.35);
+  };
+  for (let index = 0; index < 2600; index++) star(random(0, width), random(0, height));
+  for (let index = 0; index < 1400; index++) {
+    const t = Math.random(), point = band(t), offset = gauss() * point.spread;
+    star(point.x + point.nx * offset, point.y + point.ny * offset);
+  }
+  // 银河里一颗带十字星芒的亮星。
+  const brightX = width * 0.62, brightY = height * 0.4;
+  radialBlob(c, brightX, brightY, 60, "rgba(220,215,255,1)", 0.55);
+  radialBlob(c, brightX, brightY, 12, "rgba(255,255,255,1)", 1);
+  for (const [dx, dy, length] of [[1, 0, 150], [0, 1, 110]] as const) {
+    const flare = c.createLinearGradient(brightX - dx * length, brightY - dy * length, brightX + dx * length, brightY + dy * length);
+    flare.addColorStop(0, "rgba(220,215,255,0)");
+    flare.addColorStop(0.5, "rgba(240,238,255,0.7)");
+    flare.addColorStop(1, "rgba(220,215,255,0)");
+    c.fillStyle = flare;
+    c.fillRect(brightX - dx * length - dy, brightY - dy * length - dx, dx * length * 2 + dy * 2, dy * length * 2 + dx * 2);
+  }
+  meteorSky = canvas.toDataURL("image/webp", 0.92);
+  return meteorSky;
+}
+
+// 流星许愿：深色为静态银河星空，浅色为淡彩晨空；流星不时划过洒下星尘，指针移动也会留下星尘。
 function meteorScene(): BgScene {
   type Star = { x: number; y: number; r: number; phase: number; speed: number; tone: number };
   type Meteor = { x: number; y: number; dx: number; dy: number; speed: number; length: number; life: number };
@@ -133,7 +213,7 @@ function meteorScene(): BgScene {
   let dust: Dust[] = [];
   let nextMeteor = 1;
   return {
-    background: dark => dark ? "linear-gradient(180deg,#05061a 0%,#0d0b2e 50%,#2a1245 100%)" : "linear-gradient(180deg,#e9eeff 0%,#f3eaff 55%,#ffe6f1 100%)",
+    background: dark => dark ? `url(${meteorSkyImage()}) center / cover no-repeat, #05061c` : "linear-gradient(180deg,#e9eeff 0%,#f3eaff 55%,#ffe6f1 100%)",
     grain: 0.35,
     init({ width, height, time }) {
       stars = Array.from({ length: Math.min(420, Math.round(width * height / 4200)) }, () => ({
@@ -150,13 +230,19 @@ function meteorScene(): BgScene {
       }
     },
     soft(c, { width, height, time, dark }) {
-      c.globalCompositeOperation = dark ? "lighter" : "source-over";
       const size = Math.max(width, height);
+      if (dark) {
+        // 星空图是静态的，这里只让银河核心和底部粉光缓慢呼吸。
+        c.globalCompositeOperation = "lighter";
+        radialBlob(c, width * 0.6, height * 0.45, size * 0.3, "rgba(130,110,255,1)", 0.08 + Math.sin(time * 0.4) * 0.04);
+        radialBlob(c, width * 0.48, height * 1.05, size * 0.35, "rgba(255,140,210,1)", 0.08 + Math.sin(time * 0.3 + 1) * 0.04);
+        return;
+      }
       const horizon = c.createRadialGradient(width * 0.5, height * 1.15, 0, width * 0.5, height * 1.15, size * 0.8);
       horizon.addColorStop(0, "rgba(255,126,182,1)");
       horizon.addColorStop(0.45, "rgba(124,92,255,0.45)");
       horizon.addColorStop(1, "rgba(124,92,255,0)");
-      c.globalAlpha = (dark ? 0.5 : 0.4) * (0.9 + 0.1 * Math.sin(time * 0.5));
+      c.globalAlpha = 0.4 * (0.9 + 0.1 * Math.sin(time * 0.5));
       c.fillStyle = horizon;
       c.fillRect(-softPad, -softPad, width + softPad * 2, height + softPad * 2);
       // 斜挂的银河带。
@@ -164,13 +250,15 @@ function meteorScene(): BgScene {
       c.translate(width * 0.55, height * 0.4);
       c.rotate(-0.55);
       c.scale(1, 0.18);
-      radialBlob(c, 0, 0, size * 0.7, dark ? "rgba(200,180,255,1)" : "rgba(160,130,255,1)", dark ? 0.22 : 0.16);
+      radialBlob(c, 0, 0, size * 0.7, "rgba(160,130,255,1)", 0.16);
       c.restore();
     },
     crisp(c, { width, height, time, dark }, delta) {
       const tones = dark ? ["255,255,255", "255,230,160", "170,215,255"] : ["120,100,220", "220,150,60", "80,140,230"];
       c.globalCompositeOperation = "source-over";
-      for (const star of stars) {
+      for (const [index, star] of stars.entries()) {
+        // 深色星空图里已有密集静态星点，动态闪烁星只画三分之一。
+        if (dark && index % 3) continue;
         const alpha = (0.3 + 0.7 * (0.5 + 0.5 * Math.sin(time * 1.6 * star.speed + star.phase))) * (dark ? 1 : 0.5);
         c.fillStyle = `rgba(${tones[star.tone]},${alpha})`;
         c.beginPath();
@@ -228,7 +316,8 @@ function nebulaScene(): BgScene {
   let streaks: Streak[] = [];
   let nextStreak = 1.2;
   return {
-    background: dark => dark ? "radial-gradient(130% 100% at 50% 0%,#1d1446 0%,#0e0b2a 45%,#07061a 100%)" : "radial-gradient(130% 100% at 50% 0%,#ffffff 0%,#f6f2ff 50%,#eef3ff 100%)",
+    // 深色用近中性的石墨底，星云与光束减半，颜色只作点缀。
+    background: dark => dark ? "radial-gradient(130% 100% at 50% 0%,#15141d 0%,#0d0d13 45%,#08080c 100%)" : "radial-gradient(130% 100% at 50% 0%,#ffffff 0%,#f6f2ff 50%,#eef3ff 100%)",
     grain: 0.35,
     glow: "rgba(201,181,255,1)",
     init({ width, height, time }) {
@@ -248,9 +337,9 @@ function nebulaScene(): BgScene {
         { x: 0.45 + Math.sin(time * 0.03 + 2) * 0.08, y: 0.55 + Math.cos(time * 0.025) * 0.06, r: 0.5, color: "rgba(157,123,255,1)", alpha: 0.28 },
         { x: 0.3 + Math.cos(time * 0.04 + 1) * 0.05, y: 0.15, r: 0.3, color: "rgba(255,210,122,1)", alpha: 0.16 },
       ];
-      for (const cloud of clouds) radialBlob(c, cloud.x * width, cloud.y * height, cloud.r * size, cloud.color, cloud.alpha * (dark ? 1 : 0.7));
+      for (const cloud of clouds) radialBlob(c, cloud.x * width, cloud.y * height, cloud.r * size, cloud.color, cloud.alpha * (dark ? 0.5 : 0.7));
       // 标题后方的柔光，让视线先落在中间。
-      if (dark) radialBlob(c, width * 0.5, height * 0.32, size * 0.32, "rgba(255,236,250,1)", 0.12 + Math.sin(time * 0.5) * 0.03);
+      if (dark) radialBlob(c, width * 0.5, height * 0.32, size * 0.32, "rgba(255,236,250,1)", 0.06 + Math.sin(time * 0.5) * 0.02);
       // 两道斜切光束，亮度缓慢呼吸。
       for (const [index, [offset, color]] of ([[0.32, "255,150,200"], [0.64, "120,200,255"]] as const).entries()) {
         const pulse = 0.5 + Math.sin(time * 0.4 + index * 2.1) * 0.5;
@@ -262,7 +351,7 @@ function nebulaScene(): BgScene {
         gradient.addColorStop(0, `rgba(${color},0)`);
         gradient.addColorStop(0.5, `rgba(${color},1)`);
         gradient.addColorStop(1, `rgba(${color},0)`);
-        c.globalAlpha = (dark ? 0.14 : 0.1) * (0.5 + pulse * 0.5);
+        c.globalAlpha = (dark ? 0.07 : 0.1) * (0.5 + pulse * 0.5);
         c.fillStyle = gradient;
         c.fillRect(-beam, -height * 1.2, beam * 2, height * 2.4);
         c.restore();

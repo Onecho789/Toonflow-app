@@ -747,6 +747,8 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 - 日期：2026-11-01
 - 首页、项目页、工作台背景提供三种样式：晨曦麦浪（暖阳、光芒、上飘花粉）、流星许愿（星空、银河、流星与星尘，指针移动留下星尘）、星云穿梭（原粒子穿梭换成粉紫蓝金配色）。界面设置新增「背景样式」，存为 `ui.background`（`dawn` / `meteor` / `nebula`）。默认界面为浅色 + 流星许愿（`defaultUiSettings` 的 `theme: "light"`、`background: "meteor"`，上游默认深色）
 - 画布背景改用 infinite-canvas 的配色（2026-11-05）：暖灰底色 `--canvasBgColor`（浅 `#f4f2ed` / 深 `#181715`），点阵 `--canvasDotColor`、网格 `--canvasLineColor` 为半透明暖灰，背景层整体 40% 透明；间距 48、点固定 1.15px 屏幕半径（`size` 按缩放反算）、网格线 1px。改动上游文件 `pages/workspace/panels/canvas/index.vue`，冲突时保留上游并补回 `<background>` 的 `gap`/`size`/`lineWidth`/`patternColor` 与这三个变量
+- 深色三套背景调淡（2026-11-05）：底色由饱和紫红换成近中性的暖炭灰（晨曦）、蓝黑夜空（流星）、石墨（星云）；柔光、光芒、光束约减半，深色颗粒减半。浅色不变
+- 深色流星许愿改为程序生成的静态银河星空（`meteorSkyImage`）：藏蓝夜空、由底部粉紫斜升到右上蓝紫的云纹银河、暗尘带、约 4000 颗星点与一颗十字星芒亮星；首次使用时在 1920×1200 离屏画布画一次（约 0.3 秒）并缓存为 WebP，按 cover 铺满。柔光层只保留银河核心与底部粉光呼吸，动态闪烁星减为三分之一，流星与星尘不变
 - 场景代码在新增的 `pages/home/bgScenes.ts`；`bg.vue` 改为柔光层（1/4 分辨率画布 + CSS 模糊）与清晰层两张画布，每个场景自带深浅两套底色。`still`、滚动视差（仅柔光层）、40fps 上限、减少动态效果、页面隐藏暂停等行为保留
 
 改动的上游文件：`stores/settings.ts` 的 `defaultUiSettings`、`uiSettings` 加 `background`；`components/settings/panels/ui.vue` 加「背景样式」一节。`pages/home/bg.vue` 为 Fork 文件。冲突时保留上游改动并补回 `background` 字段与该节。
