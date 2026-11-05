@@ -10,7 +10,7 @@ const nodeKinds = {
 // 把生成结果拆成独立的图片或视频节点，放在当前节点右侧依次向下排列。
 export function useResultNodes(mediaType: "image" | "video") {
   const { id, node } = useNode();
-  const { addNodes, addEdges, removeNodes, findNode, getNodes, edges, nodeTypes } = useVueFlow();
+  const { addNodes, addEdges, removeNodes, findNode, getNodes, edges, nodeTypes, removeSelectedElements, addSelectedNodes } = useVueFlow();
   const batchHistory = inject<(action: () => Promise<void>) => Promise<void>>("batchCanvasHistory", action => action());
   const kind = nodeKinds[mediaType];
 
@@ -54,7 +54,8 @@ export function useResultNodes(mediaType: "image" | "video") {
     return ids;
   }
 
-  // 参照 infinite-canvas 的「创建副本」：复制当前生成节点的提示词、模型和设置，连上相同的参考输入，输出换成选中的那张结果，放在节点右侧。
+  // 参照 infinite-canvas 的「创建副本」：复制当前生成节点的提示词、模型和设置，连上相同的参考输入，输出换成选中的那张结果。
+  // 放在节点下方（右侧是批量结果展开区），创建后选中副本，让它抬到最上层。
   async function duplicate(value: NodeMediaValue) {
     if (findNode(id) !== node) throw new Error("原节点已变化，请重新操作");
     const data = JSON.parse(JSON.stringify(node.data)) as Record<string, unknown>;
@@ -64,7 +65,7 @@ export function useResultNodes(mediaType: "image" | "video") {
     delete data.generationStatus;
     const width = node.dimensions.width || 320;
     const height = node.dimensions.height || 300;
-    const position = { x: node.position.x + width + 80, y: node.position.y };
+    const position = { x: node.position.x, y: node.position.y + height + 32 };
     const column = getNodes.value.filter(other => other.id !== id && other.parentNode === node.parentNode && other.position.x < position.x + width && other.position.x + (other.dimensions.width || width) > position.x).sort((left, right) => left.position.y - right.position.y);
     for (const other of column) {
       if (position.y < other.position.y + (other.dimensions.height || height) + 32 && position.y + height + 32 > other.position.y) position.y = other.position.y + (other.dimensions.height || height) + 32;
@@ -84,6 +85,12 @@ export function useResultNodes(mediaType: "image" | "video") {
       }
       await nextTick();
     });
+    // ACT: 画布开启了 elevateNodesOnSelect，选中副本即可让它压在原节点和展开的结果卡之上。
+    const created = findNode(copyId);
+    if (created) {
+      removeSelectedElements();
+      addSelectedNodes([created]);
+    }
     return copyId;
   }
 

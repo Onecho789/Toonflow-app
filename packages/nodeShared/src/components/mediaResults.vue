@@ -1,5 +1,20 @@
 <template>
-  <div ref="root" class="mediaResults" role="list" :aria-label="mediaType === 'image' ? '其他生成图片' : '其他生成视频'" @keydown.esc.stop="emit('close')">
+  <div ref="root" class="mediaResults" role="list" :aria-label="mediaType === 'image' ? '批量生成图片' : '批量生成视频'" @keydown.esc.stop="emit('close')">
+    <!-- 当前结果就是节点卡本身：只叠一层透明操作层，与其他卡片保持同样的序号和按钮。 -->
+    <div v-if="currentIndex >= 0" class="resultCard currentCard nodrag nopan" role="listitem" @dblclick.stop="emit('preview', currentIndex)">
+      <span class="resultIndex" aria-hidden="true">{{ currentIndex + 1 }}</span>
+      <div class="resultActions">
+        <button type="button" :disabled="disabled" title="下载" :aria-label="`下载第 ${currentIndex + 1} 个结果`" @click.stop="emit('download', items[currentIndex]!, currentIndex)">
+          <icon-download :size="16" aria-hidden="true" /><span>下载</span>
+        </button>
+        <button type="button" :disabled="disabled" title="创建副本：带上提示词和参数，以这张为输出" :aria-label="`以第 ${currentIndex + 1} 个结果创建副本`" @click.stop="emit('duplicate', items[currentIndex]!)">
+          <icon-copy-plus :size="16" aria-hidden="true" /><span>创建副本</span>
+        </button>
+        <span class="currentMark" :aria-label="`第 ${currentIndex + 1} 个结果是当前输出`">
+          <icon-star-filled :size="16" class="starIcon" aria-hidden="true" /><span>当前</span>
+        </span>
+      </div>
+    </div>
     <div
       v-for="card in cards"
       :key="card.item.url"
@@ -28,7 +43,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { IconCopyPlus, IconDownload, IconPhoto, IconStar } from "@tabler/icons-vue";
+import { IconCopyPlus, IconDownload, IconPhoto, IconStar, IconStarFilled } from "@tabler/icons-vue";
 import { useNodeFiles } from "@toonflow/nodes-scaffold/workspaceFiles";
 import type { NodeMediaValue } from "@toonflow/nodes-scaffold/values";
 
@@ -38,6 +53,7 @@ const files = useNodeFiles();
 const urls = ref<string[]>([]);
 const root = ref<HTMLElement>();
 const size = ref({ width: 0, height: 0 });
+const currentIndex = computed(() => props.items.findIndex(item => item.url === props.current?.url));
 
 // 卡片与节点卡同尺寸，跟随节点缩放。
 watch(root, (element, _previous, onCleanup) => {
@@ -194,6 +210,40 @@ watch(() => props.items.map(item => item.url).join("\n"), async (_value, _previo
 
     &:hover .resultActions,
     &:focus-within .resultActions { opacity: 1; }
+  }
+
+  // 叠在节点卡上，透出节点自己的图片；不做飞入动画，节点卡本来就在原位。
+  .resultCard.currentCard {
+    inset: 0;
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+    animation: none;
+
+    // 节点顶部已有「打包下载」和「N 张」徽标，操作条下移一行避开。
+    .resultActions { top: 54px; }
+
+    .currentMark {
+      display: inline-flex;
+      flex: 1;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      min-width: 0;
+      height: 36px;
+      padding: 0 8px;
+      border: 1px solid color-mix(in srgb, var(--el-color-primary) 55%, transparent);
+      border-radius: 10px;
+      background: color-mix(in srgb, var(--el-bg-color) 86%, transparent);
+      color: var(--el-color-primary);
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 6px 18px rgb(15 23 42 / 16%);
+      backdrop-filter: blur(12px);
+
+      span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .starIcon { flex-shrink: 0; }
+    }
   }
 }
 
