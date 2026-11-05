@@ -33,6 +33,17 @@ Import-Clixml -LiteralPath 'C:\Users\Administrator\.codex\serverConnections\maim
 
 ## 当前线上版本（2026-11-05）
 
+2026-11-05 16:08（北京时间）已更新到 **2.16.0-20261105**。
+镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.16.0-20261105
+摘要：sha256:ee6210559b7fce5056bbdc7f99fbb53e744052ea18e65b26669cbdad1026d0da
+源码提交：2bfab018b335a0027b2715f0d3b13efbb9e6f53b（uiRedesign，已推送 origin；从独立 clone 构建），vcs.modified=false。工作区未提交的 gateway/image.go 改动不在本次镜像内。
+
+本次管理端视觉重做（品牌侧栏 152px、宽松表格、手机卡片布局、深色模式保留）；兑换码新建时用设置加密密钥加密留存完整码，新增 GET /api/admin/redemptionCodes/{id}/code 供再次复制（审计 redemptionReveal），旧码无密文显示「不可复制」；全站调用拆成 12 列并支持列设置。迁移 64→65：redemption_codes 加 code_cipher 列。
+应用 running=true、restarts=0，启动 2026-11-05T08:08:32Z；部署前后活动任务与未结算用量均为 0；schema=65、code_cipher 列存在；Redis PONG、Bun 1.4.3；内网及公网首页、/admin/models、/admin/redemptionCodes、/api/pay/config 200，匿名 /api/admin/models、/api/admin/redemptionCodes/1/code、/v1/models 401；公网首页入口 assets/index-BsF9u-bw.js 与本次 dist 一致；env 600、diff 仅 IMAGE。
+备份与回退：/opt/maimai-cloud/backups/uiRedesignRelease20261105（databaseBefore.dump 82191441 字节 SHA256 4fdc2a68…、releaseRollback.sh SHA256 83c7adda…），回退到 2.15.2-20261105，只恢复 IMAGE，code_cipher 列保留（旧镜像不读取）；证据 docs/history/uiRedesignRelease20261105/，构建上下文 cloud\build\release216020261105。生产回退未执行；未在生产登录后台做浏览器验收、未在生产创建兑换码。
+
+### 上次发布：2.15.2-20261105
+
 2026-11-05 14:31（北京时间）已更新到 **2.15.2-20261105**。
 镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.15.2-20261105
 摘要：sha256:eabe0350d9c6e8879ac771426ebcf330a1110de1144945b7484c122f93ab26d3
@@ -40,7 +51,7 @@ Import-Clixml -LiteralPath 'C:\Users\Administrator\.codex\serverConnections\maim
 
 本次图片接口支持 other.pixels（"WxH"）：按 gpt-image 约束校验（16 的倍数、长边 ≤ 3840、总像素 655360–8294400），优先于 sizeMap 换算并从请求体移除；计费档位按面积推算（≤2016×864 为 1K、≤2048² 为 2K、更大为 4K）。配套桌面 2.1.9（客户端提交 565756f）。无数据库迁移，schema 仍为 64。
 应用 running=true、restarts=0，启动 2026-11-05T06:31:54Z；部署前后活动任务与未结算用量均为 0；Redis PONG、Bun 1.4.3；内网及公网首页、/admin/models、/api/pay/config 200，匿名 /api/admin/models、/v1/models 401；env 600、diff 仅 IMAGE。
-备份与回退：/opt/maimai-cloud/backups/pixelsRelease20261105（databaseBefore.dump 82191215 字节 SHA256 28cb110e…、releaseRollback.sh SHA256 f61c4c61…），回退到 2.15.1-20261105；证据 docs/history/pixelsRelease20261105/，构建上下文 clouduildelease215220261105。生产回退未执行，未用自定义像素实际生成。
+备份与回退：/opt/maimai-cloud/backups/pixelsRelease20261105（databaseBefore.dump 82191215 字节 SHA256 28cb110e…、releaseRollback.sh SHA256 f61c4c61…），回退到 2.15.1-20261105；证据 docs/history/pixelsRelease20261105/，构建上下文 cloud\build\release215220261105。生产回退未执行，未用自定义像素实际生成。
 
 ### 上次发布：2.15.1-20261105
 
@@ -154,8 +165,7 @@ Grok 当前修订：f8f85bef333fecb4da9ecfdb267a9cbad30472092346ed9a252c15138fda
 ## 桌面本地安装包 2.1.9（2026-11-05）
 
 - 源码提交：970bec1（版本），功能提交 565756f，分支 codex/simplifyMediaModels。内容：图片工具栏（信息、裁剪、放大、反推提示词、删除节点）、多图堆叠展示、图像设置面板重排（质量、自定义宽高、透明背景、张数 1–8）。自定义宽高经 other.pixels 转发，需云端提交 de59556（分支 uiRedesign，未部署）才按面积计费。
-- 版本快照：D:api-codes\maimai\clientuild\desktop
-eleases.1.9。安装包 `MaiMaiStudio-2.1.9-Setup.exe` 55,620,929 字节，SHA256 `a32e20f4a1831ade5f497aabd3abb900452f7de3f24baaddd1b71988e3fbac81`；清单 version=2.1.9、hash=2u2ec56c0xa9o。
+- 版本快照：D:\2api-codes\maimai\client\build\desktop\releases\2.1.9。安装包 `MaiMaiStudio-2.1.9-Setup.exe` 55,620,929 字节，SHA256 `a32e20f4a1831ade5f497aabd3abb900452f7de3f24baaddd1b71988e3fbac81`；清单 version=2.1.9、hash=2u2ec56c0xa9o。
 - 打包退出 0；快照与 artifacts 一致；归档内含新设置面板、堆叠角标、反推提示词与 1–8 张校验。本地交付，未运行安装器，GitHub 仍为 2.1.0、更新源仍为空。详情见 releaseWorkflow.md。
 
 ## 上次桌面本地安装包 2.1.8（2026-11-05）
