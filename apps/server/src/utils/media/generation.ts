@@ -44,15 +44,39 @@ function invalid(message: string): never {
 // 媒体模型统一来自麦麦云目录，meta 里是节点表单需要的模式、尺寸与时长；isDefault 标出设置里该类型的默认模型。
 // 图片的 sizeMap 是档位与比例对应的像素尺寸（如 1K、1:1 → 1024x1024），工作台用来显示输出尺寸。
 type SizeMap = Record<string, Record<string, string>>;
+// 后台未声明的能力表示不限制（与云端网关一致，只校验声明过的字段），这里补成通用选项，各节点与工作台照常渲染。
+const commonImageSizes = ["1K", "2K", "4K"];
+const commonImageRatios = ["1:1", "3:2", "2:3", "4:3", "3:4", "16:9", "9:16", "21:9"];
+const commonVideoRatios = ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"];
+const commonDurations = [{ duration: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], resolution: ["480p", "720p", "1080p"] }];
+const filled = <T,>(value: T[] | undefined, fallback: T[]) => value?.length ? value : fallback;
+
+// 与云端网关的像素换算一致：长边取档位（1K = 1024），短边按比例，都取 64 的倍数；用于工作台显示输出尺寸。
+function derivePixels(size: string, ratio: string) {
+  const scale = Number(/^(\d+(?:\.\d+)?)K$/i.exec(size)?.[1]);
+  const [width = 0, height = 0] = ratio.split(":").map(Number);
+  if (!scale || !(width > 0) || !(height > 0)) return;
+  const round = (value: number) => Math.max(64, Math.round(value * scale * 1024 / Math.max(width, height) / 64) * 64);
+  return `${round(width)}x${round(height)}`;
+}
+
 export async function listMediaModels(refresh = false): Promise<(MediaModel & { price: string; groups: CloudGroup[]; isDefault: boolean; sizeMap?: SizeMap })[]> {
-  return (await listCloudModels(refresh)).flatMap(model => {
+  return (await listCloudModels(refresh)).flatMap((model): (MediaModel & { price: string; groups: CloudGroup[]; isDefault: boolean; sizeMap?: SizeMap })[] => {
     if (model.type !== "image" && model.type !== "video") return [];
-    const meta = model.meta as Pick<MediaModel, "mode" | "durationResolutionMap" | "audio" | "imageSizes" | "imageRatios" | "ratios"> & { sizeMap?: SizeMap };
-    return [{
+    const meta = model.meta as Pick<MediaModel, "mode" | "durationResolutionMap" | "audio" | "imageSizes" | "imageRatios" | "ratios"> & { sizeMap?: SizeMap; rawSize?: boolean };
+    const base = {
       providerId: cloudProviderId, providerLabel: "麦麦云", modelId: model.id, label: model.label, vendor: model.vendor, type: model.type, supportsPrice: true, price: cloudPriceText(model), groups: model.groups, isDefault: model.id === getCloudDefault(model.type).model,
-      mode: meta.mode, durationResolutionMap: meta.durationResolutionMap, audio: meta.audio,
-      ...(model.type === "image" ? { imageSizes: meta.imageSizes, imageRatios: meta.imageRatios, sizeMap: meta.sizeMap } : { ratios: meta.ratios }),
-    }];
+      mode: meta.mode, audio: meta.audio,
+    };
+    if (model.type === "video") return [{ ...base, durationResolutionMap: filled(meta.durationResolutionMap, commonDurations), ratios: filled(meta.ratios, commonVideoRatios) }];
+    const imageSizes = filled(meta.imageSizes, commonImageSizes);
+    const imageRatios = filled(meta.imageRatios, commonImageRatios);
+    // rawSize 的模型档位原样转发，没有填写的组合不显示像素。
+    const sizeMap = meta.rawSize ? meta.sizeMap : Object.fromEntries(imageSizes.map(size => [size, Object.fromEntries(imageRatios.flatMap(ratio => {
+      const pixels = meta.sizeMap?.[size]?.[ratio] ?? derivePixels(size, ratio);
+      return pixels ? [[ratio, pixels]] : [];
+    }))]));
+    return [{ ...base, imageSizes, imageRatios, sizeMap }];
   });
 }
 
