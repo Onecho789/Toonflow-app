@@ -15,8 +15,8 @@
         <button type="button" :disabled="disabled" title="下载" :aria-label="`下载第 ${card.index + 1} 个结果`" @click.stop="emit('download', card.item, card.index)">
           <icon-download :size="13" aria-hidden="true" /><span>下载</span>
         </button>
-        <button type="button" :disabled="disabled" title="拆分为新节点" :aria-label="`把第 ${card.index + 1} 个结果拆分为新节点`" @click.stop="emit('split', [card.item])">
-          <icon-copy-plus :size="13" aria-hidden="true" /><span>拆为节点</span>
+        <button type="button" :disabled="disabled" title="创建副本：带上提示词和参数，以这张为输出" :aria-label="`以第 ${card.index + 1} 个结果创建副本`" @click.stop="emit('duplicate', card.item)">
+          <icon-copy-plus :size="13" aria-hidden="true" /><span>创建副本</span>
         </button>
         <button type="button" :disabled="disabled" title="设为当前输出" :aria-label="`把第 ${card.index + 1} 个结果设为当前输出`" @click.stop="emit('select', card.item)">
           <icon-star :size="13" class="starIcon" aria-hidden="true" /><span>设为当前</span>
@@ -33,7 +33,7 @@ import { useNodeFiles } from "@toonflow/nodes-scaffold/workspaceFiles";
 import type { NodeMediaValue } from "@toonflow/nodes-scaffold/values";
 
 const props = defineProps<{ items: NodeMediaValue[]; mediaType: "image" | "video"; current?: NodeMediaValue; disabled?: boolean }>();
-const emit = defineEmits<{ select: [NodeMediaValue]; split: [NodeMediaValue[]]; preview: [number]; download: [NodeMediaValue, number]; close: [] }>();
+const emit = defineEmits<{ select: [NodeMediaValue]; duplicate: [NodeMediaValue]; preview: [number]; download: [NodeMediaValue, number]; close: [] }>();
 const files = useNodeFiles();
 const urls = ref<string[]>([]);
 const root = ref<HTMLElement>();

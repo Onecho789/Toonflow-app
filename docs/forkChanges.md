@@ -959,7 +959,7 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
   - 裁剪和放大的结果都在右侧生成新的图片节点并自动连线。
   - 反推提示词：在下方生成预填反推指令的文本节点并连线。
   - AI 超分见下一节「本地 AI 超分」。
-- 多张结果改为堆叠卡片：节点背后叠最多 3 层，右上角显示「N 张 >」。点击后参照 infinite-canvas 的批量展开：其余结果按与节点同尺寸的卡片铺成最多 4 列网格（当前图占根位），带飞出动画；卡片悬停可下载、拆为节点、设为当前，双击看大图。节点左上角悬停显示「打包下载」，把全部结果按序号命名打成 zip（`fflate` 仅存储不压缩）。`nodeSkeleton` 新增 `#aside` 插槽（位于 `.cardContainer` 内、与内容卡同尺寸的穿透层）和 `stackLayers` 属性；`mediaResults` 改为展开卡片布局，新增 `download`、`close` 事件；`nodeShared` 新增 `downloadResults` 导出与 `fflate` 依赖。
+- 多张结果改为堆叠卡片：节点背后叠最多 3 层，右上角显示「N 张 >」。点击后参照 infinite-canvas 的批量展开：其余结果按与节点同尺寸的卡片铺成最多 4 列网格（当前图占根位），带飞出动画；卡片悬停可下载、创建副本、设为当前，双击看大图。创建副本同 infinite-canvas：在右侧新建同类型生成节点，复制提示词、模型与参数并接上相同输入，输出换成所选结果（不带批量列表与任务状态），由 `useResultNodes` 新增的 `duplicate` 实现。节点左上角悬停显示「打包下载」，把全部结果按序号命名打成 zip（`fflate` 仅存储不压缩）。`nodeSkeleton` 新增 `#aside` 插槽（位于 `.cardContainer` 内、与内容卡同尺寸的穿透层）和 `stackLayers` 属性；`mediaResults` 改为展开卡片布局，卡片的 `split` 事件换成 `duplicate`，新增 `download`、`close` 事件；`nodeShared` 新增 `downloadResults` 导出与 `fflate` 依赖。
 - 图像设置面板重新排版，分区并加大间距，按需滚动。分区如下：
   - 质量：自动、高、中、低。
   - 宽高：自定义 W×H，失焦时向上对齐到 16 的倍数，并校验 gpt-image 像素范围。
@@ -972,7 +972,7 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 
 改动的上游文件：
 - `packages/nodeScaffold/src/nodeSkeleton.vue`、`nodeAi.ts`
-- `packages/nodeShared/src/components/mediaResults.vue`、`package.json`（新增 `./downloadResults` 导出与 `fflate`），新增 `src/downloadResults.ts`
+- `packages/nodeShared/src/components/mediaResults.vue`、`useResultNodes.ts`、`package.json`（新增 `./downloadResults` 导出与 `fflate`），新增 `src/downloadResults.ts`
 - `packages/nodes/imageNode/src/index.vue` 与 `package.json`，新增 `./imageTools` 导出
 - `packages/nodes/imageGenerationNode/src/index.vue`、`components/generationSettings.vue`
 - `apps/server/src/routes/ai/media/{generate,price}.ts`、`apps/server/src/utils/media/cloud.ts`

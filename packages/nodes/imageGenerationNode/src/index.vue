@@ -80,7 +80,7 @@
         :current="outputFile"
         :disabled="generating || deleting || uploading"
         @select="outputs.image = { dataType: 'IMAGE', value: $event }"
-        @split="splitResults"
+        @duplicate="duplicateResult"
         @preview="previewResult"
         @download="downloadSingleResult"
         @close="resultsExpanded = false" />
@@ -539,6 +539,11 @@ function retryGeneration() {
 function splitResults(items: NodeMediaValue[]) {
   if (!items.length || deleting.value) return;
   resultNodes.split(items).catch(error => showNodeError(error, "拆分图片节点失败"));
+}
+
+function duplicateResult(item: NodeMediaValue) {
+  if (deleting.value) return;
+  resultNodes.duplicate(item).catch(error => showNodeError(error, "创建副本失败"));
 }
 
 const zipping = ref(false);
