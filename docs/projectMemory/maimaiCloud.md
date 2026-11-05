@@ -36,7 +36,7 @@ Import-Clixml -LiteralPath 'C:\Users\Administrator\.codex\serverConnections\maim
 2026-11-06 04:08（北京时间）已更新到 **2.19.0-20261106**。
 镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.19.0-20261106
 摘要：sha256:1d455b3fca80a0d143cfb3a69df03f2cfcb4d5b8ba27c23901f547d32476eeeb
-源码提交：010db57a6f3971bfac012c811cc6a4d57767edb6（uiRedesign，未推送；二进制与 web dist 均从独立 clone 构建，已删除 clone），vcs.modified=false。
+源码提交：010db57a6f3971bfac012c811cc6a4d57767edb6（uiRedesign，2026-11-06 发布后已推送 origin（至 e6c8b44）；二进制与 web dist 均从独立 clone 构建，已删除 clone），vcs.modified=false。
 
 本次网关限流改为后台「系统设置 → 限流」配置：settings 键 limit.gatewayPerMinute（普通 /v1/* 请求，缺省 60）、limit.pollPerMinute（GET /v1/images/tasks/{id}、/v1/videos/{id}[/content] 单独计数，Redis 键 limit:gatewayPoll:<用户ID>，缺省 1200），均为每账号每分钟，0 表示不限制，最大 100000，保存后 10 秒内生效。起因：50 张图并发轮询把共用的 60 次/分钟用满，提交出图与小助手对话全被 429。无数据库迁移，schema 仍为 66；上线时 settings 无 limit.* 行，按缺省值运行。配套桌面 2.1.17（429 后按 Retry-After 冷却、提交自动重试）。
 应用 running=true、restarts=0，启动 2026-11-05T20:08:30Z，日志 version=2.19.0-20261106；部署前后活动任务与未结算用量均为 0；Redis PONG、Bun 1.4.3；内网及公网首页、/admin、/admin/models、/admin/redemptionCodes、/console、/login、/api/pay/config 200，匿名 /api/admin/models、/api/admin/redemptionCodes/1/code、/v1/models 401；env 600、diff 仅 IMAGE。

@@ -16,7 +16,7 @@
 
 两个子目录分别管理 Git。根目录继续作为共享记忆维护入口；根级 AGENTS.md 与 docs/ 下的 releaseWorkflow.md、maimaiCloud.md、localEnvNotes.md 同步到两个仓库的 docs/projectMemory/ 并分别提交、推送，单独克隆时可从该目录的 readme.md 查看。每次更新共享记忆后同步两份副本；docs/history/ 中的历史证据与构建日志另作本机备份。
 
-当前桌面本地安装包为 **2.1.17**，提交 2883e58（含未提交工作区改动，见下），分支 codex/simplifyMediaModels（未推送）；上次公开发布为 2.1.0。云端版本为 **2.19.0-20261106**，提交 010db57a6f3971bfac012c811cc6a4d57767edb6，分支 uiRedesign（未推送）。两个版本号各自维护，后续先读实际 HEAD、分支和工作区。
+当前桌面本地安装包为 **2.1.17**，提交 2883e58（含未提交工作区改动，见下），分支 codex/simplifyMediaModels（2026-11-06 已推送 origin 至 158717f）；上次公开发布为 2.1.0。云端版本为 **2.19.0-20261106**，提交 010db57a6f3971bfac012c811cc6a4d57767edb6，分支 uiRedesign（2026-11-06 已推送 origin 至 e6c8b44）。两个版本号各自维护，后续先读实际 HEAD、分支和工作区。
 
 ## Windows 桌面打包
 
@@ -88,7 +88,7 @@ bun run release:desktop <新的桌面版本> --initial
 
 ### 本地完整安装包 2.1.17（2026-11-06）
 
-- 源码提交：2883e58（版本），功能提交 e6a8bbe（429 后按 Retry-After 冷却、提交出图遇 429 自动重试），分支 codex/simplifyMediaModels，未推送。配套云端 2.19.0-20261106。
+- 源码提交：2883e58（版本），功能提交 e6a8bbe（429 后按 Retry-After 冷却、提交出图遇 429 自动重试），分支 codex/simplifyMediaModels，2026-11-06 已推送 origin（至 158717f）；工作区未提交改动未推送。配套云端 2.19.0-20261106。
 - **按用户要求连同工作区未提交改动一起打包**：节点报错 6 秒自动关闭（nodeShared）、小助手停止按钮卡住修复（agent/runtime）、节点模型缓存 60 秒过期与设置页刷新通知（nodeScaffold、mediaModel、imageGenerationNode）及 router.ts、components.d.ts 漂移。这些改动未提交，安装包与任何单一提交都不完全对应。
 - 构建命令：`bun run release:desktop 2.1.17 --initial`，退出 0；去掉代理变量、PATH 前置 System32。日志 docs/history/rateLimitRelease20261106/desktopBuild2117.log。
 - 版本快照：D:\2api-codes\maimai\client\build\desktop\releases\2.1.17。
