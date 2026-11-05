@@ -2,13 +2,13 @@
   <nodeSkeleton
     v-bind="nodeProps"
     v-model:bottomVisible="node.selected"
-    :topVisible="node.selected"
+    :topVisible="node.selected && !resultsExpanded"
     topWidth="max-content"
     :downloadUrl="previewUrl"
     :downloadName="outputFile?.url.split(/[\\/]/).at(-1)"
     @fullscreen="openPreview"
     :bottomWidth="660"
-    :stackLayers="editor?.mode ? 0 : Math.max(0, resultCount - 1)"
+    :stackLayers="editor?.mode || resultsExpanded ? 0 : Math.max(0, resultCount - 1)"
     :style="{ width: (previewUrl || inpaintGuideUrl) && imageWidth ? `${imageWidth + 18}px` : undefined }">
     <template v-if="editor?.mode" #top><div ref="paintToolbar" /></template>
     <template #topActions>
@@ -57,6 +57,20 @@
         <span>{{ resultCount }} 张</span>
         <icon-chevron-right class="stackChevron" :size="14" aria-hidden="true" />
       </button>
+      <button
+        v-if="resultCount > 1 && !editor?.mode"
+        type="button"
+        class="zipBadge nodrag nopan"
+        :disabled="zipping || deleting"
+        :aria-busy="zipping"
+        :aria-label="`打包下载 ${resultCount} 张图片`"
+        title="打包下载全部图片"
+        @click.stop="downloadAllResults"
+        @dblclick.stop>
+        <icon-loader2 v-if="zipping" class="zipSpin" :size="14" aria-hidden="true" />
+        <icon-file-zip v-else :size="14" aria-hidden="true" />
+        <span>打包下载</span>
+      </button>
       <generationStatus :status="generationState.status.value" :error="generationState.error.value" :canRetry="generationState.canRetry.value" :disabled="deleting || uploading" :resumed="resumed" @retry="retryGeneration" />
     </div>
     <template v-if="resultsExpanded && resultCount > 1 && !editor?.mode" #aside>
@@ -68,6 +82,7 @@
         @select="outputs.image = { dataType: 'IMAGE', value: $event }"
         @split="splitResults"
         @preview="previewResult"
+        @download="downloadSingleResult"
         @close="resultsExpanded = false" />
     </template>
     <template v-if="editor?.mode !== 'mark'" #bottom>
@@ -148,7 +163,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onScopeDispose, ref, shallowRef, watch } from "vue";
 import { ElButton, ElCard, ElSelect, ElOption, ElOptionGroup, ElLoading, ElImageViewer } from "element-plus";
-import { IconCheck, IconPhotoAi, IconSparkles, IconArrowUp, IconPlayerStop, IconTransfer, IconLayoutGrid, IconBrush, IconPencil, IconSun, IconCameraRotate, IconPanoramaHorizontal, IconChevronDown, IconChevronRight, IconArrowsSplit2 } from "@tabler/icons-vue";
+import { IconCheck, IconPhotoAi, IconSparkles, IconArrowUp, IconPlayerStop, IconTransfer, IconLayoutGrid, IconBrush, IconPencil, IconSun, IconCameraRotate, IconPanoramaHorizontal, IconChevronDown, IconChevronRight, IconArrowsSplit2, IconFileZip, IconLoader2 } from "@tabler/icons-vue";
 import { nodeSkeleton, nodeTools, useNode, z, type NodeMediaModel, type NodeImageRequest, type NodeImageResult, type NodeMediaValue, type NodeHandle } from "@toonflow/nodes-scaffold/runtime";
 import { groupNodeModels } from "@toonflow/node-shared/groupNodeModels";
 import mediaPreview from "@toonflow/node-shared/mediaPreview";
@@ -160,6 +175,7 @@ import { useNodeGeneration } from "@toonflow/node-shared/useNodeGeneration";
 import { useResultNodes } from "@toonflow/node-shared/useResultNodes";
 import generationStatus from "@toonflow/node-shared/generationState";
 import mediaResults from "@toonflow/node-shared/mediaResults";
+import { downloadResult, downloadResults } from "@toonflow/node-shared/downloadResults";
 import { useNodeReferences } from "@toonflow/node-shared/useNodeReferences";
 import { useModelForm } from "@toonflow/node-shared/useModelForm";
 import promptInput from "@toonflow/node-shared/promptInput";
@@ -525,6 +541,23 @@ function splitResults(items: NodeMediaValue[]) {
   resultNodes.split(items).catch(error => showNodeError(error, "拆分图片节点失败"));
 }
 
+const zipping = ref(false);
+async function downloadAllResults() {
+  if (zipping.value || !data.value.results?.length) return;
+  zipping.value = true;
+  try {
+    await downloadResults(files.getWorkspaceFiles(), data.value.results, nodeProps.value.label ?? "图片生成");
+  } catch (error) {
+    showNodeError(error, "打包下载失败");
+  } finally {
+    zipping.value = false;
+  }
+}
+
+function downloadSingleResult(item: NodeMediaValue, index: number) {
+  downloadResult(files.getWorkspaceFiles(), item, `${nodeProps.value.label ?? "图片生成"}-${index + 1}`).catch(error => showNodeError(error, "图片下载失败"));
+}
+
 function previewResult(index: number) {
   if (!data.value.results?.[index]) return;
   previewIndex.value = index;
@@ -710,6 +743,10 @@ nodeTools.register({
   &[aria-expanded="true"] .menuChevron { transform: rotate(180deg); }
 }
 
+@keyframes zipSpin {
+  to { transform: rotate(360deg); }
+}
+
 .imageContent {
   .nodeSkeleton.resized & {
     height: 100%;
@@ -776,6 +813,39 @@ nodeTools.register({
     .stackChevron { transition: transform .2s; }
     &[aria-expanded="true"] .stackChevron { transform: rotate(90deg); }
   }
+
+  /* 打包下载与张数徽标同排，悬停节点时出现。 */
+  .zipBadge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 30px;
+    padding: 0 10px;
+    border: 1px solid rgb(255 255 255 / 30%);
+    border-radius: 999px;
+    background: rgb(0 0 0 / 55%);
+    color: #fff;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    opacity: 0;
+    backdrop-filter: blur(8px);
+    transition: opacity .15s, background-color .15s;
+
+    &:hover { background: rgb(0 0 0 / 70%); }
+    &:disabled { cursor: progress; }
+    &:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: 2px; }
+    .zipSpin { animation: zipSpin 1s linear infinite; }
+  }
+
+  &:hover .zipBadge,
+  .zipBadge:focus-visible,
+  .zipBadge[aria-busy="true"] { opacity: 1; }
 
 }
 

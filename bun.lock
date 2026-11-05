@@ -389,6 +389,7 @@
       "dependencies": {
         "@form-create/element-ui": "^3",
         "@tabler/icons-vue": "^3.46.0",
+        "fflate": "0.8.3",
         "vue-draggable-plus": "^0.6.1",
         "x-sender": "1.4.6",
       },

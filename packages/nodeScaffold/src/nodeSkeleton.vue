@@ -91,16 +91,6 @@
       @contextmenu.stop>
       <slot name="bottom" />
     </div>
-    <div
-      v-if="!readOnly && !documentTarget && $slots.aside"
-      class="floatingSlot asideSlot nodrag nopan nowheel"
-      @pointerdown.stop
-      @mousedown.stop
-      @dblclick.stop
-      @keydown.stop
-      @contextmenu.stop>
-      <slot name="aside" />
-    </div>
     <div v-show="!documentTarget" class="titleBar">
       <component :is="icon ?? IconBox" class="titleIcon" :size="16" aria-hidden="true" />
       <input
@@ -158,6 +148,17 @@
         </div>
         <slot v-else-if="previewReady || documentTarget" />
       </el-card>
+      <!-- 批量结果展开层：与内容卡同尺寸，由节点自行在卡片外铺开。 -->
+      <div
+        v-if="!readOnly && !documentTarget && $slots.aside"
+        class="asideSlot nodrag nopan nowheel"
+        @pointerdown.stop
+        @mousedown.stop
+        @dblclick.stop
+        @keydown.stop
+        @contextmenu.stop>
+        <slot name="aside" />
+      </div>
       <template v-for="group in handleGroups" :key="group.type">
         <handle
           v-for="(item, index) in group.items"
@@ -782,12 +783,6 @@ watch(
     &.bottomSlot {
       top: calc(100% + 12px);
     }
-    /* 越过右侧连接点，顶部与卡片对齐。 */
-    &.asideSlot {
-      top: 28px;
-      left: calc(100% + 28px);
-      transform: none;
-    }
 
     .mediaToolbar {
       &:deep(.el-button) {
@@ -882,6 +877,13 @@ watch(
       background: var(--el-bg-color);
       box-shadow: 0 6px 18px rgb(0 0 0 / 8%);
       transform-origin: 50% 100%;
+      pointer-events: none;
+    }
+
+    .asideSlot {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
       pointer-events: none;
     }
 

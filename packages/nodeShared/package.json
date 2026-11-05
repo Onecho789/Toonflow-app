@@ -22,6 +22,7 @@
     "./useResultNodes": "./src/useResultNodes.ts",
     "./generationState": "./src/components/generationState.vue",
     "./mediaResults": "./src/components/mediaResults.vue",
+    "./downloadResults": "./src/downloadResults.ts",
     "./useModelForm": "./src/useModelForm.ts",
     "./useAudioTranscription": "./src/useAudioTranscription.ts",
     "./groupNodeModels": "./src/groupNodeModels.ts",
@@ -38,6 +39,7 @@
   "dependencies": {
     "@form-create/element-ui": "^3",
     "@tabler/icons-vue": "^3.46.0",
+    "fflate": "0.8.3",
     "vue-draggable-plus": "^0.6.1",
     "x-sender": "1.4.6"
   },

@@ -1,44 +1,76 @@
 <template>
-  <div class="mediaResults nodrag nopan" :class="`count${Math.min(items.length, 4)}`">
-    <div class="resultsHead">
-      <span class="resultsTitle">{{ items.length }} 个结果</span>
-      <el-button size="small" text :icon="mediaType === 'image' ? IconPhotoPlus : IconVideoPlus" :disabled="disabled" @click.stop="emit('split', items)">全部拆分</el-button>
-      <el-button size="small" text :icon="IconX" title="收起" aria-label="收起结果" @click.stop="emit('close')" />
-    </div>
-    <div class="resultGrid" role="list" :aria-label="mediaType === 'image' ? '生成图片' : '生成视频'">
-      <div
-        v-for="(item, index) in items"
-        :key="item.url"
-        class="resultItem"
-        role="listitem"
-        :style="{ animationDelay: `${index * 35}ms` }"
-        :class="{ selected: item.url === current?.url }">
-        <button type="button" class="resultPreview" :aria-pressed="item.url === current?.url" :aria-label="`设为当前结果：第 ${index + 1} 个`" :disabled="disabled" @click.stop="emit('select', item)" @dblclick.stop="emit('preview', index)">
-          <img v-if="mediaType === 'image' && urls[index]" :src="urls[index]" :alt="`生成结果 ${index + 1}`" draggable="false" />
-          <video v-else-if="urls[index]" :src="urls[index]" muted playsinline preload="metadata" :aria-label="`生成结果 ${index + 1}`" />
-          <icon-photo v-else :size="24" aria-hidden="true" />
+  <div ref="root" class="mediaResults" role="list" :aria-label="mediaType === 'image' ? '其他生成图片' : '其他生成视频'" @keydown.esc.stop="emit('close')">
+    <div
+      v-for="card in cards"
+      :key="card.item.url"
+      class="resultCard nodrag nopan"
+      role="listitem"
+      :style="card.style"
+      @dblclick.stop="emit('preview', card.index)">
+      <img v-if="mediaType === 'image' && urls[card.index]" :src="urls[card.index]" :alt="`生成结果 ${card.index + 1}`" draggable="false" />
+      <video v-else-if="urls[card.index]" :src="urls[card.index]" muted playsinline preload="metadata" :aria-label="`生成结果 ${card.index + 1}`" />
+      <icon-photo v-else class="placeholder" :size="28" aria-hidden="true" />
+      <span class="resultIndex" aria-hidden="true">{{ card.index + 1 }}</span>
+      <div class="resultActions">
+        <button type="button" :disabled="disabled" title="下载" :aria-label="`下载第 ${card.index + 1} 个结果`" @click.stop="emit('download', card.item, card.index)">
+          <icon-download :size="13" aria-hidden="true" /><span>下载</span>
         </button>
-        <span v-if="item.url === current?.url" class="currentMark">当前</span>
-        <div class="resultActions">
-          <el-button size="small" :icon="IconMaximize" title="查看大图" aria-label="查看大图" @click.stop="emit('preview', index)" />
-          <el-button size="small" :icon="mediaType === 'image' ? IconPhotoPlus : IconVideoPlus" :disabled="disabled" title="拆分为新节点" aria-label="拆分为新节点" @click.stop="emit('split', [item])" />
-        </div>
+        <button type="button" :disabled="disabled" title="拆分为新节点" :aria-label="`把第 ${card.index + 1} 个结果拆分为新节点`" @click.stop="emit('split', [card.item])">
+          <icon-copy-plus :size="13" aria-hidden="true" /><span>拆为节点</span>
+        </button>
+        <button type="button" :disabled="disabled" title="设为当前输出" :aria-label="`把第 ${card.index + 1} 个结果设为当前输出`" @click.stop="emit('select', card.item)">
+          <icon-star :size="13" class="starIcon" aria-hidden="true" /><span>设为当前</span>
+        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
-import { ElButton } from "element-plus";
-import { IconMaximize, IconPhoto, IconPhotoPlus, IconVideoPlus, IconX } from "@tabler/icons-vue";
+import { computed, ref, watch } from "vue";
+import { IconCopyPlus, IconDownload, IconPhoto, IconStar } from "@tabler/icons-vue";
 import { useNodeFiles } from "@toonflow/nodes-scaffold/workspaceFiles";
 import type { NodeMediaValue } from "@toonflow/nodes-scaffold/values";
 
 const props = defineProps<{ items: NodeMediaValue[]; mediaType: "image" | "video"; current?: NodeMediaValue; disabled?: boolean }>();
-const emit = defineEmits<{ select: [NodeMediaValue]; split: [NodeMediaValue[]]; preview: [number]; close: [] }>();
+const emit = defineEmits<{ select: [NodeMediaValue]; split: [NodeMediaValue[]]; preview: [number]; download: [NodeMediaValue, number]; close: [] }>();
 const files = useNodeFiles();
 const urls = ref<string[]>([]);
+const root = ref<HTMLElement>();
+const size = ref({ width: 0, height: 0 });
+
+// 卡片与节点卡同尺寸，跟随节点缩放。
+watch(root, (element, _previous, onCleanup) => {
+  if (!element) return;
+  const observer = new ResizeObserver(() => { size.value = { width: element.offsetWidth, height: element.offsetHeight }; });
+  observer.observe(element);
+  onCleanup(() => observer.disconnect());
+}, { flush: "post" });
+
+// 参照 infinite-canvas 的批量展开：最多 4 列，当前结果留在原位占左下角，其余向右、向上铺开。
+const cards = computed(() => {
+  const { width, height } = size.value;
+  const count = props.items.length;
+  const columns = Math.min(count, 4);
+  const rows = Math.ceil(count / columns);
+  const rootSlot = (rows - 1) * columns;
+  return props.items
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => item.url !== props.current?.url)
+    .map(({ item, index }, order) => {
+      const slot = order >= rootSlot ? order + 1 : order;
+      const x = (slot % columns) * (width + 18);
+      const y = (Math.floor(slot / columns) - rows + 1) * (height + 40);
+      return {
+        item, index,
+        style: {
+          left: `${x}px`, top: `${y}px`, width: `${width}px`, height: `${height}px`,
+          "--fromX": `${-x}px`, "--fromY": `${-y}px`, "--fromRotate": `${4 + order * 2}deg`,
+          animationDelay: `${order * 35}ms`,
+        },
+      };
+    });
+});
 
 // 批量结果按文件读取预览地址；列表变化时释放旧地址。
 watch(() => props.items.map(item => item.url).join("\n"), async (_value, _previous, onCleanup) => {
@@ -67,95 +99,96 @@ watch(() => props.items.map(item => item.url).join("\n"), async (_value, _previo
 
 <style scoped lang="scss">
 @keyframes resultIn {
-  from { opacity: 0; transform: translateY(8px) scale(.96); }
+  from { opacity: 0; transform: translate(var(--fromX), var(--fromY)) rotate(var(--fromRotate)) scale(.72); }
+  72% { opacity: 1; transform: translate(0, 0) rotate(-1deg) scale(1.015); }
+  to { opacity: 1; transform: none; }
 }
 
 .mediaResults {
-  box-sizing: border-box;
-  width: max-content;
-  padding: 10px;
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 14px;
-  background: var(--el-bg-color);
-  box-shadow: 0 12px 36px rgb(0 0 0 / 12%);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 
-  .resultsHead {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    margin: 0 0 8px 4px;
-
-    .resultsTitle {
-      flex: 1;
-      color: var(--el-text-color-primary);
-      font-size: 13px;
-      font-weight: 600;
-    }
-
-    .el-button { margin: 0; }
-  }
-
-  .resultGrid {
+  .resultCard {
+    position: absolute;
     display: grid;
-    grid-template-columns: repeat(4, 112px);
-    gap: 8px;
-  }
-
-  &.count1 .resultGrid { grid-template-columns: 112px; }
-  &.count2 .resultGrid { grid-template-columns: repeat(2, 112px); }
-  &.count3 .resultGrid { grid-template-columns: repeat(3, 112px); }
-
-  .resultItem {
-    position: relative;
+    place-items: center;
+    box-sizing: border-box;
+    padding: 8px;
     overflow: hidden;
-    border: 2px solid transparent;
-    border-radius: 10px;
-    background: var(--el-fill-color-light);
-    animation: resultIn 320ms cubic-bezier(.2, .8, .2, 1) backwards;
-    transition: transform 150ms ease-out, border-color 150ms ease-out;
+    border: 1px solid var(--el-border-color-light);
+    border-radius: var(--el-card-border-radius, 4px);
+    background: var(--el-bg-color);
+    box-shadow: 0 18px 50px rgb(28 25 23 / 18%);
+    pointer-events: auto;
+    animation: resultIn 320ms cubic-bezier(.2, .85, .18, 1) both;
+    cursor: zoom-in;
 
-    &:hover { transform: translateY(-2px); }
-    &.selected { border-color: var(--el-color-primary); }
-
-    .resultPreview {
-      display: grid;
-      place-items: center;
+    img,
+    video {
+      display: block;
       width: 100%;
-      aspect-ratio: 1;
-      padding: 0;
-      border: 0;
-      background: transparent;
-      color: var(--el-text-color-placeholder);
-      cursor: pointer;
-
-      img,
-      video { width: 100%; height: 100%; object-fit: cover; }
-      &:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: -2px; }
+      height: 100%;
+      border-radius: var(--el-border-radius-base);
+      object-fit: contain;
+      pointer-events: none;
+      user-select: none;
     }
 
-    .currentMark {
+    .placeholder { color: var(--el-text-color-placeholder); }
+
+    .resultIndex {
       position: absolute;
-      top: 6px;
-      left: 6px;
-      padding: 1px 6px;
+      bottom: 14px;
+      left: 14px;
+      min-width: 20px;
+      padding: 0 6px;
       border-radius: 999px;
-      background: var(--el-color-primary);
+      background: rgb(0 0 0 / 55%);
       color: #fff;
       font-size: 11px;
-      line-height: 18px;
-      pointer-events: none;
+      line-height: 20px;
+      text-align: center;
+      backdrop-filter: blur(8px);
     }
 
     .resultActions {
       position: absolute;
-      right: 6px;
-      bottom: 6px;
+      top: 14px;
+      right: 14px;
+      left: 14px;
       display: flex;
       gap: 4px;
       opacity: 0;
       transition: opacity 150ms ease-out;
 
-      .el-button { width: 26px; height: 26px; margin: 0; padding: 0; border-radius: 8px; }
+      button {
+        display: inline-flex;
+        flex: 1;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        min-width: 0;
+        height: 30px;
+        padding: 0 6px;
+        border: 1px solid var(--el-border-color-light);
+        border-radius: 8px;
+        background: color-mix(in srgb, var(--el-bg-color) 86%, transparent);
+        color: var(--el-text-color-primary);
+        font: inherit;
+        font-size: 11px;
+        font-weight: 500;
+        cursor: pointer;
+        box-shadow: 0 6px 18px rgb(15 23 42 / 16%);
+        backdrop-filter: blur(12px);
+        transition: transform 150ms ease-out;
+
+        span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .starIcon { flex-shrink: 0; color: var(--el-color-primary); }
+        &:hover:not(:disabled) { transform: scale(1.03); }
+        &:disabled { cursor: not-allowed; opacity: .5; }
+        &:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: 1px; }
+      }
     }
 
     &:hover .resultActions,
@@ -164,8 +197,7 @@ watch(() => props.items.map(item => item.url).join("\n"), async (_value, _previo
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mediaResults .resultItem { animation: none; transition: none; }
-  .mediaResults .resultItem:hover { transform: none; }
-  .mediaResults .resultItem .resultActions { transition: none; }
+  .mediaResults .resultCard { animation: none; }
+  .mediaResults .resultCard .resultActions { transition: none; }
 }
 </style>

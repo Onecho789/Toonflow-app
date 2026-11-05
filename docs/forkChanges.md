@@ -698,6 +698,7 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 - 发往云端的文本、图片、视频生成请求在 `sessionFetch` 里统一按类型带 `X-Maimai-Group`：取请求体开头的 `model`，所选分组不适用于该模型时回退 `default`，`default` 不带请求头
 - 生图、视频工作台、对话模型选择（`modelPopover`）、画布文本节点没有已保存选择时选默认模型，再没有选第一项；已保存的模型下架回退第一项并提示一次（`pickModel`）
 - 模型目录缓存由 5 分钟改为 1 分钟；两个模型列表接口支持 `?refresh=1`，设置页“刷新”强制重新拉取
+- 2026-11-05：模型既不在所设分组也不在 default 时，不再自动取它的第一个分组（后台新增分组会悄悄改变线路），照原分组发送，由云端返回 `group_unavailable` 并列出可用分组
 - 顺带：视频工作台时长档位超过 5 个且为连续整数秒时，改为滑块加输入框自定义秒数，标签旁显示当前秒数
 
 | 文件 | 说明 |
@@ -958,7 +959,7 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
   - 裁剪和放大的结果都在右侧生成新的图片节点并自动连线。
   - 反推提示词：在下方生成预填反推指令的文本节点并连线。
   - AI 超分见下一节「本地 AI 超分」。
-- 多张结果改为堆叠卡片：节点背后叠最多 3 层，右上角显示「N 张 >」。点击后在节点右侧展开结果浮层，可选当前输出、查看大图、单张拆分或全部拆分。`nodeSkeleton` 新增 `#aside` 插槽和 `stackLayers` 属性；`mediaResults` 改为浮层样式，新增 `close` 事件。
+- 多张结果改为堆叠卡片：节点背后叠最多 3 层，右上角显示「N 张 >」。点击后参照 infinite-canvas 的批量展开：其余结果按与节点同尺寸的卡片铺成最多 4 列网格（当前图占根位），带飞出动画；卡片悬停可下载、拆为节点、设为当前，双击看大图。节点左上角悬停显示「打包下载」，把全部结果按序号命名打成 zip（`fflate` 仅存储不压缩）。`nodeSkeleton` 新增 `#aside` 插槽（位于 `.cardContainer` 内、与内容卡同尺寸的穿透层）和 `stackLayers` 属性；`mediaResults` 改为展开卡片布局，新增 `download`、`close` 事件；`nodeShared` 新增 `downloadResults` 导出与 `fflate` 依赖。
 - 图像设置面板重新排版，分区并加大间距，按需滚动。分区如下：
   - 质量：自动、高、中、低。
   - 宽高：自定义 W×H，失焦时向上对齐到 16 的倍数，并校验 gpt-image 像素范围。
@@ -971,7 +972,7 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 
 改动的上游文件：
 - `packages/nodeScaffold/src/nodeSkeleton.vue`、`nodeAi.ts`
-- `packages/nodeShared/src/components/mediaResults.vue`
+- `packages/nodeShared/src/components/mediaResults.vue`、`package.json`（新增 `./downloadResults` 导出与 `fflate`），新增 `src/downloadResults.ts`
 - `packages/nodes/imageNode/src/index.vue` 与 `package.json`，新增 `./imageTools` 导出
 - `packages/nodes/imageGenerationNode/src/index.vue`、`components/generationSettings.vue`
 - `apps/server/src/routes/ai/media/{generate,price}.ts`、`apps/server/src/utils/media/cloud.ts`
