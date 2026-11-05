@@ -13,7 +13,7 @@
 | 本机接口 | 云端网关 | 说明 |
 | --- | --- | --- |
 | `GET /api/ai/models` | `GET /v1/models`（`type: text`） | 文本模型；`meta.contextWindow`、`maxOutputTokens`、`reasoningEfforts` 决定上下文与思考档位。协议 `chat` → openai-completions，`responses` → openai-responses |
-| `GET /api/ai/media/models` | `GET /v1/models`（`type: image/video`） | 媒体模型；`meta` 中的 `mode`、`durationResolutionMap`、`audio`、`imageSizes`、`imageRatios`、视频 `ratios` 原样给节点；视频节点比例按钮读取 `ratios`。后台未声明的能力表示不限制，`listMediaModels` 补成通用选项（图片 1K/2K/4K 与 8 种比例，`sizeMap` 按云端同一算法补齐像素；视频 5–15 秒、480p/720p/1080p、6 种比例），见云端 `docs/apiContract.md` |
+| `GET /api/ai/media/models` | `GET /v1/models`（`type: image/video`） | 媒体模型；`meta` 中的 `mode`、`durationResolutionMap`、`audio`、`imageSizes`、`imageRatios`、视频 `ratios` 原样给节点；视频节点比例按钮读取 `ratios`。后台未声明的能力表示不限制，`listMediaModels` 补成通用选项（图片 1K/2K/4K 与 9 种比例，`sizeMap` 按云端同一固定表与换算规则补齐像素；视频 5–15 秒、480p/720p/1080p、6 种比例），见云端 `docs/apiContract.md` |
 | `POST /api/ai/media/price` | 本地按 `pricing` 与 `meta` 估算 | 图片 `unit × sizePrices[size]`；视频 `unit × 秒数 × resolutionPrices[分辨率] × （有声时）audioPrice`；只做展示，以云端实际扣费为准 |
 | `POST /api/ai/media/generate` | `POST /v1/images/generations`、`POST /v1/videos` | 图片同步返回 b64；视频每 5 秒查一次任务，最长 30 分钟，完成后从 `/content` 下载 |
 | `POST /api/ai/media/balance` | `GET /v1/balance` | 返回 `{ balance, walletUrl }`，余额单位 0.0001 元 |
