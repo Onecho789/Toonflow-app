@@ -6,7 +6,7 @@ export default {
   app: {
     name: "MaiMaiStudio",
     identifier: "local.maimaistudio.desktop",
-    version: process.env.appVersion ?? "2.1.15",
+    version: process.env.appVersion ?? "2.1.16",
     urlSchemes: ["maimai"],
   },
   build: {
