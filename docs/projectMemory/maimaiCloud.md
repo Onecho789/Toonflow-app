@@ -33,10 +33,21 @@ Import-Clixml -LiteralPath 'C:\Users\Administrator\.codex\serverConnections\maim
 
 ## 当前线上版本（2026-11-05）
 
+2026-11-05 16:18（北京时间）已更新到 **2.16.1-20261105**。
+镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.16.1-20261105
+摘要：sha256:458e61a2f112e3fe401c8978db2a52b571c9a0aaa53c7fd737762af5b91a4128
+源码提交：62d7a7fa91c1cfcba9f6602ba510da23365b46c5（uiRedesign，已推送 origin；从独立 clone 构建，已删除 clone），vcs.modified=false。web/ 与 2.16.0 无差异，复用 release216020261105 的 dist（逐文件比对一致）。
+
+本次图片接口 n 上限 8→15：超过 8 张拆成每批最多 8 张、最多 4 路并行的上游请求；各批都成功但张数不足时按 n=1 补齐；多批合并 data 返回，按实际张数结算。配套桌面 2.1.10（客户端提交 e9d9a2f）。无数据库迁移，schema 仍为 65。
+应用 running=true、restarts=0，启动 2026-11-05T08:18:13Z，日志 version=2.16.1-20261105；部署前后活动任务与未结算用量均为 0；code_cipher 列存在；Redis PONG、Bun 1.4.3；内网及公网首页、/admin/models、/admin/redemptionCodes、/api/pay/config 200，匿名 /api/admin/models、/api/admin/redemptionCodes/1/code、/v1/models 401；env 600、diff 仅 IMAGE。
+备份与回退：/opt/maimai-cloud/backups/batchImageRelease20261105（databaseBefore.dump 82191186 字节 SHA256 5a96db8b…、releaseRollback.sh SHA256 cb56f8b9…），回退到 2.16.0-20261105，只恢复 IMAGE；证据 docs/history/batchImageRelease20261105/，构建上下文 cloud\build\release216120261105。生产回退未执行；未在生产实际生成超过 8 张。
+
+### 上次发布：2.16.0-20261105
+
 2026-11-05 16:08（北京时间）已更新到 **2.16.0-20261105**。
 镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.16.0-20261105
 摘要：sha256:ee6210559b7fce5056bbdc7f99fbb53e744052ea18e65b26669cbdad1026d0da
-源码提交：2bfab018b335a0027b2715f0d3b13efbb9e6f53b（uiRedesign，已推送 origin；从独立 clone 构建），vcs.modified=false。工作区未提交的 gateway/image.go 改动不在本次镜像内。
+源码提交：2bfab018b335a0027b2715f0d3b13efbb9e6f53b（uiRedesign，已推送 origin；从独立 clone 构建），vcs.modified=false。
 
 本次管理端视觉重做（品牌侧栏 152px、宽松表格、手机卡片布局、深色模式保留）；兑换码新建时用设置加密密钥加密留存完整码，新增 GET /api/admin/redemptionCodes/{id}/code 供再次复制（审计 redemptionReveal），旧码无密文显示「不可复制」；全站调用拆成 12 列并支持列设置。迁移 64→65：redemption_codes 加 code_cipher 列。
 应用 running=true、restarts=0，启动 2026-11-05T08:08:32Z；部署前后活动任务与未结算用量均为 0；schema=65、code_cipher 列存在；Redis PONG、Bun 1.4.3；内网及公网首页、/admin/models、/admin/redemptionCodes、/api/pay/config 200，匿名 /api/admin/models、/api/admin/redemptionCodes/1/code、/v1/models 401；公网首页入口 assets/index-BsF9u-bw.js 与本次 dist 一致；env 600、diff 仅 IMAGE。
