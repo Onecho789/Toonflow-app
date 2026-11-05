@@ -88,7 +88,7 @@ bun run release:desktop <新的桌面版本> --initial
 
 ### 本地完整安装包 2.1.12（2026-11-05）
 
-- 源码提交：5a6cac1（版本），功能提交 88e04ee，分支 codex/simplifyMediaModels，未推送。内容：深色三套背景调淡（近中性底色、柔光与光束约减半）；深色流星许愿改为程序生成的静态银河星空（1920×1200 离屏画一次并缓存 WebP，约 0.3 秒）。
+- 源码提交：5a6cac1（版本），功能提交 88e04ee，分支 codex/simplifyMediaModels，已推送 origin。内容：深色三套背景调淡（近中性底色、柔光与光束约减半）；深色流星许愿改为程序生成的静态银河星空（1920×1200 离屏画一次并缓存 WebP，约 0.3 秒）。
 - 构建命令：`bun run release:desktop 2.1.12 --initial`，退出 0；去掉代理变量、PATH 前置 System32，curl 取得的 CDN 地址传入 `webView2BootstrapperUrl`。
 - 版本快照：D:\2api-codes\maimai\client\build\desktop\releases\2.1.12。
 - 安装包：`MaiMaiStudio-2.1.12-Setup.exe`，66,444,608 字节；SHA256 `06236ca58091d5850945bf1cb6a6367012a669067971d67b80186d4072654f3b`。
