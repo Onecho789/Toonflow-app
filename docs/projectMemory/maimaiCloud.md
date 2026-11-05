@@ -33,7 +33,18 @@ Import-Clixml -LiteralPath 'C:\Users\Administrator\.codex\serverConnections\maim
 
 ## 当前线上版本（2026-11-05）
 
-2026-11-05 16:18（北京时间）已更新到 **2.16.1-20261105**。
+2026-11-05 17:49（北京时间）已更新到 **2.16.2-20261105**。
+镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.16.2-20261105
+摘要：sha256:6047b901d93fd29d16443f955e231a4ca6668b72bbd887f48a9dc63857b785f8
+源码提交：e65b850fba38f574af2d4917bc287911097fe5fd（uiRedesign，已推送 origin；二进制与 web dist 均从独立 clone 构建，已删除 clone），vcs.modified=false。server/ 与 2.16.1 无差异。
+
+本次仅前端：管理后台、用户中心、首页与登录页改为 Glass Iris 风格（近黑底蓝紫冷光、Inter Tight 随包打包、玻璃控件与渐变细描边），移除临时配色 demo。接口与路由不变，无数据库迁移，schema 仍为 65。
+应用 running=true、restarts=0，启动 2026-11-05T09:49:16Z，日志 version=2.16.2-20261105；部署前后活动任务与未结算用量均为 0；code_cipher 列存在；Redis PONG、Bun 1.4.3；内网及公网首页、/admin、/admin/models、/admin/redemptionCodes、/console、/login、/api/pay/config 200，匿名 /api/admin/models、/api/admin/redemptionCodes/1/code、/v1/models 401；公网 index CSS（index-FI5qJ1Tv.css）含新主色 #2f6bff；env 600、diff 仅 IMAGE。
+备份与回退：/opt/maimai-cloud/backups/glassIrisRelease20261105（databaseBefore.dump 74560342 字节 SHA256 6b5def63…、releaseRollback.sh SHA256 f6a063bb…），回退到 2.16.1-20261105，只恢复 IMAGE；证据 docs/history/glassIrisRelease20261105/，构建上下文 cloud\build\release216220261105。生产回退未执行。
+
+### 上次发布：2.16.1-20261105
+
+2026-11-05 16:18（北京时间）曾更新到 **2.16.1-20261105**。
 镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.16.1-20261105
 摘要：sha256:458e61a2f112e3fe401c8978db2a52b571c9a0aaa53c7fd737762af5b91a4128
 源码提交：62d7a7fa91c1cfcba9f6602ba510da23365b46c5（uiRedesign，已推送 origin；从独立 clone 构建，已删除 clone），vcs.modified=false。web/ 与 2.16.0 无差异，复用 release216020261105 的 dist（逐文件比对一致）。
