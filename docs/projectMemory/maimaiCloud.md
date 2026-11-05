@@ -31,9 +31,20 @@ Import-Clixml -LiteralPath 'C:\Users\Administrator\.codex\serverConnections\maim
 
 其他凭据（root 密码、管理员账号、.env 密钥、测试账号、镜像仓库、new-api 服务器说明）统一记在 D:\2api-codes\资料\maimaiCredentials.md，条目清单见 [releaseWorkflow.md](releaseWorkflow.md) 的凭据小节；该文件不能复制进 Git 仓库，内容不抄进本记录。
 
-## 当前线上版本（2026-11-05）
+## 当前线上版本（2026-11-06）
 
-2026-11-06 00:07（北京时间）已更新到 **2.17.0-20261106**。
+2026-11-06 01:27（北京时间）已更新到 **2.18.0-20261106**。
+镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.18.0-20261106
+摘要：sha256:abd4545414b8f8b0dcb57cc38711eba96c3bf277c80df76f41250ea3acee591a
+源码提交：ebeb7c188dd3c95921d0314b3cf24dd6c628d184（uiRedesign，未推送 origin，origin 停在 102e134；二进制与 web dist 均从独立 clone 构建，已删除 clone），vcs.modified=false。
+
+本次 gpt-image-2.6 GIF 动图：模型 meta.gif=true 时接受 output_format=gif、frame_count（2–16，未传补 9）、frame_duration_ms（20–2000）；未声明 gif 返回 400 unsupported_format，GIF 带参考图/遮罩返回 400 unsupported_reference（OpenAI edits 不支持 GIF），帧参数不配 GIF 返回 400。费用 = 单价 × 张数 × 档位倍率 × 帧数 × meta.gifFramePrice（缺省 1，按帧估算，待实测账单校准）。后台模型表单新增「动图 GIF」开关与每帧倍率。无数据库迁移，schema 仍为 66。配套桌面 2.1.16。
+应用 running=true、restarts=0，启动 2026-11-05T17:26:56Z，日志 version=2.18.0-20261106；部署前后活动任务与未结算用量均为 0；max_images 列存在（渠道 1、5 已填 15）；Redis PONG、Bun 1.4.3；内网及公网首页、/admin、/admin/models、/admin/redemptionCodes、/console、/login、/api/pay/config 200，匿名 /api/admin/models、/api/admin/redemptionCodes/1/code、/v1/models 401；env 600、diff 仅 IMAGE。
+备份与回退：/opt/maimai-cloud/backups/gifRelease20261106（databaseBefore.dump 156489610 字节 SHA256 de2e2c49…、releaseRollback.sh SHA256 31a63852…），回退到 2.17.0-20261106，只恢复 IMAGE；证据 docs/history/gifRelease20261106/，构建上下文 cloud\build\release218020261106。生产回退未执行；后台尚未配置 gpt-image-2.6 模型与渠道，未在生产实际出 GIF。
+
+### 上次发布：2.17.0-20261106
+
+2026-11-06 00:07（北京时间）曾更新到 **2.17.0-20261106**。
 镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.17.0-20261106
 摘要：sha256:0a2c8273b7ad723f799f1061c659e278ad386342e3cea48bc2c66446bf59d811
 源码提交：2be98d487edd4650e71cf687a0bce0e6e3279e48（uiRedesign，已推送 origin，本地分支已设跟踪；二进制与 web dist 均从独立 clone 构建，已删除 clone），vcs.modified=false。
