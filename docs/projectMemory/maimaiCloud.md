@@ -33,7 +33,18 @@ Import-Clixml -LiteralPath 'C:\Users\Administrator\.codex\serverConnections\maim
 
 ## 当前线上版本（2026-11-05）
 
-2026-11-05 21:42（北京时间）已更新到 **2.16.4-20261105**。
+2026-11-06 00:07（北京时间）已更新到 **2.17.0-20261106**。
+镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.17.0-20261106
+摘要：sha256:0a2c8273b7ad723f799f1061c659e278ad386342e3cea48bc2c66446bf59d811
+源码提交：2be98d487edd4650e71cf687a0bce0e6e3279e48（uiRedesign，已推送 origin，本地分支已设跟踪；二进制与 web dist 均从独立 clone 构建，已删除 clone），vcs.modified=false。
+
+本次渠道新增「单次最多张数」：迁移 66 加 channels.max_images（可空，1–15，check 约束），管理端渠道编辑页（含图片能力的渠道类型）可填，0 表示清空按默认 8。图片拆批的每批张数取本次可能调用的前 2 个渠道里最小的上限（填了按填的，可高于 8；未填按 8）。起因：渠道「生图2」上游限制 n ≤ 4，6 张请求返回 422。上线后 5 个渠道均为 null（行为与 2.16.4 相同），需管理员在后台给「生图2」填 4。
+应用 running=true、restarts=0，启动 2026-11-05T16:06:59Z，日志 version=2.17.0-20261106；schema=66、max_images 列存在；部署前后活动任务与未结算用量均为 0；Redis PONG、Bun 1.4.3；内网及公网首页、/admin、/admin/models、/admin/redemptionCodes、/console、/login、/api/pay/config 200，匿名 /api/admin/models、/api/admin/redemptionCodes/1/code、/v1/models 401；env 600、diff 仅 IMAGE。本地在临时库验证迁移 66 与写入语义（未传保留、0 清空、16 被拒），临时库已删除。
+备份与回退：/opt/maimai-cloud/backups/maxImagesRelease20261106（databaseBefore.dump 155552509 字节 SHA256 0d1ce04a…、releaseRollback.sh SHA256 3c7d3f0f…），回退到 2.16.4-20261105，只恢复 IMAGE，max_images 列保留（旧镜像不读取）；证据 docs/history/maxImagesRelease20261106/，构建上下文 clouduildelease217020261106。生产回退未执行；未在生产后台实际保存该字段或出多张图。
+
+### 上次发布：2.16.4-20261105
+
+2026-11-05 21:42（北京时间）曾更新到 **2.16.4-20261105**。
 镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.16.4-20261105
 摘要：sha256:ce89394630aa0dd3f47c04e611fb745bfceff85166f5fc47e0292a5c169fc8f9
 源码提交：480f0c0ea54b7f5c116639d5a6dc769e4642fade（uiRedesign，已推送 origin；二进制从独立 clone 构建，已删除 clone），vcs.modified=false。web/ 与 2.16.3 无差异，复用 release216320261105 的 dist（diff -r 一致）。
