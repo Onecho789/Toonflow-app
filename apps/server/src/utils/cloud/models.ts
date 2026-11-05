@@ -63,7 +63,7 @@ export function getCloudDefault(type: CloudModel["type"]) {
 const generationPaths: [RegExp, CloudModel["type"]][] = [[/^\/v1\/(chat\/completions|responses|messages)$/, "text"], [/^\/v1\/images\/(generations|tasks)$/, "image"], [/^\/v1\/videos$/, "video"]];
 
 // 生成请求按模型类型取设置里的默认分组，返回 undefined 表示不带请求头（云端走 default）。
-// 所请求模型不在该分组时回退 default；模型没有 default 分组时用它的第一个分组。
+// 所请求模型不在该分组时回退 default；模型也不在 default 时照原分组发送，由云端返回可用分组提示用户自己选，不自动换到别的分组。
 export async function requestGroup(path: string, method = "GET", body?: unknown) {
   const type = method.toUpperCase() === "POST" ? generationPaths.find(([pattern]) => pattern.test(path.split("?")[0]!))?.[1] : undefined;
   if (!type) return;
@@ -71,7 +71,7 @@ export async function requestGroup(path: string, method = "GET", body?: unknown)
   // ACT: 只读请求体开头的 model 字段（SDK 与媒体请求体都把 model 放在第一个），避免为取模型 ID 解析几十 MB 的 JSON；取不到时按设置的分组发送。
   const modelId = typeof body === "string" ? /^\s*\{\s*"model"\s*:\s*"([^"\\]{1,256})"/.exec(body.slice(0, 512))?.[1] : undefined;
   const names = modelId ? (await listCloudModels().catch(() => [])).find(item => item.id === modelId && item.type === type)?.groups.map(item => item.name) : undefined;
-  if (names && !names.includes(group)) return names.includes("default") ? undefined : names[0];
+  if (names && !names.includes(group) && names.includes("default")) return;
   return group === "default" ? undefined : group;
 }
 

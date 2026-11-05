@@ -47,7 +47,10 @@ watch([() => props.models, saved], ([items, value]) => {
 }, { immediate: true });
 
 function save(model: string, groupName: string) {
-  updateCloudDefault(props.type, { model, group: groupName }).catch(() => ElMessage.error("默认模型保存失败，请稍后重试"));
+  return updateCloudDefault(props.type, { model, group: groupName }).then(() => true, () => {
+    ElMessage.error("默认模型保存失败，请稍后重试");
+    return false;
+  });
 }
 
 function changeModel(modelId: string) {
@@ -56,8 +59,10 @@ function changeModel(modelId: string) {
   save(modelId, keep?.name ?? "default");
 }
 
-function changeGroup(name: string) {
-  if (selected.value) save(selected.value.modelId, name);
+// 手动切换分组保存成功后提示一次，自动回退由上面的 watch 另行提示。
+async function changeGroup(name: string) {
+  if (!selected.value || !(await save(selected.value.modelId, name))) return;
+  ElMessage.success(`${props.title}已切换为「${groups.value.find(item => item.name === name)?.label ?? name}」分组`);
 }
 </script>
 
