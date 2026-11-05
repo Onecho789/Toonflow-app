@@ -33,6 +33,17 @@ Import-Clixml -LiteralPath 'C:\Users\Administrator\.codex\serverConnections\maim
 
 ## 当前线上版本（2026-11-05）
 
+2026-11-05 14:31（北京时间）已更新到 **2.15.2-20261105**。
+镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.15.2-20261105
+摘要：sha256:eabe0350d9c6e8879ac771426ebcf330a1110de1144945b7484c122f93ab26d3
+源码提交：de595569b6b816f186b745ae63501f4ad4a49737（uiRedesign，已推送 origin；基于 goRewrite 6b6579f，只多共享记忆提交和本次 image.go 改动），vcs.modified=false。web 静态文件与 2.15.1 相同（两提交间 web/ 无差异，复用 2.15.1 上下文的 dist）。
+
+本次图片接口支持 other.pixels（"WxH"）：按 gpt-image 约束校验（16 的倍数、长边 ≤ 3840、总像素 655360–8294400），优先于 sizeMap 换算并从请求体移除；计费档位按面积推算（≤2016×864 为 1K、≤2048² 为 2K、更大为 4K）。配套桌面 2.1.9（客户端提交 565756f）。无数据库迁移，schema 仍为 64。
+应用 running=true、restarts=0，启动 2026-11-05T06:31:54Z；部署前后活动任务与未结算用量均为 0；Redis PONG、Bun 1.4.3；内网及公网首页、/admin/models、/api/pay/config 200，匿名 /api/admin/models、/v1/models 401；env 600、diff 仅 IMAGE。
+备份与回退：/opt/maimai-cloud/backups/pixelsRelease20261105（databaseBefore.dump 82191215 字节 SHA256 28cb110e…、releaseRollback.sh SHA256 f61c4c61…），回退到 2.15.1-20261105；证据 docs/history/pixelsRelease20261105/，构建上下文 clouduildelease215220261105。生产回退未执行，未用自定义像素实际生成。
+
+### 上次发布：2.15.1-20261105
+
 2026-11-05 11:01（北京时间）已更新到 **2.15.1-20261105**。
 镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.15.1-20261105
 摘要：sha256:310cd51d83af29eb5533d1c3a408d57a1c5d22f07bd6abba2061721ce8908a34
@@ -143,7 +154,8 @@ Grok 当前修订：f8f85bef333fecb4da9ecfdb267a9cbad30472092346ed9a252c15138fda
 ## 桌面本地安装包 2.1.9（2026-11-05）
 
 - 源码提交：970bec1（版本），功能提交 565756f，分支 codex/simplifyMediaModels。内容：图片工具栏（信息、裁剪、放大、反推提示词、删除节点）、多图堆叠展示、图像设置面板重排（质量、自定义宽高、透明背景、张数 1–8）。自定义宽高经 other.pixels 转发，需云端提交 de59556（分支 uiRedesign，未部署）才按面积计费。
-- 版本快照：D:api-codes\maimai\clientuild\desktopeleases.1.9。安装包 `MaiMaiStudio-2.1.9-Setup.exe` 55,620,929 字节，SHA256 `a32e20f4a1831ade5f497aabd3abb900452f7de3f24baaddd1b71988e3fbac81`；清单 version=2.1.9、hash=2u2ec56c0xa9o。
+- 版本快照：D:api-codes\maimai\clientuild\desktop
+eleases.1.9。安装包 `MaiMaiStudio-2.1.9-Setup.exe` 55,620,929 字节，SHA256 `a32e20f4a1831ade5f497aabd3abb900452f7de3f24baaddd1b71988e3fbac81`；清单 version=2.1.9、hash=2u2ec56c0xa9o。
 - 打包退出 0；快照与 artifacts 一致；归档内含新设置面板、堆叠角标、反推提示词与 1–8 张校验。本地交付，未运行安装器，GitHub 仍为 2.1.0、更新源仍为空。详情见 releaseWorkflow.md。
 
 ## 上次桌面本地安装包 2.1.8（2026-11-05）
