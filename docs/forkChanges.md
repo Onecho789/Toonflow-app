@@ -1045,3 +1045,14 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 改动的上游文件：`packages/nodeShared/src/components/mediaResults.vue`、`packages/nodeShared/src/useResultNodes.ts`。
 
 冲突时保留：`currentCard` 叠层与 `currentIndex`、`duplicate` 的下方落点和创建后选中。
+
+## 麦麦云 429 限流后的冷却与提交重试（2026-11-06）
+
+- 现象：批量出图时云端返回 429「请求过于频繁」，客户端仍继续发提交请求，失败的节点直接报错；小助手对话也一直被拒。
+- `utils/cloud/index.ts` 的 `sessionFetch` 按云端同样的规则把 `/v1/*` 分成「任务进度查询」和「其他请求」两类；收到 429 后按 `Retry-After`（缺省 5 秒，最多 60 秒）记下该类的冷却截止时间，冷却期内同类请求先等待再发。
+- `utils/media/cloud.ts` 的 `postJson` 提交图片、视频任务遇到 429 自动重发，最多 10 次；云端限流在扣费前拦截，不会重复扣费。
+- 配套云端改动：限流上限改为后台「系统设置 → 限流」配置，进度查询单独计数，0 表示不限制。
+
+改动的上游文件：无（均为麦麦云专用文件）。
+
+冲突时保留：`gatewayCooldown`、`gatewayBucket` 与 `postJson` 的 429 重试循环。

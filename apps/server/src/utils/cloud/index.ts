@@ -61,6 +61,24 @@ function saveSession(result: { user: CloudUser; apiKey: string }) {
   return result.user;
 }
 
+// 网关限流分两类计数（与云端 isPoll 一致）：查询图片/视频任务进度，与其余 /v1/* 请求。
+// ACT: 收到 429 后按 Retry-After 记下冷却截止时间，同类请求等冷却结束再发，不在限流期间继续打到云端。
+const gatewayCooldown = new Map<"poll" | "gateway", number>();
+
+function gatewayBucket(path: string, method: string) {
+  if (!path.startsWith("/v1/")) return;
+  return method === "GET" && (path.startsWith("/v1/images/tasks/") || path.startsWith("/v1/videos/")) ? "poll" : "gateway";
+}
+
+function waitCooldown(until: number, signal?: AbortSignal | null) {
+  return new Promise<void>((resolve, reject) => {
+    if (signal?.aborted) return reject(signal.reason);
+    const abort = () => { clearTimeout(timer); reject(signal!.reason); };
+    const timer = setTimeout(() => { signal?.removeEventListener("abort", abort); resolve(); }, until - Date.now());
+    signal?.addEventListener("abort", abort, { once: true });
+  });
+}
+
 // 给发往麦麦云的请求带上设备 Key，其他地址原样转发，避免 Key 泄露给第三方；401 说明 Key 已失效，清除本地会话回到登录页。
 // 文本、图片、视频生成请求另按设置的默认分组带 X-Maimai-Group，没有设置时不带，由云端走 default。
 export const sessionFetch = Object.assign(async (input: Parameters<typeof fetch>[0], init: RequestInit = {}) => {
@@ -69,6 +87,9 @@ export const sessionFetch = Object.assign(async (input: Parameters<typeof fetch>
   if (url !== cloudUrl && !url.startsWith(`${cloudUrl}/`)) return fetch(input, init);
   const current = currentSession();
   if (!current) throw Object.assign(new Error("请先登录麦麦云账号"), { status: 401 });
+  const bucket = gatewayBucket(new URL(url).pathname, (init.method ?? source?.method ?? "GET").toUpperCase());
+  const cooldown = bucket && gatewayCooldown.get(bucket);
+  if (cooldown && cooldown > Date.now()) await waitCooldown(cooldown, init.signal ?? source?.signal);
   const headers = new Headers(init.headers ?? source?.headers);
   headers.set("Authorization", `Bearer ${current.key}`);
   // 模型目录模块静态依赖本模块的 cloudUrl，这里动态导入以免循环依赖时取到未初始化的常量。
@@ -77,6 +98,11 @@ export const sessionFetch = Object.assign(async (input: Parameters<typeof fetch>
   if (group) headers.set("X-Maimai-Group", group);
   const response = await fetch(input, { ...init, headers });
   if (response.status === 401) replaceSession(current.session);
+  if (response.status === 429 && bucket) {
+    const seconds = Number(response.headers.get("retry-after"));
+    const until = Date.now() + (Number.isFinite(seconds) && seconds > 0 ? Math.min(seconds, 60) : 5) * 1000;
+    if (until > (gatewayCooldown.get(bucket) ?? 0)) gatewayCooldown.set(bucket, until);
+  }
   return response;
 }, fetch);
 

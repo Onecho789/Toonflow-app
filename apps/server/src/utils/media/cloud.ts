@@ -18,10 +18,18 @@ function wait(ms: number, signal: AbortSignal) {
   });
 }
 
+// ACT: 网关限流在扣费之前拦截，429 重发不会重复扣费；sessionFetch 会先等冷却结束，最多重试 10 次。
 async function postJson<T>(path: string, body: unknown, signal: AbortSignal) {
-  const response = await gatewayFetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal });
-  if (!response.ok) throw await gatewayError(response);
-  return await response.json() as T;
+  const payload = JSON.stringify(body);
+  for (let attempt = 0; ; attempt++) {
+    const response = await gatewayFetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: payload, signal });
+    if (response.status === 429 && attempt < 10) {
+      await response.body?.cancel();
+      continue;
+    }
+    if (!response.ok) throw await gatewayError(response);
+    return await response.json() as T;
+  }
 }
 
 // 与云端 pixelsTier 一致：自定义像素（other.pixels）按面积归入能容纳它的最低档位计费。
