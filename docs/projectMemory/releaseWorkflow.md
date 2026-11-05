@@ -1,6 +1,6 @@
 # 麦麦打包、发布与部署
 
-2026-11-03 从旧对话、旧记忆和实际源码整理，2026-11-04 补充桌面 2.1.3、2.1.4、2.1.5、2.1.6、2.1.7、2.1.8、2.1.9、2.1.10 本地安装包交付记录及云端 2.12.0-20261104、2.13.0-20261105、2.14.0-20261105、2.14.1-20261105、2.15.0-20261105、2.15.1-20261105、2.15.2-20261105、2.16.0-20261105、2.16.1-20261105 发布。
+2026-11-03 从旧对话、旧记忆和实际源码整理，2026-11-04 补充桌面 2.1.3、2.1.4、2.1.5、2.1.6、2.1.7、2.1.8、2.1.9、2.1.10、2.1.11 本地安装包交付记录及云端 2.12.0-20261104、2.13.0-20261105、2.14.0-20261105、2.14.1-20261105、2.15.0-20261105、2.15.1-20261105、2.15.2-20261105、2.16.0-20261105、2.16.1-20261105 发布。
 
 ## 工作目录与记忆
 
@@ -16,7 +16,7 @@
 
 两个子目录分别管理 Git。根目录继续作为共享记忆维护入口；根级 AGENTS.md 与 docs/ 下的 releaseWorkflow.md、maimaiCloud.md、localEnvNotes.md 同步到两个仓库的 docs/projectMemory/ 并分别提交、推送，单独克隆时可从该目录的 readme.md 查看。每次更新共享记忆后同步两份副本；docs/history/ 中的历史证据与构建日志另作本机备份。
 
-当前桌面本地安装包为 **2.1.10**，提交 08e9423，分支 codex/simplifyMediaModels；上次公开发布为 2.1.0。云端版本为 **2.16.1-20261105**，提交 62d7a7fa91c1cfcba9f6602ba510da23365b46c5，分支 uiRedesign。两个版本号各自维护，后续先读实际 HEAD、分支和工作区。
+当前桌面本地安装包为 **2.1.11**，提交 21cb7da，分支 codex/simplifyMediaModels；上次公开发布为 2.1.0。云端版本为 **2.16.1-20261105**，提交 62d7a7fa91c1cfcba9f6602ba510da23365b46c5，分支 uiRedesign。两个版本号各自维护，后续先读实际 HEAD、分支和工作区。
 
 ## Windows 桌面打包
 
@@ -85,6 +85,17 @@ bun run release:desktop <新的桌面版本> --initial
 - 本次为本地安装包交付；GitHub 公开版本仍为 2.1.0，更新源仍为空。安装器留给用户运行测试，原有 AGENTS.md 修改保留。
 - 构建日志、原始/修改后版本配置、差异及副本回退证据：`docs/history/canvasDesktop21320261104/`。ROLLBACK.sh 仅在独立配置副本恢复 app.version=2.1.2，SHA256 与原始配置一致；实际源码和产物保持 2.1.3，不更换已安装程序。
 - 旧 2.1.2 安装包保留在其原快照目录；打包前已核对 SHA256 与旧记录一致。共享记忆修改前副本保存在本轮证据目录的 memoryBefore/。
+
+### 本地完整安装包 2.1.11（2026-11-05）
+
+- 源码提交：21cb7da（版本），功能提交 17a20f7，分支 codex/simplifyMediaModels，未推送。内容：画布背景改用 infinite-canvas 配色（暖灰底色、半透明点阵/网格、间距 48、点固定屏幕尺寸）、项目自定义封面。
+- 构建命令：`bun run release:desktop 2.1.11 --initial`，退出 0。首次因 go.microsoft.com 短链 ECONNRESET 失败（日志 build-attempt1-ECONNRESET.log），第二次用 curl 取得的 CDN 地址传入 `webView2BootstrapperUrl` 成功；均去掉代理变量、PATH 前置 System32。
+- 版本快照：D:\2api-codes\maimai\client\build\desktop\releases\2.1.11。
+- 安装包：`MaiMaiStudio-2.1.11-Setup.exe`，66,446,615 字节；SHA256 `7fbfd54b597dff2b9287f72efb6729cf8fb90be2f4f819382f72428b71ce7d3f`。
+- 更新归档：`stable-win-x64-MaiMaiStudio.tar.zst`，69,757,166 字节；SHA256 `9465fe4b536a8307336b623f7d2f2d252342d64ce732f0987f943c1272978416`。
+- 更新清单：`stable-win-x64-update.json`，210 字节；SHA256 `590702c5ddbcf6ec5279344ee1a3957418eac04a1ad22323b3c6ad0370516c3c`；version=2.1.11、stable/win/x64、hash=1202i5zcf7vec。
+- 验证：web typecheck 退出 0；开发预览中核对浅色/深色点阵与网格；快照与 artifacts 安装包逐字节一致；tar 列出归档 1737 项，version.json 为 2.1.11，mainview 的 workspace CSS 含新画布变量。未运行安装器。
+- 本地交付；GitHub 公开版本仍为 2.1.0，更新源仍为空。router.ts（仅换行符）、components.d.ts 工作区漂移未提交。构建日志 docs/history/canvasBgDesktop211120261105/。回退方式：安装 2.1.10 快照中的安装包。
 
 ### 本地完整安装包 2.1.10（2026-11-05）
 
