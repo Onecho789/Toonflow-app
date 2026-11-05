@@ -40,7 +40,7 @@ Import-Clixml -LiteralPath 'C:\Users\Administrator\.codex\serverConnections\maim
 
 本次渠道新增「单次最多张数」：迁移 66 加 channels.max_images（可空，1–15，check 约束），管理端渠道编辑页（含图片能力的渠道类型）可填，0 表示清空按默认 8。图片拆批的每批张数取本次可能调用的前 2 个渠道里最小的上限（填了按填的，可高于 8；未填按 8）。起因：渠道「生图2」上游限制 n ≤ 4，6 张请求返回 422。上线后 5 个渠道均为 null（行为与 2.16.4 相同），需管理员在后台给「生图2」填 4。
 应用 running=true、restarts=0，启动 2026-11-05T16:06:59Z，日志 version=2.17.0-20261106；schema=66、max_images 列存在；部署前后活动任务与未结算用量均为 0；Redis PONG、Bun 1.4.3；内网及公网首页、/admin、/admin/models、/admin/redemptionCodes、/console、/login、/api/pay/config 200，匿名 /api/admin/models、/api/admin/redemptionCodes/1/code、/v1/models 401；env 600、diff 仅 IMAGE。本地在临时库验证迁移 66 与写入语义（未传保留、0 清空、16 被拒），临时库已删除。
-备份与回退：/opt/maimai-cloud/backups/maxImagesRelease20261106（databaseBefore.dump 155552509 字节 SHA256 0d1ce04a…、releaseRollback.sh SHA256 3c7d3f0f…），回退到 2.16.4-20261105，只恢复 IMAGE，max_images 列保留（旧镜像不读取）；证据 docs/history/maxImagesRelease20261106/，构建上下文 clouduildelease217020261106。生产回退未执行；未在生产后台实际保存该字段或出多张图。
+备份与回退：/opt/maimai-cloud/backups/maxImagesRelease20261106（databaseBefore.dump 155552509 字节 SHA256 0d1ce04a…、releaseRollback.sh SHA256 3c7d3f0f…），回退到 2.16.4-20261105，只恢复 IMAGE，max_images 列保留（旧镜像不读取）；证据 docs/history/maxImagesRelease20261106/，构建上下文 cloud\build\release217020261106。生产回退未执行；未在生产后台实际保存该字段或出多张图。
 
 ### 上次发布：2.16.4-20261105
 
