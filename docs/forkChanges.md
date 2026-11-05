@@ -861,6 +861,13 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 
 改动的上游文件：`electrobun.config.ts` 更新 `app.version`；冲突时保留本 fork 的桌面版本号。
 
+## 桌面 2.1.7 安装包（2026-11-05）
+
+- 桌面配置版本升级为 2.1.7，完整安装包包含“媒体模型未声明能力用通用选项”：后台未填尺寸、比例、时长、分辨率的模型也能在节点与工作台选择。
+- 本次使用 `release:desktop 2.1.7 --initial` 构建 Windows x64 完整包，更新源配置保持原值。
+
+改动的上游文件：`electrobun.config.ts` 更新 `app.version`；冲突时保留本 fork 的桌面版本号。
+
 ## 云端 Claude 原生协议（2026-11-05）
 
 - 麦麦云文本模型新增协议 `messages`（Anthropic 原生 `/v1/messages`），客户端映射为 pi-ai 的 `anthropic-messages`，思考参数由 SDK 按 Claude 原生格式发送。
