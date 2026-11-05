@@ -75,10 +75,10 @@ function derivePixels(size: string, ratio: string) {
   return width >= height ? `${longSide}x${shortSide}` : `${shortSide}x${longSide}`;
 }
 
-export async function listMediaModels(refresh = false): Promise<(MediaModel & { price: string; groups: CloudGroup[]; isDefault: boolean; sizeMap?: SizeMap })[]> {
-  return (await listCloudModels(refresh)).flatMap((model): (MediaModel & { price: string; groups: CloudGroup[]; isDefault: boolean; sizeMap?: SizeMap })[] => {
+export async function listMediaModels(refresh = false): Promise<(MediaModel & { price: string; groups: CloudGroup[]; isDefault: boolean; sizeMap?: SizeMap; gif?: boolean })[]> {
+  return (await listCloudModels(refresh)).flatMap((model): (MediaModel & { price: string; groups: CloudGroup[]; isDefault: boolean; sizeMap?: SizeMap; gif?: boolean })[] => {
     if (model.type !== "image" && model.type !== "video") return [];
-    const meta = model.meta as Pick<MediaModel, "mode" | "durationResolutionMap" | "audio" | "imageSizes" | "imageRatios" | "ratios"> & { sizeMap?: SizeMap };
+    const meta = model.meta as Pick<MediaModel, "mode" | "durationResolutionMap" | "audio" | "imageSizes" | "imageRatios" | "ratios"> & { sizeMap?: SizeMap; gif?: boolean };
     const base = {
       providerId: cloudProviderId, providerLabel: "麦麦云", modelId: model.id, label: model.label, vendor: model.vendor, type: model.type, supportsPrice: true, price: cloudPriceText(model), groups: model.groups, isDefault: model.id === getCloudDefault(model.type).model,
       mode: meta.mode, audio: meta.audio,
@@ -90,7 +90,7 @@ export async function listMediaModels(refresh = false): Promise<(MediaModel & { 
       const pixels = meta.sizeMap?.[size]?.[ratio] ?? derivePixels(size, ratio);
       return pixels ? [[ratio, pixels]] : [];
     }))]));
-    return [{ ...base, imageSizes, imageRatios, sizeMap }];
+    return [{ ...base, imageSizes, imageRatios, sizeMap, ...(meta.gif === true ? { gif: true } : {}) }];
   });
 }
 

@@ -3,7 +3,7 @@ import { findCloudModel, gatewayError, gatewayFetch, type CloudModel } from "@/u
 
 type MediaInput = { data: string; mimeType: string };
 export type CloudAsset = { type: "url"; url: string } | { type: "base64"; data: string } | { type: "binary"; data: Uint8Array; mimeType: string };
-type ImageMeta = { sizePrices?: Record<string, number> };
+type ImageMeta = { sizePrices?: Record<string, number>; gifFramePrice?: number };
 type VideoMeta = { resolutionPrices?: Record<string, number>; audioPrice?: number };
 // 图片张数不在工具 schema 里，由路由单独校验后随请求传入；缺省为 1 张。
 export type ImageCount = { n?: number };
@@ -34,8 +34,11 @@ function pixelsTier(pixels: unknown) {
 // 与云端网关的计费公式一致，金额单位 0.0001 元；实际以云端扣费为准。
 export function estimateCost(model: CloudModel, request: MediaGenerationRequest & ImageCount) {
   if (model.type === "image") {
+    const meta = model.meta as ImageMeta;
     const tier = pixelsTier(request.other?.pixels) ?? request.size ?? "";
-    return Math.ceil(model.pricing.unit * ((model.meta as ImageMeta).sizePrices?.[tier] ?? 1)) * (request.n ?? 1);
+    // GIF 按 帧数（缺省 9）× 每帧倍率 计，与云端 gifFrames 一致。
+    const frames = String(request.other?.output_format).toLowerCase() === "gif" ? (Number(request.other?.frame_count) || 9) * (meta.gifFramePrice ?? 1) : 1;
+    return Math.ceil(model.pricing.unit * (meta.sizePrices?.[tier] ?? 1) * frames) * (request.n ?? 1);
   }
   const meta = model.meta as VideoMeta;
   const audio = request.generateAudio ? meta.audioPrice ?? 1 : 1;

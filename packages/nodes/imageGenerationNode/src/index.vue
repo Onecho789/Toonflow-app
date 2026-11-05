@@ -131,6 +131,9 @@
             v-model:quality="data.quality"
             v-model:transparent="data.transparent"
             v-model:pixels="data.pixels"
+            v-model:gif="data.gif"
+            v-model:gifFrames="data.gifFrames"
+            v-model:gifFrameDuration="data.gifFrameDuration"
             :maxCount="maxCount"
             :model="selectedModel"
             :sizes="sizeOptions"
@@ -206,7 +209,7 @@ const { id, node, nodeProps, nodeEvent, outputs, files, ai, updateNodeInternals 
   label: "图片生成",
 });
 type PromptModel = NonNullable<InstanceType<typeof promptInput>["$props"]["modelValue"]>;
-const data = computed(() => node.data as { prompt: string; promptModel: PromptModel; inpaintPrompt: string; inpaintPromptModel: PromptModel; model: string; size: string; ratio: string; other: Record<string, unknown>; inpaint?: ImageInpaint; count: number; autoSplit: boolean; quality: string; transparent: boolean; pixels: string; results?: NodeMediaValue[] });
+const data = computed(() => node.data as { prompt: string; promptModel: PromptModel; inpaintPrompt: string; inpaintPromptModel: PromptModel; model: string; size: string; ratio: string; other: Record<string, unknown>; inpaint?: ImageInpaint; count: number; autoSplit: boolean; quality: string; transparent: boolean; pixels: string; gif: boolean; gifFrames: number; gifFrameDuration: number; results?: NodeMediaValue[] });
 data.value.prompt ??= "";
 data.value.promptModel ??= [];
 data.value.inpaintPrompt ??= "";
@@ -220,6 +223,9 @@ data.value.autoSplit ??= false;
 data.value.quality ??= "auto";
 data.value.transparent ??= false;
 data.value.pixels ??= "";
+data.value.gif ??= false;
+data.value.gifFrames ??= 9;
+data.value.gifFrameDuration ??= 200;
 type ImageInput = Omit<NodeImageRequest, "directory">;
 const { refList, referenceMentions, materialMentions, selectMaterialReference, selectAssetReference, setReferencePreview, removeReference } = useNodeReferences();
 const models = shallowRef<NodeMediaModel[]>([]);
@@ -281,6 +287,7 @@ watch(
   },
   { flush: "sync" }
 );
+const gifEnabled = computed(() => data.value.gif && selectedModel.value?.gif === true && !data.value.inpaint);
 const modelGroups = computed(() => groupNodeModels(models.value));
 const generationPrompt = computed(() =>
   [
@@ -321,6 +328,8 @@ function imageOther() {
     ...(data.value.quality && data.value.quality !== "auto" ? { quality: data.value.quality } : {}),
     ...(data.value.transparent ? { background: "transparent" } : {}),
     ...(data.value.pixels && !data.value.inpaint ? { pixels: data.value.pixels } : {}),
+    // GIF 只用于普通文生图；带参考图时由麦麦云返回明确错误。
+    ...(gifEnabled.value ? { output_format: "gif", frame_count: data.value.gifFrames, frame_duration_ms: data.value.gifFrameDuration } : {}),
   };
   return Object.keys(other).length ? other : undefined;
 }
@@ -649,6 +658,9 @@ function getConfig() {
       quality: data.value.quality,
       transparent: data.value.transparent,
       pixels: data.value.pixels,
+      gif: data.value.gif,
+      gifFrames: data.value.gifFrames,
+      gifFrameDuration: data.value.gifFrameDuration,
       maxCount: maxCount.value,
       other: { ...data.value.other },
     },
@@ -670,7 +682,7 @@ nodeTools.register({
 
 nodeTools.register({
   name: "setConfig",
-  description: "修改此图片生成节点的模型、分辨率、比例、张数、质量（auto/high/medium/low）、透明背景、自定义像素（宽x高，16 的倍数，空串恢复档位）或完成后是否拆分为图片节点；先用 getConfig 查询可选能力（张数不超过 maxCount），providerId 与 modelId 必须同时提供；不修改提示词、不启动生成",
+  description: "修改此图片生成节点的模型、分辨率、比例、张数、质量（auto/high/medium/low）、透明背景、自定义像素（宽x高，16 的倍数，空串恢复档位）、GIF 动图（gif，仅 getConfig 模型 gif 为 true 时可开，只支持无参考图的文生图；gifFrames 2–16 帧，gifFrameDuration 每帧 20–2000 毫秒）或完成后是否拆分为图片节点；先用 getConfig 查询可选能力（张数不超过 maxCount），providerId 与 modelId 必须同时提供；不修改提示词、不启动生成",
   parameters: z.strictObject({
     providerId: z.string().min(1).optional(),
     modelId: z.string().min(1).optional(),
@@ -681,6 +693,9 @@ nodeTools.register({
     quality: z.enum(["auto", "high", "medium", "low"]).optional(),
     transparent: z.boolean().optional(),
     pixels: z.union([z.literal(""), z.string().regex(/^[1-9]\d{1,3}x[1-9]\d{1,3}$/)]).optional(),
+    gif: z.boolean().optional(),
+    gifFrames: z.number().int().min(2).max(16).optional(),
+    gifFrameDuration: z.number().int().min(20).max(2000).optional(),
   }).refine((args) => (args.providerId === undefined) === (args.modelId === undefined), "providerId 与 modelId 必须同时提供"),
   async execute(args, { signal }) {
     signal?.throwIfAborted();
@@ -695,6 +710,7 @@ nodeTools.register({
     const ratios = choice.imageRatios?.length ? choice.imageRatios : ["16:9"];
     if (args.size !== undefined && !sizes.includes(args.size)) throw new Error(`当前模型不支持分辨率 ${args.size}，可选：${sizes.join("、")}`);
     if (args.ratio !== undefined && !ratios.includes(args.ratio)) throw new Error(`当前模型不支持比例 ${args.ratio}，可选：${ratios.join("、")}`);
+    if (args.gif && choice.gif !== true) throw new Error("当前模型不支持 GIF 动图");
     data.value.model = JSON.stringify([choice.providerId, choice.modelId]);
     if (args.size !== undefined) data.value.size = args.size;
     if (args.ratio !== undefined) data.value.ratio = args.ratio;
@@ -706,6 +722,9 @@ nodeTools.register({
     if (args.quality !== undefined) data.value.quality = args.quality;
     if (args.transparent !== undefined) data.value.transparent = args.transparent;
     if (args.pixels !== undefined) data.value.pixels = args.pixels;
+    if (args.gif !== undefined) data.value.gif = args.gif;
+    if (args.gifFrames !== undefined) data.value.gifFrames = args.gifFrames;
+    if (args.gifFrameDuration !== undefined) data.value.gifFrameDuration = args.gifFrameDuration;
     return getConfig();
   },
 });

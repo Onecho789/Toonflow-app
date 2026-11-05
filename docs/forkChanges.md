@@ -1025,3 +1025,23 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 改动的上游文件：`apps/web/src/pages/workspace/index.vue`、`panels/canvas/{index,canvasHost}.vue`、`panels/canvas/components/nodeMenu.vue`。
 
 冲突时保留：`addNodeFromButton` 与 `openMenu` 的 `anchor` 参数、动态 `menuPlacement`。
+
+## gpt-image-2.6 GIF 动图（2026-11-06）
+
+- 麦麦云图片模型 `meta.gif` 为 true 时（如 `gpt-image-2.6-sunburst/flare`），图片生成节点的设置面板显示「GIF 动图」开关、帧数（2–16，默认 9）和每帧毫秒（20–2000，默认 200）。
+- 开启后请求并入 `output_format: "gif"`、`frame_count`、`frame_duration_ms`，局部重绘不带。GIF 只支持无参考图的文生图，带参考图时由云端返回明确错误。
+- 预估费用按帧数 × `meta.gifFramePrice` 乘算，与云端一致；结果按 GIF 文件头识别存为 `.gif`（原有逻辑）。
+- 节点工具 `setConfig` 新增 `gif`、`gifFrames`、`gifFrameDuration`。
+
+改动的上游文件：`packages/nodes/imageGenerationNode/src/index.vue`、`components/generationSettings.vue`、`packages/nodeScaffold/src/nodeAi.ts`、`apps/server/src/utils/media/{cloud,generation}.ts`。
+
+冲突时保留：节点数据 `gif/gifFrames/gifFrameDuration`、`imageOther` 中的 GIF 参数、`estimateCost` 的帧数乘算。
+
+## 批量结果展开：当前卡操作与副本位置（2026-11-06）
+
+- 展开批量结果时，原位的节点卡（当前输出）也叠一层操作条：下载、创建副本，第三格是不可点的「当前」星标；左下角补上序号，和其余卡片连成 1…N。操作条下移到 54px，避开节点顶部的「打包下载」和「N 张」徽标。
+- 「创建副本」改为放在原节点正下方（与节点自带复制同样向下顺延避让），不再落进右侧展开区；创建后选中副本，借 `elevateNodesOnSelect` 抬到最上层。图片生成、视频生成节点共用，均受影响。
+
+改动的上游文件：`packages/nodeShared/src/components/mediaResults.vue`、`packages/nodeShared/src/useResultNodes.ts`。
+
+冲突时保留：`currentCard` 叠层与 `currentIndex`、`duplicate` 的下方落点和创建后选中。

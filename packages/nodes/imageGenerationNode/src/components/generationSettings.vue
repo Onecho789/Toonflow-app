@@ -75,6 +75,21 @@
       </section>
 
       <section class="settingSection switchList">
+        <label v-if="model?.gif" class="switchOption">
+          <span>GIF 动图</span>
+          <el-switch v-model="gif" size="small" :disabled="disabled" aria-label="生成 GIF 动图" />
+        </label>
+        <template v-if="model?.gif && gif">
+          <label class="switchOption">
+            <span>帧数</span>
+            <el-input-number v-model="gifFrames" :min="2" :max="16" :step="1" stepStrictly :valueOnClear="9" size="small" :disabled="disabled" controlsPosition="right" aria-label="GIF 帧数" />
+          </label>
+          <label class="switchOption">
+            <span>每帧毫秒</span>
+            <el-input-number v-model="gifFrameDuration" :min="20" :max="2000" :step="10" stepStrictly :valueOnClear="200" size="small" :disabled="disabled" controlsPosition="right" aria-label="GIF 每帧毫秒" />
+          </label>
+          <span class="gifHint">时长约 {{ (gifFrames * gifFrameDuration / 1000).toFixed(1) }} 秒，仅文生图，按帧计费</span>
+        </template>
         <label class="switchOption">
           <span>透明背景</span>
           <el-switch v-model="transparent" size="small" :disabled="disabled" aria-label="透明背景" />
@@ -108,6 +123,10 @@ const quality = defineModel<string>("quality", { required: true });
 const transparent = defineModel<boolean>("transparent", { required: true });
 // 自定义像素“宽x高”，空串表示按分辨率档位与比例取像素。
 const pixels = defineModel<string>("pixels", { required: true });
+// GIF 动图：仅模型声明 gif 时显示；帧数 2–16、每帧 20–2000 毫秒，与 OpenAI 文档一致。
+const gif = defineModel<boolean>("gif", { required: true });
+const gifFrames = defineModel<number>("gifFrames", { required: true });
+const gifFrameDuration = defineModel<number>("gifFrameDuration", { required: true });
 
 // 与 infinite-canvas 一致：前 10 张给快捷按钮，更多张数用数字输入。
 const quickCount = computed(() => Math.min(10, props.maxCount));
@@ -140,7 +159,7 @@ const pixelsError = computed(() => {
   return "";
 });
 const qualityLabel = computed(() => qualityOptions.find(item => item.value === quality.value)?.label ?? "自动");
-const summary = computed(() => [qualityLabel.value, pixels.value ? pixels.value.replace("x", "×") : size.value, pixels.value ? "" : ratio.value, `${count.value} 张`].filter(Boolean).join(" · "));
+const summary = computed(() => [props.model?.gif && gif.value ? `GIF ${gifFrames.value} 帧` : "", qualityLabel.value,pixels.value ? pixels.value.replace("x", "×") : size.value, pixels.value ? "" : ratio.value, `${count.value} 张`].filter(Boolean).join(" · "));
 
 function alignEdge(text: string, fallback?: string) {
   const value = Number.parseInt(text || fallback || "", 10);
@@ -371,6 +390,14 @@ function ratioStyle(value: string, box = 16) {
     font-size: 13px;
     cursor: pointer;
   }
+
+  .gifHint {
+    padding-bottom: 4px;
+    color: var(--el-text-color-placeholder);
+    font-size: 12px;
+  }
+
+  .switchOption .el-input-number { width: 110px; }
 
   :deep(.modelForm) { margin-top: 0; }
 }

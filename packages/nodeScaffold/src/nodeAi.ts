@@ -22,6 +22,8 @@ export type NodeModelGroup = { name: string; label: string; ratio: number };
 export type NodeMediaModel = Omit<MediaModel, "mode"> & {
   mode?: (string | string[])[];
   sizeMap?: Record<string, Record<string, string>>;
+  // 图片模型支持 output_format=gif 动图（麦麦云模型 meta.gif）。
+  gif?: boolean;
   groups?: NodeModelGroup[];
   isDefault?: boolean;
 };
