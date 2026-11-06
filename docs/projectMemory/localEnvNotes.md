@@ -12,7 +12,7 @@ metadata:
 - typecheck 依赖 `.hutch/devkit`（被 gitignore）。缺失时用 `~/.hutch/npm/electrobun/2.0.1/windows-x64/bin/hutch.exe electrobun sync` 生成，必须去掉 HTTP(S)_PROXY（本机代理 127.0.0.1:7890 会导致 ReleaseDownloadFailed）。
 - 打 Windows 安装包用 `bun run package:desktop`（`build:desktop` 只构建程序、不出 NSIS Setup.exe，且会清空旧产物）。在 Git Bash 里要 `PATH="/c/Windows/System32:$PATH"` 前置，否则 GNU tar 把 `D:` 当远程主机报 `Cannot connect to D:`。产物在 `build/desktop/artifacts/MaiMaiStudio-<版本>-Setup.exe`。
 - 打包时要下载 WebView2 引导器，`go.microsoft.com` 短链经常超时或 ECONNRESET（2026-11-05 连续两次失败）。可以先用 `curl -sSD - "https://go.microsoft.com/fwlink/p/?LinkId=2124703"` 多试几次拿到 301 的 Location（`msedge.sf.dl.delivery.mp.microsoft.com/...`），再通过环境变量 `webView2BootstrapperUrl` 传给打包脚本；脚本仍会校验微软签名。
-- 这两个问题都要在完整构建（约 3–4 分钟）之后才暴露，失败就得整轮重来（2.1.20、2.1.21 都各失败两次）。打包前先前置 System32、先取好 CDN 地址，一次跑通。
+- 这两个问题都要在完整构建（约 3 分钟）之后才暴露，失败就得整轮重来（2.1.20、2.1.21 都各失败两次）。2026-11-06 起脚本已自带处理：build.ts 自动把 System32 前置到 PATH；packageWindows.ts 下载引导器遇网络错误、超时、5xx 自动重试 5 次；build.ts 用 build/desktopBuild.lock 拒绝并发构建（2.1.20 曾因同时跑两个构建失败）。手动前置 PATH、传 CDN 地址仍可用，但不再必需。
 - 本地接口测试：需带 `x-toonflow-workspace: 1` 和与 host 一致的 `Origin` 头，否则 403；用临时 TOONFLOW_DATA_DIR 与端口启动 `bun apps/server/src/index.ts`。
 
 ## 新工作目录与完整发布流程（2026-11-03）

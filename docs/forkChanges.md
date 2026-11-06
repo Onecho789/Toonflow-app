@@ -1124,3 +1124,10 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 改动的上游文件：`apps/web/src/pages/workspace/panels/canvas/index.vue`、`apps/web/src/pages/workspace/index.vue`、`apps/web/src/stores/settings.ts`。
 
 冲突时保留：`normalizeCanvasBackground` 展开、`canvasBackgroundVars` 样式变量、`<canvasBackground>` 替换 `<background>`、`--canvasBgLight/Dark` 等变量回退。
+
+## 桌面打包稳定性（2026-11-06）
+
+- `apps/desktop/scripts/build.ts`：非 dev 模式在 `build/desktopBuild.lock` 写入 PID，已有构建在跑时第二个直接报错退出，原进程已退出的锁自动接管；Windows 调用 Electrobun SDK 前把 `%WINDIR%\System32` 前置到 PATH，SDK 的 `tar` 固定解析为系统 bsdtar，不再命中 Git Bash 的 GNU tar（`Cannot connect to D:`）。
+- `apps/desktop/scripts/packageWindows.ts`：WebView2 引导器下载抽成 `downloadBootstrapper`，网络错误、超时、HTTP 5xx 最多重试 5 次（间隔 5/10/15/20 秒），仍只接受微软短链/CDN 并在替换前校验签名。
+
+冲突时保留：构建锁、PATH 前置 System32、引导器下载重试。

@@ -70,9 +70,10 @@ await $`${csc} /nologo /target:exe /platform:x64 /optimize+ /out:${runningChecke
 const quotePowerShell = (value: string) => `'${value.replaceAll("'", "''")}'`;
 // ACT: 每次打包刷新微软引导器，验签通过后才替换旧文件，避免长期沿用旧版组件。
 // ACT: 官方短链不可达时，可显式传入它当前重定向的微软 CDN 地址；不关闭 TLS 或复用旧缓存。
-let bootstrapperUrl = new URL(process.env.webView2BootstrapperUrl || "https://go.microsoft.com/fwlink/p/?LinkId=2124703");
+const bootstrapperStart = process.env.webView2BootstrapperUrl || "https://go.microsoft.com/fwlink/p/?LinkId=2124703";
 const temporary = `${bootstrapper}.tmp.exe`;
-try {
+async function downloadBootstrapper() {
+  let bootstrapperUrl = new URL(bootstrapperStart);
   const signal = AbortSignal.timeout(120000);
   for (let redirects = 0; ; redirects++) {
     if (bootstrapperUrl.protocol !== "https:" || bootstrapperUrl.username || bootstrapperUrl.password ||
@@ -98,7 +99,21 @@ try {
     }
     if (!size) throw new Error("WebView2 引导器下载内容为空。");
     await write(temporary, Buffer.concat(chunks, size));
-    break;
+    return;
+  }
+}
+try {
+  // ACT: go.microsoft.com 短链常被重置连接，网络错误、超时和 5xx 自动重试，避免整轮构建白跑。
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await downloadBootstrapper();
+      break;
+    } catch (error) {
+      const retryable = error instanceof Error && (error.name === "TypeError" || error.name === "TimeoutError" || /HTTP 5\d\d/.test(error.message));
+      if (!retryable || attempt >= 5) throw error;
+      console.warn(`WebView2 引导器下载失败（${error.message}），${attempt * 5} 秒后第 ${attempt + 1} 次尝试。`);
+      await Bun.sleep(attempt * 5000);
+    }
   }
   await $`powershell.exe -NoProfile -NonInteractive -Command ${`
 $ErrorActionPreference = 'Stop'

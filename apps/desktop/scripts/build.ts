@@ -1,5 +1,5 @@
 import { $ } from "bun";
-import { cpSync, existsSync, mkdirSync, realpathSync, rmSync } from "@toonflow/file";
+import { cpSync, existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "@toonflow/file";
 import { dirname, resolve } from "node:path";
 import copyDocumentPackages from "../../server/scripts/copyDocumentPackages";
 import copySandboxPackages from "../../server/scripts/copySandboxPackages";
@@ -21,6 +21,25 @@ if (!(isMac && ["x64", "arm64"].includes(process.arch)) && !(process.platform ==
   throw new Error("桌面构建需要 Windows x64 或 macOS x64/arm64 环境。");
 }
 if (mode === "dev") process.env.TOONFLOW_DATA_DIR = resolve(projectDir, "data");
+// ACT: 两个构建共用 build/ 目录会互相清空、争用文件，第二个直接退出；锁内记录 PID，进程已退出的锁自动接管。
+const buildLock = resolve(projectDir, "build/desktopBuild.lock");
+if (mode !== "dev") {
+  mkdirSync(dirname(buildLock), { recursive: true });
+  try {
+    writeFileSync(buildLock, String(process.pid), { flag: "wx" });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+    const owner = Number(readFileSync(buildLock, "utf8"));
+    const running = owner > 0 && (() => { try { return process.kill(owner, 0); } catch { return false; } })();
+    if (running) throw new Error(`另一个桌面构建正在进行（PID ${owner}），请等它结束后再试。`);
+    writeFileSync(buildLock, String(process.pid));
+  }
+  process.on("exit", () => {
+    try {
+      if (readFileSync(buildLock, "utf8") === String(process.pid)) rmSync(buildLock, { force: true });
+    } catch {}
+  });
+}
 if (isMac) {
   const startupTarget = isIntelMac ? "macX64" : "macArm64";
   for (const name of ["libthorvg.dylib", "nativeSplash.dylib"]) {
@@ -87,7 +106,12 @@ const cli = resolve(projectDir, "apps/desktop/node_modules/electrobun/bin/electr
 if (isMac && mode !== "dev") await prepareMacDmg();
 // ACT: SDK 调用 Windows PowerShell 压缩产物，避免继承 PowerShell 7 的同名模块。
 const buildEnv = { ...process.env };
-if (!isMac && mode !== "dev") buildEnv.PSModulePath = resolve(process.env.WINDIR!, "System32/WindowsPowerShell/v1.0/Modules");
+if (!isMac && mode !== "dev") {
+  buildEnv.PSModulePath = resolve(process.env.WINDIR!, "System32/WindowsPowerShell/v1.0/Modules");
+  // ACT: SDK 按 PATH 调用 tar；Git Bash 的 GNU tar 会把 D: 当远程主机，固定优先使用系统 bsdtar。
+  const pathKey = Object.keys(buildEnv).find((key) => key.toLowerCase() === "path") ?? "PATH";
+  buildEnv[pathKey] = `${resolve(process.env.WINDIR!, "System32")};${buildEnv[pathKey] ?? ""}`;
+}
 await $`${process.execPath} ${cli} ${mode === "dev" ? "dev" : "build"} ${mode === "dev" ? [] : ["--env=stable"]}`.cwd(projectDir).env(buildEnv);
 if (mode === "package" && !isMac) {
   await $`${process.execPath} ${resolve(import.meta.dir, "packageWindows.ts")}`.cwd(projectDir).env(buildEnv);
