@@ -113,7 +113,10 @@ import type { NodeMediaModel } from "@toonflow/nodes-scaffold/runtime";
 import modelForm from "@toonflow/node-shared/modelForm";
 
 const props = defineProps<{ sizes: string[]; ratios: string[]; model?: NodeMediaModel; disabled?: boolean; maxCount: number }>();
+const emit = defineEmits<{ open: [] }>();
 const settingsVisible = ref(false);
+// 打开设置时让节点重读模型，后台新开的能力（如 GIF）能直接出现。
+watch(settingsVisible, visible => { if (visible) emit("open"); });
 const size = defineModel<string>("size", { required: true });
 const ratio = defineModel<string>("ratio", { required: true });
 const other = defineModel<Record<string, unknown>>("other", { required: true });

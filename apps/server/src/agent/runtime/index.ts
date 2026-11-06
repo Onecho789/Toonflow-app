@@ -52,6 +52,18 @@ type AgentOptions = {
   onCanvasCancel?: (reason: Error) => void;
 };
 
+// ACT: 停止后给 SDK 5 秒收尾；卡住的请求或工具不响应取消时直接结束本轮，避免停止按钮一直无效、会话锁不释放。
+function stopDeadline(signal: AbortSignal, ms = 5000) {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let onAbort = () => {};
+  const promise = new Promise<never>((_, reject) => {
+    onAbort = () => { timer = setTimeout(() => reject(signal.reason), ms); };
+    if (signal.aborted) onAbort();
+    else signal.addEventListener("abort", onAbort, { once: true });
+  });
+  return { promise, dispose() { clearTimeout(timer); signal.removeEventListener("abort", onAbort); } };
+}
+
 export async function run(
   {
     prompt,
@@ -457,6 +469,7 @@ export async function run(
       void session.abort();
     };
     signal?.addEventListener("abort", abort, { once: true });
+    const deadline = stopDeadline(signal);
     let failure: unknown;
     try {
       signal?.throwIfAborted();
@@ -488,9 +501,9 @@ export async function run(
         const pending = session.sendCustomMessage({ customType: "agentMessage", content: agentMessageContent(peerMessage), display: true, details: peerMessage }, { triggerTurn: true });
         messageAccepted = true;
         send({ type: "agentMessage", ...peerMessage });
-        await pending;
+        await Promise.race([pending, deadline.promise]);
       } else {
-        await session.prompt(content.replace(/^(\/skill:\S+)\s+/, "$1 "));
+        await Promise.race([session.prompt(content.replace(/^(\/skill:\S+)\s+/, "$1 ")), deadline.promise]);
       }
       signal?.throwIfAborted();
       if (compactionError) throw new Error(compactionError);
@@ -500,6 +513,7 @@ export async function run(
       throw error;
     } finally {
       signal?.removeEventListener("abort", abort);
+      deadline.dispose();
       try {
         // ACT: 用户停止时 SDK 队列可能尚未投递；保留已确认接收的文字，重开子会话也不会丢失。
         session.clearQueue();

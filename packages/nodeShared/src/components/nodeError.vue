@@ -31,6 +31,8 @@ import { useNodeAi, type NodeAiModel } from "@toonflow/nodes-scaffold/nodeAi";
 import { groupNodeModels } from "../groupNodeModels";
 
 const props = defineProps<{ message: string; context: string; signal: AbortSignal }>();
+// 用户开始 AI 解释后通知外层不再自动关闭提示。
+const emit = defineEmits<{ pin: [] }>();
 const ai = useNodeAi();
 const explaining = ref(false);
 const explanation = ref("");
@@ -45,6 +47,7 @@ watch([models, explanation, explanationError, explaining], () => ElNotification.
 
 async function explainError() {
   if (explaining.value || props.signal.aborted) return;
+  emit("pin");
   explaining.value = true;
   explanationError.value = "";
   modelLabel.value = "";

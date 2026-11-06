@@ -79,8 +79,23 @@ export function configureAgentRequests(session: AgentSession, limits?: { maxRequ
     const signals = [runSignal, operationSignal].filter((signal): signal is AbortSignal => !!signal);
     options = { ...options, signal: signals.length ? AbortSignal.any(signals) : undefined };
     const output = createAssistantMessageEventStream();
+    let partial: AssistantMessage | undefined;
+    const fail = (error: unknown) => {
+      const reason = runSignal?.aborted ? runSignal.reason : operationSignal?.aborted ? operationSignal.reason : error;
+      const message: AssistantMessage = {
+        role: "assistant", content: partial?.content ?? [], api: model.api, provider: model.provider, model: model.id,
+        stopReason: options?.signal?.aborted ? "aborted" : "error",
+        errorMessage: reason instanceof Error ? reason.message : String(reason),
+        usage: partial?.usage ?? { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } },
+        timestamp: Date.now(),
+      };
+      output.push({ type: "error", reason: message.stopReason as "error" | "aborted", error: message });
+      output.end();
+    };
+    // ACT: 停止时立即结束本次输出，不等底层请求或鉴权响应取消；流结束后迟到的事件会被忽略。
+    const abort = () => fail(options?.signal?.reason);
+    options?.signal?.addEventListener("abort", abort, { once: true });
     void (async () => {
-      let partial: AssistantMessage | undefined;
       try {
         options?.signal?.throwIfAborted();
         if (toolFailure) { const { error } = toolFailure; toolFailure = undefined; throw error; }
@@ -325,16 +340,9 @@ export function configureAgentRequests(session: AgentSession, limits?: { maxRequ
           return;
         }
       } catch (error) {
-        const reason = runSignal?.aborted ? runSignal.reason : operationSignal?.aborted ? operationSignal.reason : error;
-        const message: AssistantMessage = {
-          role: "assistant", content: partial?.content ?? [], api: model.api, provider: model.provider, model: model.id,
-          stopReason: options?.signal?.aborted ? "aborted" : "error",
-          errorMessage: reason instanceof Error ? reason.message : String(reason),
-          usage: partial?.usage ?? { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } },
-          timestamp: Date.now(),
-        };
-        output.push({ type: "error", reason: message.stopReason as "error" | "aborted", error: message });
+        fail(error);
       } finally {
+        options?.signal?.removeEventListener("abort", abort);
         output.end();
       }
     })();

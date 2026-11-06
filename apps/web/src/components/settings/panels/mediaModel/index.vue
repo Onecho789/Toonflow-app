@@ -53,6 +53,8 @@ async function refresh(force = true) {
     if (data.code !== 200 || !Array.isArray(data.data)) throw new Error(data.message || "读取媒体模型失败");
     models.value = data.data;
     invalidateNodeModels("media");
+    // 强制刷新后通知已挂载节点重读模型，后台改动的能力（如 GIF）无需重启即可生效。
+    if (force) window.dispatchEvent(new Event("toonflow:provider-config-changed"));
   } catch (cause) {
     error.value = axios.isAxiosError<{ message?: string }>(cause) ? cause.response?.data?.message || cause.message : cause instanceof Error ? cause.message : String(cause);
   } finally { loading.value = false; }

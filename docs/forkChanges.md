@@ -1032,8 +1032,9 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 - 开启后请求并入 `output_format: "gif"`、`frame_count`、`frame_duration_ms`，局部重绘不带。GIF 只支持无参考图的文生图，带参考图时由云端返回明确错误。
 - 预估费用按帧数 × `meta.gifFramePrice` 乘算，与云端一致；结果按 GIF 文件头识别存为 `.gif`（原有逻辑）。
 - 节点工具 `setConfig` 新增 `gif`、`gifFrames`、`gifFrameDuration`。
+- 模型能力及时生效：前端节点模型缓存加 60 秒过期；打开图片设置面板时重读模型；设置页媒体模型「刷新」后派发 `toonflow:provider-config-changed`，通知已挂载节点重读。后台开启 GIF 后无需重启客户端。
 
-改动的上游文件：`packages/nodes/imageGenerationNode/src/index.vue`、`components/generationSettings.vue`、`packages/nodeScaffold/src/nodeAi.ts`、`apps/server/src/utils/media/{cloud,generation}.ts`。
+改动的上游文件：`packages/nodes/imageGenerationNode/src/index.vue`、`components/generationSettings.vue`、`packages/nodeScaffold/src/nodeAi.ts`、`apps/server/src/utils/media/{cloud,generation}.ts`、`apps/web/src/components/settings/panels/mediaModel/index.vue`。
 
 冲突时保留：节点数据 `gif/gifFrames/gifFrameDuration`、`imageOther` 中的 GIF 参数、`estimateCost` 的帧数乘算。
 
@@ -1045,6 +1046,26 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 改动的上游文件：`packages/nodeShared/src/components/mediaResults.vue`、`packages/nodeShared/src/useResultNodes.ts`。
 
 冲突时保留：`currentCard` 叠层与 `currentIndex`、`duplicate` 的下方落点和创建后选中。
+
+## 节点报错提示自动关闭（2026-11-06）
+
+- 节点报错提示（右上角 `showNodeError`）原为 `duration: 0` 常驻，改为 6 秒后自动关闭。鼠标悬停或键盘焦点在提示内时暂停，移出后重新计时；点「AI 解释」后不再自动关闭，需手动 ×。
+- 计时由 `showNodeError` 自己维护，没有用 Element Plus 的 `duration`：模型下拉框挂在提示外部，原生的移出即重计时会在选模型时误关提示。`nodeError.vue` 新增 `pin` 事件。
+- 所有引用 nodeShared 的节点插件（图片、图片生成、视频、视频生成、音频、音频生成、时间线）需重新打包才生效。
+
+改动的上游文件：`packages/nodeShared/src/showNodeError.ts`、`packages/nodeShared/src/components/nodeError.vue`。
+
+冲突时保留：`autoCloseDelay` 自计时、悬停/焦点暂停与 `pin`。
+
+## Agent 停止按钮在卡住时无效（2026-11-06）
+
+- 现象：对话一直「运行中…」，点停止无反应。原因是 `/api/agent/stop` 会等本轮完全结束才返回，而模型请求（如云端鉴权或响应一直不回）或工具不响应取消时本轮永远不结束，前端 10 秒超时后仍显示运行中，会话锁也不释放。
+- `requests.ts` 的 `streamFunction` 包装在收到停止信号时立即以 `aborted` 结束本次输出，不再等底层请求取消。
+- `runtime/index.ts` 新增 `stopDeadline`：停止后给 SDK 5 秒收尾，仍未结束就直接结束本轮，释放会话锁并让停止请求返回。
+
+改动的上游文件：`apps/server/src/agent/runtime/requests.ts`、`apps/server/src/agent/runtime/index.ts`。
+
+冲突时保留：`fail` 与停止监听、`stopDeadline` 与两处 `Promise.race`。
 
 ## 麦麦云 429 限流后的冷却与提交重试（2026-11-06）
 

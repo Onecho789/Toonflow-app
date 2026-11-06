@@ -84,6 +84,11 @@ async function readResult<T>(response: Response): Promise<T> {
 const modelCacheKey = Symbol.for("toonflow.nodeModels");
 const modelCacheHost = globalThis as typeof globalThis & { [modelCacheKey]?: Map<string, Promise<unknown[]>> };
 const modelCache = modelCacheHost[modelCacheKey] ??= new Map<string, Promise<unknown[]>>();
+// 模型目录最多缓存一分钟，后台改动的模型能力（如 GIF）无需重启即可生效。
+const modelCacheTtl = 60_000;
+const modelCacheAtKey = Symbol.for("toonflow.nodeModelsAt");
+const modelCacheAtHost = globalThis as typeof globalThis & { [modelCacheAtKey]?: Map<string, number> };
+const modelCacheAt = modelCacheAtHost[modelCacheAtKey] ??= new Map<string, number>();
 
 type MediaPriceCache = {
   prices: Map<string, { expires: number; value: Promise<NodeMediaPrice | null> }>;
@@ -215,8 +220,10 @@ export function invalidateNodeModels(type: "language" | "media") {
 
 async function readModels<T>(url: string, signal: AbortSignal): Promise<T[]> {
   signal.throwIfAborted();
+  if (Date.now() - (modelCacheAt.get(url) ?? 0) > modelCacheTtl) modelCache.delete(url);
   let pending = modelCache.get(url);
   if (!pending) {
+    modelCacheAt.set(url, Date.now());
     const request = fetch(url, { cache: "no-store" }).then(readResult<unknown[]>).catch(error => {
       if (modelCache.get(url) === request) modelCache.delete(url);
       throw error;
