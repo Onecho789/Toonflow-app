@@ -12,6 +12,7 @@
       :showArrow="false"
       :showTimeout="0"
       :hideTimeout="0"
+      :persistent="false"
       @command="handleCommand">
       <template #dropdown>
         <el-dropdown-menu>

@@ -65,11 +65,10 @@
       <canvasBackground
         v-if="canvasId"
         :pattern="generalSettings.canvasBackgroundMode"
-        :unit="generalSettings.canvasBackgroundGap * viewport.zoom"
+        :unit="generalSettings.canvasBackgroundGap"
         :scale="generalSettings.canvasBackgroundSize / 100"
         :opacity="generalSettings.canvasBackgroundOpacity / 100"
-        :x="viewport.x"
-        :y="viewport.y"
+        followViewport
         :vignette="generalSettings.canvasBackgroundVignette" />
       <div v-if="!canvasId" class="canvasOverlay" role="status" @contextmenu.prevent @dragover.prevent @drop.prevent>
         从左上角打开一个画布，就可以开始创作啦

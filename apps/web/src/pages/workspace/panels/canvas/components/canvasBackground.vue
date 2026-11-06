@@ -12,8 +12,8 @@
           v-for="(layer, index) in layers"
           :id="`${patternId}-${index}`"
           :key="index"
-          :x="x % layer.width"
-          :y="y % layer.height"
+          :x="offset.x % layer.width"
+          :y="offset.y % layer.height"
           :width="layer.width"
           :height="layer.height"
           patternUnits="userSpaceOnUse">
@@ -30,21 +30,25 @@
 
 <script setup lang="ts">
 import { computed, useId } from "vue";
+import { useVueFlow } from "@vue-flow/core";
 import { backgroundLayers, type BackgroundLayer, type CanvasBackgroundPattern } from "@/lib/canvasBackground";
 
-// unit 为屏幕像素间距（画布中为 gap × zoom），x/y 为视口平移量，图案随平移对齐画布坐标。
+// unit 为屏幕像素间距；followViewport 时 unit 视为画布间距，在组件内按视口缩放、平移对齐画布坐标。
+// 视口只在这里读取，平移缩放时只重绘背景，不触发画布宿主整体重渲染。
 const props = withDefaults(defineProps<{
   pattern: CanvasBackgroundPattern;
   unit: number;
   scale?: number;
   opacity?: number;
-  x?: number;
-  y?: number;
+  followViewport?: boolean;
   vignette?: boolean;
-}>(), { scale: 1, opacity: 0.4, x: 0, y: 0, vignette: false });
+}>(), { scale: 1, opacity: 0.4, followViewport: false, vignette: false });
 
 const patternId = `canvasBackground-${useId()}`;
-const layers = computed(() => backgroundLayers(props.pattern, props.unit, props.scale));
+// 设置页缩略图不在 VueFlow 内，不创建画布状态。
+const viewport = props.followViewport ? useVueFlow().viewport : undefined;
+const offset = computed(() => ({ x: viewport?.value.x ?? 0, y: viewport?.value.y ?? 0 }));
+const layers = computed(() => backgroundLayers(props.pattern, props.unit * (viewport?.value.zoom ?? 1), props.scale));
 
 function toneColor(layer: BackgroundLayer) {
   return layer.tone === "dot" ? "var(--canvasDotColor)" : "var(--canvasLineColor)";

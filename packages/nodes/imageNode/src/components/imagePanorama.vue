@@ -1,5 +1,5 @@
 <template>
-  <el-dropdown ref="dropdown" trigger="click" virtualTriggering :virtualRef="trigger" :disabled="disabled || busy || !src" @command="selectAction">
+  <el-dropdown ref="dropdown" trigger="click" virtualTriggering :virtualRef="trigger" :persistent="false" :disabled="disabled || busy || !src" @command="selectAction">
     <template #dropdown>
       <el-dropdown-menu>
         <el-dropdown-item command="generateSphere">生成720°全景图</el-dropdown-item>

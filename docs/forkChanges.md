@@ -1131,3 +1131,13 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 - `apps/desktop/scripts/packageWindows.ts`：WebView2 引导器下载抽成 `downloadBootstrapper`，网络错误、超时、HTTP 5xx 最多重试 5 次（间隔 5/10/15/20 秒），仍只接受微软短链/CDN 并在替换前校验签名。
 
 冲突时保留：构建锁、PATH 前置 System32、引导器下载重试。
+
+## 画布卡顿修复：背景视口与节点隐藏菜单（2026-11-06）
+
+- `apps/web/src/pages/workspace/panels/canvas/components/canvasBackground.vue`：新增 `followViewport`，视口在背景组件内部用 `useVueFlow().viewport` 读取，去掉 `x`/`y` 属性；平移缩放时只重绘背景，画布宿主、画布菜单和侧栏不再每帧重渲染（67 节点画布实测 60 帧渲染从约 330ms 降到 49ms）。设置页缩略图不传 `followViewport`，不创建画布状态。
+- `apps/web/src/pages/workspace/panels/canvas/index.vue`：`<canvasBackground>` 改传画布间距 `canvasBackgroundGap` 和 `followViewport`，不再读取 `viewport`。
+- `packages/nodeScaffold/src/nodeSkeleton.vue`、`packages/nodes/imageNode/src/components/imagePanorama.vue`：右键菜单和全景图下拉加 `:persistent="false"`，未打开时不挂载菜单项（进入画布时节点挂载从 745ms 降到 229ms）。
+
+改动的上游文件：`apps/web/src/pages/workspace/panels/canvas/index.vue`、`packages/nodeScaffold/src/nodeSkeleton.vue`、`packages/nodes/imageNode/src/components/imagePanorama.vue`。
+
+冲突时保留：背景组件内读视口（宿主模板不得引用 `viewport`）、两处下拉的 `:persistent="false"`。
