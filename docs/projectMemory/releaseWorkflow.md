@@ -16,7 +16,7 @@
 
 两个子目录分别管理 Git。根目录继续作为共享记忆维护入口；根级 AGENTS.md 与 docs/ 下的 releaseWorkflow.md、maimaiCloud.md、localEnvNotes.md 同步到两个仓库的 docs/projectMemory/ 并分别提交、推送，单独克隆时可从该目录的 readme.md 查看。每次更新共享记忆后同步两份副本；docs/history/ 中的历史证据与构建日志另作本机备份。
 
-当前桌面本地安装包为 **2.1.19**，源码已提交为 9db3832（功能）、05b4776（版本），分支 codex/simplifyMediaModels（未推送）；上次公开发布为 2.1.0。云端版本为 **2.19.1-20261106**，提交 1ee5c58b3ac8b7ace2469dfebf66ef9bce41ede7，分支 uiRedesign（2026-11-06 已推送 origin）。两个版本号各自维护，后续先读实际 HEAD、分支和工作区。
+当前桌面本地安装包为 **2.1.19**，源码已提交为 9db3832（功能）、05b4776（版本），分支 codex/simplifyMediaModels（2026-11-06 已推送 origin 至 66b652e）；上次公开发布为 2.1.0。云端版本为 **2.19.1-20261106**，提交 1ee5c58b3ac8b7ace2469dfebf66ef9bce41ede7，分支 uiRedesign（2026-11-06 已推送 origin）。两个版本号各自维护，后续先读实际 HEAD、分支和工作区。
 
 ## Windows 桌面打包
 
