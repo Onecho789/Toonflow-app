@@ -7,6 +7,8 @@ export type Project = {
   directory: string;
   name: string;
   lastOpenedAt: number;
+  /** 最近打开的画布路径，最新在前。 */
+  recentCanvases?: string[];
 };
 
 export const useWorkspaceStore = defineStore("workspace", () => {
@@ -26,7 +28,10 @@ export const useWorkspaceStore = defineStore("workspace", () => {
     const checkedDirectory = data.data.directory;
     const existing = projectList.value.find(project => project.directory === previousDirectory)
       ?? projectList.value.find(project => project.directory === checkedDirectory);
-    const added = { directory: checkedDirectory, name: name?.trim() || existing?.name || checkedDirectory.split(/[\\/]/).filter(Boolean).at(-1) || checkedDirectory, lastOpenedAt: Date.now() };
+    const added: Project = {
+      directory: checkedDirectory, name: name?.trim() || existing?.name || checkedDirectory.split(/[\\/]/).filter(Boolean).at(-1) || checkedDirectory, lastOpenedAt: Date.now(),
+      ...(existing?.recentCanvases ? { recentCanvases: existing.recentCanvases } : {}),
+    };
     projectList.value = [
       added,
       ...projectList.value.filter(item => item.directory !== previousDirectory && item.directory !== checkedDirectory),
@@ -51,7 +56,16 @@ export const useWorkspaceStore = defineStore("workspace", () => {
     if (project.value?.directory === path) project.value = null;
   }
 
-  return { project, projectList, projectLoading, projectLoadingDrawn, projectLoadingVisible, pendingAgentMessage, addProject, openProject, renameProject, removeProject };
+  /** 记住项目最近打开的画布，供进入项目和画布切换弹窗默认定位。 */
+  function rememberCanvas(path: string, canvasId: string) {
+    if (!canvasId) return;
+    for (const item of new Set([project.value, ...projectList.value])) {
+      if (item?.directory !== path || item.recentCanvases?.[0] === canvasId) continue;
+      item.recentCanvases = [canvasId, ...(item.recentCanvases ?? []).filter(id => id !== canvasId)].slice(0, 10);
+    }
+  }
+
+  return { project, projectList, projectLoading, projectLoadingDrawn, projectLoadingVisible, pendingAgentMessage, addProject, openProject, renameProject, removeProject, rememberCanvas };
 }, {
   persist: {
     key: "toonflow.projectList",

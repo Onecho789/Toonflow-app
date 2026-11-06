@@ -52,12 +52,22 @@
               <router-link class="viewAll" to="/projects">查看全部</router-link>
             </div>
             <div class="recentItems">
-              <button v-for="project in recentProjects" :key="project.directory" class="recentCard" type="button" :disabled="creating || opening" :title="project.directory" :aria-label="`打开项目 ${project.name}`" @click="openProject(project)">
-                <projectCover :directory="project.directory" />
-                <span class="projectName" :title="project.name">{{ project.name }}</span>
-              </button>
+              <div v-for="project in recentProjects" :key="project.directory" class="recentCard projectCard" :class="{ disabled: creating || opening }" :title="project.directory" @click="!(creating || opening) && openProject(project)">
+                <button class="coverButton" type="button" :disabled="creating || opening" :aria-label="`打开项目 ${project.name}`" @click.stop="openProject(project)">
+                  <projectCover :directory="project.directory" />
+                </button>
+                <div class="projectFooter">
+                  <span class="projectName" :title="project.name">{{ project.name }}</span>
+                  <button v-if="(canvasCounts[project.directory] ?? 0) > 1" class="canvasCount" type="button" :disabled="creating || opening"
+                    :title="`选择要进入的画布（共 ${canvasCounts[project.directory]} 个）`" :aria-label="`选择 ${project.name} 要进入的画布`" @click.stop="pickCanvas(project)">
+                    <icon-vector :size="14" aria-hidden="true" />{{ canvasCounts[project.directory] }}<icon-chevron-down :size="12" aria-hidden="true" />
+                  </button>
+                </div>
+              </div>
             </div>
           </section>
+          <canvasPickerDialog v-if="pickingProject" v-model="pickerVisible" :directory="pickingProject.directory" :projectName="pickingProject.name"
+            :recentIds="pickingProject.recentCanvases" :busy="creating || opening" entering @select="enterCanvas" />
           <section v-if="recentWorks.length" class="recentList" aria-labelledby="recentWorksTitle">
             <div class="recentHeader">
               <h2 id="recentWorksTitle">最近作品</h2>
@@ -83,19 +93,21 @@ import { storeToRefs } from "pinia";
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { ElMessage, type InputInstance, type ScrollbarInstance } from "element-plus";
 import { getReadableFileMimeType, readableFileAccept } from "@toonflow/server/documentFormats";
-import { IconArrowUp, IconFolder, IconPaperclip, IconPhotoAi, IconMovie, IconInfinity } from "@tabler/icons-vue";
+import { IconArrowUp, IconChevronDown, IconFolder, IconPaperclip, IconPhotoAi, IconMovie, IconInfinity, IconVector } from "@tabler/icons-vue";
 import modelPopover from "@/components/modelPopover.vue";
 import attachmentList from "@/components/agent/attachmentList.vue";
 import { createPastedTextFile, readTextAttachment } from "@/components/agent/textAttachments";
 import type { AgentAttachment } from "@/components/agent/types";
 import logoUrl from "@toonflow/assets/logo.png";
-import { useWorkspaceStore } from "@/stores/workspace";
+import { useWorkspaceStore, type Project } from "@/stores/workspace";
 import useWorkspaceFiles from "@/lib/workspaceFiles";
 import bg from "./bg.vue";
 import projectCover from "./projectCover.vue";
 import workspacePicker from "./workspacePicker.vue";
 import useProjectEntry from "./projectEntry";
 import workCover from "./workCover.vue";
+import canvasPickerDialog from "@/pages/workspace/panels/canvas/components/canvasPickerDialog.vue";
+import { listCanvasFiles } from "@/pages/workspace/canvasFile";
 import { useWorkbenchStore, type WorkbenchType } from "@/stores/workbench";
 import { imageMimeType } from "../imageStudio/studioFiles";
 
@@ -184,6 +196,32 @@ watch([creating, opening], ([creating, opening]) => {
 const selectedModel = ref("");
 const reasoningEffort = ref("");
 const recentProjects = computed(() => [...projectList.value].sort((left, right) => right.lastOpenedAt - left.lastOpenedAt).slice(0, 4));
+const canvasCounts = ref<Record<string, number>>({});
+const pickingProject = ref<Project>();
+const pickerVisible = ref(false);
+
+// 只统计最近项目的画布数量；多于一个画布时卡片提供“选择画布”入口，读取失败则不显示。
+watch(() => recentProjects.value.map(project => project.directory).join("|"), (_key, _previous, onCleanup) => {
+  const controller = new AbortController();
+  onCleanup(() => controller.abort());
+  for (const { directory } of recentProjects.value) {
+    if (canvasCounts.value[directory] !== undefined) continue;
+    void listCanvasFiles(useWorkspaceFiles(directory), controller.signal).then(({ canvases }) => {
+      canvasCounts.value = { ...canvasCounts.value, [directory]: canvases.length };
+    }).catch(() => undefined);
+  }
+}, { immediate: true });
+
+function pickCanvas(project: Project) {
+  pickingProject.value = project;
+  pickerVisible.value = true;
+}
+
+function enterCanvas(canvas: { id: string }) {
+  const project = pickingProject.value;
+  pickerVisible.value = false;
+  if (project) void openProject(project, canvas.id);
+}
 const workbenchStore = useWorkbenchStore();
 const recentWorks = ref<{ type: WorkbenchType; directory: string; path: string; name: string; mtimeMs: number }[]>([]);
 
@@ -630,7 +668,50 @@ async function createProject() {
 
               &:hover { border-color: var(--el-color-primary-light-5); }
               &:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: 2px; }
-              &:disabled { cursor: wait; opacity: 0.6; }
+              &:disabled, &.disabled { cursor: wait; opacity: 0.6; }
+
+              &.projectCard {
+                .coverButton {
+                  display: block;
+                  padding: 0;
+                  border: none;
+                  background: none;
+                  color: inherit;
+                  cursor: inherit;
+                  &:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: -2px; }
+                }
+
+                .projectFooter {
+                  display: flex;
+                  align-items: center;
+                  gap: 6px;
+                  min-width: 0;
+                  padding-right: 8px;
+                  border-top: 1px solid var(--el-border-color-lighter);
+
+                  .projectName { flex: 1; min-width: 0; border-top: none; }
+
+                  .canvasCount {
+                    display: inline-flex;
+                    flex-shrink: 0;
+                    align-items: center;
+                    gap: 2px;
+                    height: 24px;
+                    padding: 0 6px;
+                    border: none;
+                    border-radius: var(--el-border-radius-base);
+                    background: var(--el-fill-color-light);
+                    color: var(--el-text-color-secondary);
+                    font: inherit;
+                    font-size: 12px;
+                    cursor: pointer;
+
+                    &:hover { background: var(--el-color-primary-light-9); color: var(--el-color-primary); }
+                    &:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: 1px; }
+                    &:disabled { cursor: wait; }
+                  }
+                }
+              }
 
               .projectName {
                 overflow: hidden;

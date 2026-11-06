@@ -1206,7 +1206,7 @@ function updateCanvasKeys(event: KeyboardEvent) {
   const { inCanvas, editing } = updateCanvasGestures(event);
   if (event.type === "keyup" || event.defaultPrevented || event.isComposing || !inCanvas || editing) return;
   const action = ([
-    "group", "mergeGroup", "ungroup", "addNode", "moveTool", "handTool", "arrange", "search",
+    "group", "mergeGroup", "ungroup", "addNode", "moveTool", "handTool", "arrange", "search", "switchCanvas",
     "delete", "copy", "paste", "undo", "redo", "zoomIn", "zoomOut", "fitView", "selectAll", "deselect",
   ] as const).find((action) =>
     shortcutMatches(event, shortcuts[action])
@@ -1245,6 +1245,7 @@ function updateCanvasKeys(event: KeyboardEvent) {
   else if (action === "moveTool" || action === "handTool") selectedTool.value = action === "handTool" ? "hand" : "move";
   else if (action === "arrange") void canvasControlsRef.value?.arrangeNodes();
   else if (action === "search") nodeSearchRef.value?.open();
+  else if (action === "switchCanvas") canvasMenuRef.value?.openPicker();
   else if (action === "selectAll") {
     flow.addSelectedNodes(flow.getNodes.value.filter(node => !node.hidden));
     flow.nodesSelectionActive.value = true;

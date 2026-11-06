@@ -47,6 +47,7 @@ let fileActionBusy = false;
 provide("canvasList", canvases);
 provide("canvasFolders", shallowRef([]));
 provide("canvasLoadedDirectories", shallowRef<string[]>([]));
+provide("canvasOpenIds", computed(() => [...instances.values()].map(panel => panel.canvasId).filter(Boolean)));
 provide("canvasAssetNodes", (id: string) => [...instances.values()].find(panel => panel.canvasId === id)?.getRetainedNodes() ?? []);
 watch(canvases, (current, previous) => {
   const removed = new Set(previous.filter(canvas => !current.includes(canvas)).map(canvas => canvas.id));
@@ -61,6 +62,8 @@ watch(canvases, (current, previous) => {
   if (!entries.value.some(entry => entry.key === activeKey.value)) activeKey.value = entries.value[0]?.key ?? "";
 }, { flush: "sync" });
 onScopeDispose(() => lifetime.abort(new Error("工作区已关闭")));
+// 只记录前台画布；后台为 Agent 或文档读取而加载的画布不算“最近打开”。
+watch(canvasId, id => { if (id && workspaceStore.project) workspaceStore.rememberCanvas(workspaceStore.project.directory, id); });
 
 function setInstance(key: string, value: Element | ComponentPublicInstance | null) {
   if (value) instances.set(key, value as CanvasInstance);

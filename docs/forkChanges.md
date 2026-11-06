@@ -1153,3 +1153,19 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 改动的上游文件：`apps/server/src/utils/cloud/models.ts`（`cloudPriceText` 与计费 meta 工具）；`utils/media/cloud.ts`、`account.vue` 为本 fork 自有文件。
 
 冲突时保留：`estimateCost` 及其辅助函数、`cloudPriceText` 的多因子起步价、`role >= 100`。
+
+## 画布切换弹窗（2026-11-07）
+
+- 新增 `apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue`：大弹窗选择画布。左侧是最近打开、全部画布和文件夹导航，右侧可在卡片和列表间切换。卡片按节点位置画 SVG 缩略图，最多 300 个节点，按 mtime 缓存。弹窗支持搜索高亮、方向键加 Enter 选择，在后台打开的画布会标出来。右键或“更多”菜单提供重命名、移动到（可新建文件夹）、创建副本、删除；文件夹可重命名，有画布时不能删除。“最近打开”先列记录过的画布，不足 8 个时按修改时间补齐。
+- `components/canvasMenu.vue`：顶部弹出树改为触发按钮，按钮上显示画布名、所在文件夹和快捷键，点开即弹窗。原来的树、行内编辑和移动菜单都已移除，操作统一走 `handlePickerAction`。进入工作区时优先恢复项目最近打开的画布。
+- `lib/canvasShortcuts.ts`、`canvas/index.vue`：新增快捷键“切换画布”，默认 Ctrl/⌘+K。
+- `canvasHost.vue`：用 `provide("canvasOpenIds")` 提供后台已打开的画布，前台切换画布时记入 `workspaceStore.rememberCanvas`。
+- `stores/workspace.ts`：`Project.recentCanvases` 最多保留 10 个，`addProject` 时沿用旧值。`pages/home/projectEntry.ts` 的 `openProject` 支持指定画布。
+- `pages/home/index.vue`：最近项目里有多个画布时，卡片底部显示画布数，点开后用同一个弹窗（`entering`）选择要进入的画布。
+- `pages/workspace/canvasFile.ts`：新增 `listCanvasFiles`，递归列出画布和文件夹。
+- `apps/server/src/utils/workspace/files.ts`：`copyWorkspaceFile` 复制文件夹时先独占 `mkdir`，再逐个子条目调用 `cp`。原先对已存在的根目录调 `cp(errorOnExist)` 必报 EEXIST，复制节点素材目录（即创建画布副本）会失败。
+- i18n：为新文案补齐 20 种语言的翻译。
+
+改动的上游文件：`canvasMenu.vue`、`canvasHost.vue`、`canvas/index.vue`、`lib/canvasShortcuts.ts`、`stores/workspace.ts`、`pages/home/index.vue`、`apps/server/src/utils/workspace/files.ts`。
+
+冲突时保留：`canvasMenu.vue` 的弹窗触发按钮与 `handlePickerAction`、`recentCanvases` 恢复逻辑、`switchCanvas` 快捷键、`copyWorkspaceFile` 的逐项复制。

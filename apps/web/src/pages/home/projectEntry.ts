@@ -39,7 +39,8 @@ export default function useProjectEntry() {
     await router.push("/workspace");
   }
 
-  async function openProject(project: Project) {
+  /** 打开项目；传入 canvasId 时先记为最近画布，进入工作区后直接打开它。 */
+  async function openProject(project: Project, canvasId?: string) {
     if (creating.value || opening.value) return;
     opening.value = true;
     try {
@@ -55,6 +56,7 @@ export default function useProjectEntry() {
         if (!directory) return;
         await workspaceStore.openProject(directory, project.directory);
       }
+      if (canvasId && workspaceStore.project) workspaceStore.rememberCanvas(workspaceStore.project.directory, canvasId);
       await enterWorkspace();
     } catch (err) {
       ElMessage.error(axios.isAxiosError<{ message?: string }>(err)

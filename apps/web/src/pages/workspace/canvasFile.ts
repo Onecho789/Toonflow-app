@@ -24,6 +24,27 @@ export function getCanvasAssetDirectories(nodes: CanvasAssetNode[], retainedNode
     .map(id => `assets/${id}`);
 }
 
+export type CanvasListing = { path: string; name: string; folder: string; mtimeMs: number };
+
+/** 递归列出工作区里的画布和文件夹（跳过 assets 与 .agent），只读文件头确认画布标记。 */
+export async function listCanvasFiles(files: Pick<ReturnType<typeof useWorkspaceFiles>, "list" | "readText">, signal?: AbortSignal) {
+  const folders = [""];
+  const canvases: CanvasListing[] = [];
+  for (let index = 0; index < folders.length; index++) {
+    const folder = folders[index]!;
+    const { entries } = await files.list(folder, signal);
+    signal?.throwIfAborted();
+    await Promise.all(entries.map(async entry => {
+      if (entry.type === "directory") {
+        if (!["assets", ".agent"].includes(entry.name.toLowerCase())) folders.push(entry.path);
+      } else if (/\.json$/i.test(entry.name) && await isCanvasFile(files, entry.path, signal)) {
+        canvases.push({ path: entry.path, name: entry.name.slice(0, -5), folder, mtimeMs: entry.mtimeMs ?? 0 });
+      }
+    }));
+  }
+  return { canvases, folders: folders.slice(1).sort((left, right) => left.localeCompare(right, "zh-CN", { numeric: true })) };
+}
+
 export async function isCanvasFile(files: Pick<ReturnType<typeof useWorkspaceFiles>, "readText">, path: string, signal?: AbortSignal) {
   try {
     signal?.throwIfAborted();

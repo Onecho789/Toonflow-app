@@ -15,19 +15,22 @@ export async function copyWorkspaceFile(source: string, target: string) {
   if (isWithin(source, target)) throw Object.assign(new Error("不能把文件夹复制到自身或子目录"), { status: 400 });
   await mkdir(target);
   try {
-    await cp(source, target, {
-      recursive: true,
-      force: false,
-      errorOnExist: true,
-      dereference: false,
-      async filter(path) {
-        const entry = await lstat(path);
-        if (entry.isSymbolicLink() || (!entry.isFile() && !entry.isDirectory()) || !isWithin(source, await realpath(path))) {
-          throw new Error("不能复制包含符号链接或特殊文件的文件夹");
-        }
-        return true;
-      },
-    });
+    // 目标目录已由 mkdir 独占创建；cp 遇到已存在的根目录会报 EEXIST，因此逐项复制子条目。
+    for (const name of await readdir(source)) {
+      await cp(resolve(source, name), resolve(target, name), {
+        recursive: true,
+        force: false,
+        errorOnExist: true,
+        dereference: false,
+        async filter(path) {
+          const entry = await lstat(path);
+          if (entry.isSymbolicLink() || (!entry.isFile() && !entry.isDirectory()) || !isWithin(source, await realpath(path))) {
+            throw new Error("不能复制包含符号链接或特殊文件的文件夹");
+          }
+          return true;
+        },
+      });
+    }
   } catch (cause) {
     // ACT: 失败保留已复制内容，不递归回滚删除可能被外部加入文件的目标目录。
     throw Object.assign(new Error(t`复制未完成，已复制的内容保留在 ${target}。${cause instanceof Error ? translateError(cause) : translateMessage("请检查文件权限后重试")}`, { cause }), { code: "ECOPYINCOMPLETE" });

@@ -29,7 +29,8 @@
     "apps/web/src/components/agent/attachmentPreview.vue",
     "apps/web/src/components/agent/conversation/messageInput.vue",
     "apps/web/src/components/agent/mentionContent.vue",
-    "apps/web/src/pages/workspace/panels/canvas/components/assetLibrary.vue"
+    "apps/web/src/pages/workspace/panels/canvas/components/assetLibrary.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
   ],
   "还原到输入框": [
     "apps/web/src/components/agent/attachmentPreview.vue"
@@ -101,6 +102,7 @@
     "apps/web/src/components/agent/conversation/messageList.vue",
     "apps/web/src/components/agent/menu.vue",
     "apps/web/src/components/desktopQuit.vue",
+    "apps/web/src/components/mediaPickerDialog.vue",
     "apps/web/src/components/settings/panels/developer/index.vue",
     "apps/web/src/components/settings/panels/developer/systemPromptDialog.vue",
     "apps/web/src/components/settings/panels/deviceLink.vue",
@@ -111,15 +113,22 @@
     "apps/web/src/components/settings/panels/pluginMarket/mcpServers.vue",
     "apps/web/src/components/settings/panels/pluginMarket/pluginConfigDialog.vue",
     "apps/web/src/components/settings/panels/pluginMarket/skillEditorDialog.vue",
+    "apps/web/src/components/workbenchShell.vue",
     "apps/web/src/lib/desktopProtocol.ts",
     "apps/web/src/lib/i18n.ts",
-    "apps/web/src/pages/home/index.vue",
+    "apps/web/src/pages/feedback/index.vue",
+    "apps/web/src/pages/home/projectEntry.ts",
     "apps/web/src/pages/home/workspacePicker.vue",
+    "apps/web/src/pages/imageStudio/studioPanel.vue",
+    "apps/web/src/pages/projects/index.vue",
+    "apps/web/src/pages/projects/projectCoverPicker.vue",
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue",
     "apps/web/src/pages/workspace/components/workspaceMenu.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/assetBrowser.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/assetLibrary.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/assetMenu.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue",
     "apps/web/src/pages/workspace/panels/document/components/extView.vue",
     "apps/web/src/pages/workspace/panels/document/components/fileTree.vue",
     "apps/web/src/pages/workspace/panels/document/components/openWithDialog.vue",
@@ -255,7 +264,8 @@
     "apps/web/src/components/singleAgentDialog.vue"
   ],
   "{0} 秒": [
-    "apps/web/src/components/agent/conversation/messageList.vue"
+    "apps/web/src/components/agent/conversation/messageList.vue",
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
   ],
   "正在下方编辑": [
     "apps/web/src/components/agent/conversation/messageList.vue"
@@ -335,6 +345,24 @@
   "正在压缩上下文…": [
     "apps/web/src/components/agent/conversation.vue"
   ],
+  "出错": [
+    "apps/web/src/components/agent/conversation.vue"
+  ],
+  "等待你回答": [
+    "apps/web/src/components/agent/conversation.vue"
+  ],
+  "运行中 · 调用 {0}": [
+    "apps/web/src/components/agent/conversation.vue"
+  ],
+  "运行中…": [
+    "apps/web/src/components/agent/conversation.vue"
+  ],
+  "已完成": [
+    "apps/web/src/components/agent/conversation.vue",
+    "apps/web/src/components/agent/menu.vue",
+    "apps/web/src/components/agent/toolMessage.vue",
+    "apps/web/src/components/settings/panels/developer/index.vue"
+  ],
   "排队消息": [
     "apps/web/src/components/agent/conversation.vue"
   ],
@@ -351,8 +379,12 @@
     "apps/web/src/components/settings/panels/pluginMarket/mcpServers.vue",
     "apps/web/src/lib/canvasShortcuts.ts",
     "apps/web/src/pages/home/workspacePicker.vue",
+    "apps/web/src/pages/imageStudio/studioPanel.vue",
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/assetMenu.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue",
     "apps/web/src/pages/workspace/panels/document/components/fileTree.vue"
   ],
   "编辑排队消息": [
@@ -413,6 +445,7 @@
   ],
   "画布操作失败": [
     "apps/web/src/components/agent/conversation.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/nodeMenu.vue"
   ],
   "画布操作已取消": [
@@ -510,6 +543,9 @@
   "提及节点输出或素材": [
     "apps/web/src/components/agent/mentionMenu.vue"
   ],
+  "已在画布上高亮": [
+    "apps/web/src/components/agent/mentionMenu.vue"
+  ],
   "提及输出与素材": [
     "apps/web/src/components/agent/mentionMenu.vue"
   ],
@@ -539,6 +575,8 @@
     "apps/web/src/components/settings/panels/pluginMarket/index.vue",
     "apps/web/src/components/settings/panels/pluginMarket/mcpServers.vue",
     "apps/web/src/main.ts",
+    "apps/web/src/pages/imageStudio/studioPanel.vue",
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue",
     "apps/web/src/pages/workspace/panels/document/components/extView.vue",
     "apps/server/src/remoteConnection.ts"
   ],
@@ -566,7 +604,8 @@
     "apps/web/src/components/agent/mentionMenu.vue"
   ],
   "当前画布": [
-    "apps/web/src/components/agent/mentionMenu.vue"
+    "apps/web/src/components/agent/mentionMenu.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
   ],
   "其他画布": [
     "apps/web/src/components/agent/mentionMenu.vue"
@@ -576,7 +615,8 @@
     "apps/web/src/components/agent/mentionText.ts"
   ],
   "文本": [
-    "apps/web/src/components/agent/mentionMenu.vue"
+    "apps/web/src/components/agent/mentionMenu.vue",
+    "apps/web/src/components/settings/panels/languageModel/index.vue"
   ],
   "整数": [
     "apps/web/src/components/agent/mentionMenu.vue"
@@ -590,7 +630,9 @@
   "图片": [
     "apps/web/src/components/agent/mentionMenu.vue",
     "apps/web/src/components/settings/panels/mediaModel/index.vue",
-    "apps/web/src/pages/workspace/panels/canvas/components/assetBrowser.vue"
+    "apps/web/src/components/workbenchShell.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/assetBrowser.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
   ],
   "遮罩": [
     "apps/web/src/components/agent/mentionMenu.vue"
@@ -598,7 +640,9 @@
   "视频": [
     "apps/web/src/components/agent/mentionMenu.vue",
     "apps/web/src/components/settings/panels/mediaModel/index.vue",
-    "apps/web/src/pages/workspace/panels/canvas/components/assetBrowser.vue"
+    "apps/web/src/components/workbenchShell.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/assetBrowser.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
   ],
   "音频": [
     "apps/web/src/components/agent/mentionMenu.vue",
@@ -612,7 +656,9 @@
   "画布": [
     "apps/web/src/components/agent/mentionMenu.vue",
     "apps/web/src/components/settings/panels/mcp/index.vue",
-    "apps/web/src/pages/workspace/index.vue"
+    "apps/web/src/pages/workspace/index.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
   ],
   "数据": [
     "apps/web/src/components/agent/mentionMenu.vue"
@@ -620,6 +666,7 @@
   "文件夹": [
     "apps/web/src/components/agent/mentionMenu.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/assetBrowser.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue",
     "apps/web/src/pages/workspace/panels/document/components/fileTree.vue"
   ],
   "节点": [
@@ -627,6 +674,7 @@
     "apps/web/src/components/settings/panels/developer/index.vue",
     "apps/web/src/components/settings/panels/pluginMarket/index.vue",
     "apps/web/src/lib/desktopProtocol.ts",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue",
     "apps/server/src/utils/plugins/install.ts"
   ],
   "搜索该节点的输出": [
@@ -731,13 +779,13 @@
   "关闭": [
     "apps/web/src/components/agent/menu.vue",
     "apps/web/src/components/languageSelect.vue",
-    "apps/web/src/components/modelPopover.vue",
     "apps/web/src/components/settings/panels/about.vue",
     "apps/web/src/components/settings/panels/pluginMarket/a2aSettingsDialog.vue",
     "apps/web/src/components/settings/panels/pluginMarket/agentEditorDialog.vue",
     "apps/web/src/components/settings/panels/pluginMarket/index.vue",
     "apps/web/src/components/settings/panels/pluginMarket/skillEditorDialog.vue",
     "apps/web/src/components/videoPlayer.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue",
     "apps/web/src/pages/workspace/panels/document/components/editorTab.vue",
     "apps/web/src/pages/workspace/panels/document/components/workspaceSearch.vue"
   ],
@@ -747,12 +795,6 @@
   "执行中": [
     "apps/web/src/components/agent/menu.vue",
     "apps/web/src/components/singleAgentDialog.vue"
-  ],
-  "已完成": [
-    "apps/web/src/components/agent/conversation.vue",
-    "apps/web/src/components/agent/menu.vue",
-    "apps/web/src/components/agent/toolMessage.vue",
-    "apps/web/src/components/settings/panels/developer/index.vue"
   ],
   "失败": [
     "apps/web/src/components/agent/menu.vue"
@@ -787,8 +829,8 @@
     "apps/web/src/components/settings/panels/pluginMarket/mcpServers.vue",
     "apps/web/src/components/settings/panels/pluginMarket/pluginConfigDialog.vue",
     "apps/web/src/components/settings/panels/pluginMarket/skillEditorDialog.vue",
-    "apps/web/src/pages/home/index.vue",
     "apps/web/src/pages/home/workspacePicker.vue",
+    "apps/web/src/pages/projects/index.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/assetLibrary.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/assetMenu.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue",
@@ -873,6 +915,84 @@
   "已中断": [
     "apps/web/src/components/agent/toolMessage.vue"
   ],
+  "主导航": [
+    "apps/web/src/components/appLayout.vue"
+  ],
+  "麦麦工坊": [
+    "apps/web/src/components/appLayout.vue",
+    "apps/web/src/components/mobileConnect.vue",
+    "apps/web/src/components/settings/panels/about.vue",
+    "apps/web/src/components/settings/panels/deviceLink.vue",
+    "apps/web/src/components/updateBox.vue",
+    "apps/web/src/pages/hello/index.vue",
+    "apps/web/src/pages/home/index.vue",
+    "apps/server/src/remoteConnection.ts",
+    "apps/server/src/routes/workspaces/clone.ts",
+    "apps/desktop/src/index.ts"
+  ],
+  "展开侧栏": [
+    "apps/web/src/components/appLayout.vue"
+  ],
+  "收起侧栏": [
+    "apps/web/src/components/appLayout.vue"
+  ],
+  "页面导航": [
+    "apps/web/src/components/appLayout.vue"
+  ],
+  "素材库": [
+    "apps/web/src/components/appLayout.vue",
+    "apps/web/src/components/referenceList.vue",
+    "apps/web/src/pages/home/assetLibraryDialog.vue",
+    "apps/web/src/pages/workspace/index.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/assetBrowser.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/assetLibrary.vue"
+  ],
+  "插件市场": [
+    "apps/web/src/components/appLayout.vue",
+    "apps/web/src/components/settings/index.vue"
+  ],
+  "使用说明": [
+    "apps/web/src/components/appLayout.vue"
+  ],
+  "问题反馈，{0} 条新回复": [
+    "apps/web/src/components/appLayout.vue"
+  ],
+  "问题反馈": [
+    "apps/web/src/components/appLayout.vue",
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "麦浪余额 {0}，打开账号设置": [
+    "apps/web/src/components/appLayout.vue"
+  ],
+  "麦浪余额 {0}，点击打开账号设置": [
+    "apps/web/src/components/appLayout.vue"
+  ],
+  "设置，有新版本可用": [
+    "apps/web/src/components/appLayout.vue",
+    "apps/web/src/pages/workspace/components/workspaceMenu.vue"
+  ],
+  "设置": [
+    "apps/web/src/components/appLayout.vue",
+    "apps/web/src/components/settings/index.vue",
+    "apps/web/src/pages/workspace/components/workspaceMenu.vue"
+  ],
+  "首页": [
+    "apps/web/src/components/appLayout.vue",
+    "apps/web/src/components/settings/panels/mcp/index.vue"
+  ],
+  "无限画布": [
+    "apps/web/src/components/appLayout.vue",
+    "apps/web/src/pages/home/index.vue",
+    "apps/web/src/pages/projects/index.vue"
+  ],
+  "生图工作台": [
+    "apps/web/src/components/appLayout.vue",
+    "apps/web/src/pages/imageStudio/index.vue"
+  ],
+  "视频工作台": [
+    "apps/web/src/components/appLayout.vue",
+    "apps/web/src/pages/videoStudio/index.vue"
+  ],
   "退出麦麦工坊": [
     "apps/web/src/components/desktopQuit.vue",
     "apps/desktop/src/index.ts"
@@ -884,6 +1004,15 @@
   "退出": [
     "apps/web/src/components/desktopQuit.vue",
     "apps/desktop/src/index.ts"
+  ],
+  "还没有生成记录": [
+    "apps/web/src/components/historyList.vue"
+  ],
+  "删除这条记录": [
+    "apps/web/src/components/historyList.vue"
+  ],
+  "删除记录（文件保留）": [
+    "apps/web/src/components/historyList.vue"
   ],
   "语言": [
     "apps/web/src/components/languageSelect.vue",
@@ -959,8 +1088,35 @@
     "apps/web/src/components/loginGate.vue",
     "apps/web/src/components/settings/panels/account.vue"
   ],
+  "麦浪": [
+    "apps/web/src/components/mailangBalance.vue"
+  ],
   "图片保存或读取失败": [
     "apps/web/src/components/markdownImage.vue"
+  ],
+  "从素材库选择": [
+    "apps/web/src/components/mediaPickerDialog.vue"
+  ],
+  "从本文件夹作品选择": [
+    "apps/web/src/components/mediaPickerDialog.vue"
+  ],
+  "素材库里没有可用的素材": [
+    "apps/web/src/components/mediaPickerDialog.vue"
+  ],
+  "这个文件夹还没有可用的作品": [
+    "apps/web/src/components/mediaPickerDialog.vue"
+  ],
+  " {0} 个": [
+    "apps/web/src/components/mediaPickerDialog.vue"
+  ],
+  "添加{0}": [
+    "apps/web/src/components/mediaPickerDialog.vue"
+  ],
+  "列表读取失败": [
+    "apps/web/src/components/mediaPickerDialog.vue"
+  ],
+  "素材添加失败": [
+    "apps/web/src/components/mediaPickerDialog.vue"
   ],
   "网络图片": [
     "apps/web/src/components/messageMarkdown.vue"
@@ -1001,17 +1157,6 @@
   ],
   "当前连接": [
     "apps/web/src/components/mobileConnect.vue"
-  ],
-  "麦麦工坊": [
-    "apps/web/src/components/mobileConnect.vue",
-    "apps/web/src/components/settings/panels/about.vue",
-    "apps/web/src/components/settings/panels/deviceLink.vue",
-    "apps/web/src/components/updateBox.vue",
-    "apps/web/src/pages/hello/index.vue",
-    "apps/web/src/pages/home/index.vue",
-    "apps/server/src/remoteConnection.ts",
-    "apps/server/src/routes/workspaces/clone.ts",
-    "apps/desktop/src/index.ts"
   ],
   "正在使用这个设备的项目与配置。": [
     "apps/web/src/components/mobileConnect.vue"
@@ -1148,11 +1293,15 @@
     "apps/web/src/components/modelPopover.vue"
   ],
   "选择模型": [
-    "apps/web/src/components/modelPopover.vue"
+    "apps/web/src/components/modelPopover.vue",
+    "apps/web/src/pages/imageStudio/studioPanel.vue",
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
   ],
   "模型": [
     "apps/web/src/components/modelPopover.vue",
-    "apps/web/src/components/settings/index.vue"
+    "apps/web/src/components/settings/index.vue",
+    "apps/web/src/pages/imageStudio/studioPanel.vue",
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
   ],
   "请先登录麦麦云账号": [
     "apps/web/src/components/modelPopover.vue",
@@ -1165,31 +1314,97 @@
   "思考强度": [
     "apps/web/src/components/modelPopover.vue"
   ],
-  "默认由模型决定": [
-    "apps/web/src/components/modelPopover.vue"
+  "自动": [
+    "apps/web/src/components/ratioPicker.vue",
+    "apps/web/src/pages/imageStudio/studioPanel.vue"
   ],
-  "最少": [
-    "apps/web/src/components/modelPopover.vue"
+  "{0}，Alt 加左右方向键调整顺序": [
+    "apps/web/src/components/referenceList.vue"
   ],
-  "低": [
-    "apps/web/src/components/modelPopover.vue"
+  "移除{0}": [
+    "apps/web/src/components/referenceList.vue",
+    "apps/web/src/pages/videoStudio/frameSlot.vue"
   ],
-  "中": [
-    "apps/web/src/components/modelPopover.vue"
+  "添加参考素材": [
+    "apps/web/src/components/referenceList.vue"
   ],
-  "高": [
-    "apps/web/src/components/modelPopover.vue"
+  "添加": [
+    "apps/web/src/components/referenceList.vue",
+    "apps/web/src/pages/workspace/index.vue"
   ],
-  "超高": [
-    "apps/web/src/components/modelPopover.vue"
+  "本地上传": [
+    "apps/web/src/components/referenceList.vue"
   ],
-  "最高": [
-    "apps/web/src/components/modelPopover.vue"
+  "本文件夹作品": [
+    "apps/web/src/components/referenceList.vue"
   ],
-  "默认": [
-    "apps/web/src/components/modelPopover.vue",
-    "apps/web/src/components/settings/panels/ui.vue",
-    "apps/web/src/components/videoPlayer.vue"
+  "支持拖入文件、Ctrl+V 粘贴，拖动缩略图调整顺序": [
+    "apps/web/src/components/referenceList.vue"
+  ],
+  "剪贴板": [
+    "apps/web/src/components/referenceList.vue"
+  ],
+  "上传": [
+    "apps/web/src/components/referenceList.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/nodeMenu.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/nodeMenuItems.vue"
+  ],
+  "选择参考素材": [
+    "apps/web/src/components/referenceList.vue"
+  ],
+  "已达到数量上限，{0} 个素材未添加": [
+    "apps/web/src/components/referenceList.vue"
+  ],
+  "部分文件格式不支持，已跳过": [
+    "apps/web/src/components/referenceList.vue"
+  ],
+  "文件不能为空且不能超过 100 MB：{0}": [
+    "apps/web/src/components/referenceList.vue"
+  ],
+  "参考素材上传失败": [
+    "apps/web/src/components/referenceList.vue"
+  ],
+  "剪贴板里没有图片或媒体文件": [
+    "apps/web/src/components/referenceList.vue"
+  ],
+  "读取剪贴板失败": [
+    "apps/web/src/components/referenceList.vue",
+    "apps/web/src/lib/clipboard.ts"
+  ],
+  "{0}默认模型": [
+    "apps/web/src/components/settings/cloudDefaultForm.vue"
+  ],
+  "选择默认模型": [
+    "apps/web/src/components/settings/cloudDefaultForm.vue"
+  ],
+  "暂无可用模型": [
+    "apps/web/src/components/settings/cloudDefaultForm.vue",
+    "apps/web/src/components/settings/panels/languageModel/index.vue",
+    "apps/web/src/components/settings/panels/mediaModel/index.vue"
+  ],
+  "{0}分组（线路）": [
+    "apps/web/src/components/settings/cloudDefaultForm.vue"
+  ],
+  "选择分组": [
+    "apps/web/src/components/settings/cloudDefaultForm.vue"
+  ],
+  "请先选择{0}默认模型": [
+    "apps/web/src/components/settings/cloudDefaultForm.vue"
+  ],
+  "该模型目前只有这一个分组可用": [
+    "apps/web/src/components/settings/cloudDefaultForm.vue"
+  ],
+  "{0}默认模型「{1}」已不可用，已改为「{2}」": [
+    "apps/web/src/components/settings/cloudDefaultForm.vue"
+  ],
+  "{0}分组「{1}」对该模型不可用，已改为「{2}」": [
+    "apps/web/src/components/settings/cloudDefaultForm.vue"
+  ],
+  "默认模型保存失败，请稍后重试": [
+    "apps/web/src/components/settings/cloudDefaultForm.vue"
+  ],
+  "{0}已切换为「{1}」分组": [
+    "apps/web/src/components/settings/cloudDefaultForm.vue"
   ],
   "安装完成后，请重新发起刚才的操作。": [
     "apps/web/src/components/settings/ffmpegRequired.vue"
@@ -1209,11 +1424,6 @@
   ],
   "暂不下载": [
     "apps/web/src/components/settings/ffmpegRequired.vue"
-  ],
-  "设置": [
-    "apps/web/src/components/settings/index.vue",
-    "apps/web/src/pages/home/index.vue",
-    "apps/web/src/pages/workspace/components/workspaceMenu.vue"
   ],
   "设置分类": [
     "apps/web/src/components/settings/index.vue"
@@ -1237,9 +1447,6 @@
   "媒体模型": [
     "apps/web/src/components/settings/index.vue"
   ],
-  "插件市场": [
-    "apps/web/src/components/settings/index.vue"
-  ],
   "市场": [
     "apps/web/src/components/settings/index.vue"
   ],
@@ -1254,6 +1461,7 @@
   ],
   "其他": [
     "apps/web/src/components/settings/index.vue",
+    "apps/web/src/pages/feedback/index.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/assetBrowser.vue"
   ],
   "开发者选项": [
@@ -1376,11 +1584,7 @@
   "管理员": [
     "apps/web/src/components/settings/panels/account.vue"
   ],
-  "余额": [
-    "apps/web/src/components/settings/panels/account.vue",
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
-  ],
-  "刷新余额": [
+  "刷新麦浪余额": [
     "apps/web/src/components/settings/panels/account.vue"
   ],
   "充值": [
@@ -1497,7 +1701,8 @@
     "apps/web/src/components/settings/panels/pluginMarket/mcpServers.vue"
   ],
   "导出": [
-    "apps/web/src/components/settings/panels/developer/index.vue"
+    "apps/web/src/components/settings/panels/developer/index.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/selectionToolbar.vue"
   ],
   "刷新列表": [
     "apps/web/src/components/settings/panels/developer/index.vue"
@@ -1627,7 +1832,8 @@
   "恢复默认": [
     "apps/web/src/components/settings/panels/developer/systemPromptDialog.vue",
     "apps/web/src/components/settings/panels/general/canvasShortcuts.vue",
-    "apps/web/src/components/settings/panels/general/nodeMenuSettings.vue"
+    "apps/web/src/components/settings/panels/general/nodeMenuSettings.vue",
+    "apps/web/src/pages/workspace/components/canvasBackgroundPicker.vue"
   ],
   "读取系统提示词失败": [
     "apps/web/src/components/settings/panels/developer/systemPromptDialog.vue"
@@ -1693,6 +1899,7 @@
     "apps/web/src/components/settings/panels/deviceLink.vue",
     "apps/web/src/components/settings/panels/mcp/index.vue",
     "apps/web/src/lib/i18n.ts",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue",
     "apps/web/src/pages/workspace/panels/document/components/fileTree.vue",
     "apps/desktop/src/index.ts"
   ],
@@ -1709,7 +1916,8 @@
     "apps/web/src/components/settings/panels/deviceLink.vue",
     "apps/web/src/components/settings/panels/languageModel/index.vue",
     "apps/web/src/components/settings/panels/mcp/index.vue",
-    "apps/web/src/components/settings/panels/mediaModel/index.vue"
+    "apps/web/src/components/settings/panels/mediaModel/index.vue",
+    "apps/web/src/pages/feedback/index.vue"
   ],
   "已连接": [
     "apps/web/src/components/settings/panels/deviceLink.vue"
@@ -1720,6 +1928,7 @@
   "撤销": [
     "apps/web/src/components/settings/panels/deviceLink.vue",
     "apps/web/src/lib/canvasShortcuts.ts",
+    "apps/web/src/pages/workspace/index.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/nodeMenu.vue",
     "apps/desktop/src/index.ts"
   ],
@@ -1838,7 +2047,7 @@
   "使用按键代号，如 Ctrl+KeyG / Alt+KeyG；None 表示无需按键，可写 None / Space；留空取消绑定，回车或移开焦点保存。": [
     "apps/web/src/components/settings/panels/general/canvasShortcuts.vue"
   ],
-  "将画布平移设为无需按键前，请先把框选节点改成 Shift 等按键。": [
+  "默认在空白处左键拖动平移，按住 Ctrl 或 Space 左键拖动框选。平移与框选可在下方分别调整。": [
     "apps/web/src/components/settings/panels/general/canvasShortcuts.vue"
   ],
   "{0}快捷键": [
@@ -1853,7 +2062,10 @@
   "触摸板双指滑动": [
     "apps/web/src/components/settings/panels/general/canvasShortcuts.vue"
   ],
-  "跟随滚轮配置": [
+  "滑动缩放": [
+    "apps/web/src/components/settings/panels/general/canvasShortcuts.vue"
+  ],
+  "滑动平移": [
     "apps/web/src/components/settings/panels/general/canvasShortcuts.vue"
   ],
   "鼠标平移": [
@@ -1865,13 +2077,19 @@
   "按住并拖动节点": [
     "apps/web/src/components/settings/panels/general/canvasShortcuts.vue"
   ],
-  "按配置滚动鼠标滚轮": [
+  "直接滚动缩放；节点输入区保留滚动": [
+    "apps/web/src/components/settings/panels/general/canvasShortcuts.vue"
+  ],
+  "按住 {0} 滚轮缩放，其余滚轮平移": [
+    "apps/web/src/components/settings/panels/general/canvasShortcuts.vue"
+  ],
+  "滚轮平移；双指捏合仍可缩放": [
     "apps/web/src/components/settings/panels/general/canvasShortcuts.vue"
   ],
   "无需按键时，仅平移空白处": [
     "apps/web/src/components/settings/panels/general/canvasShortcuts.vue"
   ],
-  "左键拖动空白处框选": [
+  "按配置左键拖动框选": [
     "apps/web/src/components/settings/panels/general/canvasShortcuts.vue"
   ],
   "左键点击追加或取消选择": [
@@ -2005,7 +2223,8 @@
     "apps/web/src/components/settings/panels/general/nodeMenuSettings.vue"
   ],
   "选择{0}": [
-    "apps/web/src/components/settings/panels/general/nodeMenuSettings.vue"
+    "apps/web/src/components/settings/panels/general/nodeMenuSettings.vue",
+    "apps/web/src/pages/videoStudio/frameSlot.vue"
   ],
   "已停用": [
     "apps/web/src/components/settings/panels/general/nodeMenuSettings.vue"
@@ -2096,10 +2315,6 @@
   "支持思考": [
     "apps/web/src/components/settings/panels/languageModel/index.vue"
   ],
-  "暂无可用模型": [
-    "apps/web/src/components/settings/panels/languageModel/index.vue",
-    "apps/web/src/components/settings/panels/mediaModel/index.vue"
-  ],
   "开启 MCP": [
     "apps/web/src/components/settings/panels/mcp/index.vue"
   ],
@@ -2117,10 +2332,6 @@
   ],
   "{0} 个界面已连接": [
     "apps/web/src/components/settings/panels/mcp/index.vue"
-  ],
-  "首页": [
-    "apps/web/src/components/settings/panels/mcp/index.vue",
-    "apps/web/src/pages/home/index.vue"
   ],
   "文档": [
     "apps/web/src/components/settings/panels/mcp/index.vue",
@@ -2171,7 +2382,8 @@
     "apps/web/src/components/settings/panels/mcp/index.vue"
   ],
   "复制 {0}": [
-    "apps/web/src/components/settings/panels/mcp/index.vue"
+    "apps/web/src/components/settings/panels/mcp/index.vue",
+    "apps/web/src/pages/feedback/index.vue"
   ],
   "此配置包含访问凭证，请仅提供给可信的客户端。": [
     "apps/web/src/components/settings/panels/mcp/index.vue"
@@ -2218,7 +2430,8 @@
     "apps/web/src/components/settings/panels/network.vue"
   ],
   "确定": [
-    "apps/web/src/components/settings/panels/network.vue"
+    "apps/web/src/components/settings/panels/network.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
   ],
   "控制服务端 AI、媒体等网络请求，保存后生效。": [
     "apps/web/src/components/settings/panels/network.vue"
@@ -2652,12 +2865,6 @@
   "已安装": [
     "apps/web/src/components/settings/panels/pluginMarket/index.vue"
   ],
-  "网页版市场": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "开发者文档": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
   "安装本地插件": [
     "apps/web/src/components/settings/panels/pluginMarket/index.vue"
   ],
@@ -2681,9 +2888,6 @@
   "收藏": [
     "apps/web/src/components/settings/panels/pluginMarket/index.vue"
   ],
-  "我的": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
   "搜索插件": [
     "apps/web/src/components/settings/panels/pluginMarket/index.vue"
   ],
@@ -2691,13 +2895,7 @@
     "apps/web/src/components/settings/panels/pluginMarket/index.vue",
     "apps/web/src/pages/workspace/panels/document/components/workspaceSearch.vue"
   ],
-  "填写 TF-Router API Key": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "保存并继续": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "前往 TF-Router 获取 API Key": [
+  "请先在“账号”中登录麦麦云账号": [
     "apps/web/src/components/settings/panels/pluginMarket/index.vue"
   ],
   "{0}列表": [
@@ -2767,37 +2965,19 @@
   "暂无符合条件的收藏插件": [
     "apps/web/src/components/settings/panels/pluginMarket/index.vue"
   ],
-  "暂无符合条件的已发布插件": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
   "未找到相关插件": [
     "apps/web/src/components/settings/panels/pluginMarket/index.vue"
   ],
   "插件说明": [
     "apps/web/src/components/settings/panels/pluginMarket/index.vue"
   ],
-  "填写 TF-Router API Key 后即可浏览插件市场": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "插件市场列表格式错误": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
   "加载插件市场失败，请重试": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "TF-Router 用户信息错误，请重新填写 API Key": [
     "apps/web/src/components/settings/panels/pluginMarket/index.vue"
   ],
   "{0}列表格式错误": [
     "apps/web/src/components/settings/panels/pluginMarket/index.vue"
   ],
   "加载{0}失败，请重新打开列表重试": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "请输入有效的 TF-Router API Key": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "验证或保存失败，请重试": [
     "apps/web/src/components/settings/panels/pluginMarket/index.vue"
   ],
   "Agent Card 地址已复制": [
@@ -2932,6 +3112,8 @@
     "apps/web/src/components/settings/panels/pluginMarket/mcpServers.vue",
     "apps/web/src/pages/home/workspacePicker.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/assetMenu.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue",
     "apps/web/src/pages/workspace/panels/document/components/fileTree.vue"
   ],
   "MCP 连接方式": [
@@ -3140,6 +3322,7 @@
     "apps/web/src/pages/home/workspacePicker.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/assetBrowser.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/assetLibrary.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue",
     "apps/web/src/pages/workspace/panels/document/components/fileTree.vue"
   ],
   "创建文件失败": [
@@ -3172,6 +3355,10 @@
     "apps/web/src/components/settings/panels/ui.vue"
   ],
   "外观模式": [
+    "apps/web/src/components/settings/panels/ui.vue",
+    "apps/web/src/pages/workspace/index.vue"
+  ],
+  "背景样式": [
     "apps/web/src/components/settings/panels/ui.vue"
   ],
   "主题颜色": [
@@ -3195,6 +3382,11 @@
   "较小": [
     "apps/web/src/components/settings/panels/ui.vue"
   ],
+  "默认": [
+    "apps/web/src/components/settings/panels/ui.vue",
+    "apps/web/src/components/videoPlayer.vue",
+    "apps/web/src/lib/canvasBackground.ts"
+  ],
   "较大": [
     "apps/web/src/components/settings/panels/ui.vue"
   ],
@@ -3215,24 +3407,45 @@
   ],
   "预览": [
     "apps/web/src/components/settings/panels/ui.vue",
-    "apps/web/src/lib/i18n.ts"
+    "apps/web/src/lib/i18n.ts",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
   ],
   "恢复界面默认设置": [
     "apps/web/src/components/settings/panels/ui.vue"
   ],
   "浅色": [
-    "apps/web/src/components/settings/panels/ui.vue"
+    "apps/web/src/components/settings/panels/ui.vue",
+    "apps/web/src/pages/workspace/components/canvasBackgroundPicker.vue"
   ],
   "明亮清晰": [
     "apps/web/src/components/settings/panels/ui.vue"
   ],
   "深色": [
-    "apps/web/src/components/settings/panels/ui.vue"
+    "apps/web/src/components/settings/panels/ui.vue",
+    "apps/web/src/pages/workspace/components/canvasBackgroundPicker.vue"
   ],
   "沉浸创作": [
     "apps/web/src/components/settings/panels/ui.vue"
   ],
   "自动切换": [
+    "apps/web/src/components/settings/panels/ui.vue"
+  ],
+  "晨曦麦浪": [
+    "apps/web/src/components/settings/panels/ui.vue"
+  ],
+  "暖阳与花粉": [
+    "apps/web/src/components/settings/panels/ui.vue"
+  ],
+  "流星许愿": [
+    "apps/web/src/components/settings/panels/ui.vue"
+  ],
+  "星空与流星": [
+    "apps/web/src/components/settings/panels/ui.vue"
+  ],
+  "星云穿梭": [
+    "apps/web/src/components/settings/panels/ui.vue"
+  ],
+  "粒子与流光": [
     "apps/web/src/components/settings/panels/ui.vue"
   ],
   "天空蓝": [
@@ -3380,6 +3593,7 @@
   ],
   "打开": [
     "apps/web/src/components/videoPlayer.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue",
     "apps/web/src/pages/workspace/panels/document/components/openWithDialog.vue"
   ],
   "切换视频": [
@@ -3430,8 +3644,153 @@
   "隔空播放不可用": [
     "apps/web/src/components/videoPlayer.vue"
   ],
+  "生成记录": [
+    "apps/web/src/components/workbenchLayout.vue"
+  ],
+  "生成参数": [
+    "apps/web/src/components/workbenchLayout.vue"
+  ],
+  "生成结果": [
+    "apps/web/src/components/workbenchLayout.vue"
+  ],
+  "还没有生成图片": [
+    "apps/web/src/components/workbenchLayout.vue"
+  ],
+  "还没有生成视频": [
+    "apps/web/src/components/workbenchLayout.vue"
+  ],
+  "在左侧写下想要的画面，选好比例后点击生成，结果会出现在这里。": [
+    "apps/web/src/components/workbenchLayout.vue"
+  ],
+  "在左侧写下想要的镜头，可上传首帧或尾帧，生成的视频会出现在这里。": [
+    "apps/web/src/components/workbenchLayout.vue"
+  ],
+  "描述画面": [
+    "apps/web/src/components/workbenchLayout.vue"
+  ],
+  "生成图片": [
+    "apps/web/src/components/workbenchLayout.vue",
+    "apps/web/src/pages/home/index.vue"
+  ],
+  "生成视频": [
+    "apps/web/src/components/workbenchLayout.vue",
+    "apps/web/src/pages/home/index.vue",
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "挑中的加入素材库": [
+    "apps/web/src/components/workbenchLayout.vue"
+  ],
+  "一句描述直接出图，满意的一键加入素材库": [
+    "apps/web/src/components/workbenchShell.vue"
+  ],
+  "文字或首尾帧生成视频，满意的一键加入素材库": [
+    "apps/web/src/components/workbenchShell.vue"
+  ],
+  "工作台文件夹": [
+    "apps/web/src/components/workbenchShell.vue"
+  ],
+  "用过的文件夹": [
+    "apps/web/src/components/workbenchShell.vue"
+  ],
+  "选择其他文件夹": [
+    "apps/web/src/components/workbenchShell.vue"
+  ],
+  "{0} 的更多操作": [
+    "apps/web/src/components/workbenchShell.vue"
+  ],
+  "在文件管理器中打开": [
+    "apps/web/src/components/workbenchShell.vue"
+  ],
+  "从列表移除": [
+    "apps/web/src/components/workbenchShell.vue"
+  ],
+  "删除文件夹中的作品": [
+    "apps/web/src/components/workbenchShell.vue"
+  ],
+  "先选一个文件夹存放作品": [
+    "apps/web/src/components/workbenchShell.vue"
+  ],
+  "生成的{0}会直接保存到这个文件夹，选一次就会记住，之后随时可以切换。": [
+    "apps/web/src/components/workbenchShell.vue"
+  ],
+  "作品存在本地，随时可查看": [
+    "apps/web/src/components/workbenchShell.vue"
+  ],
+  "挑中的一键加入素材库": [
+    "apps/web/src/components/workbenchShell.vue"
+  ],
+  "素材库可直接在画布中使用": [
+    "apps/web/src/components/workbenchShell.vue"
+  ],
+  "选择文件夹": [
+    "apps/web/src/components/workbenchShell.vue"
+  ],
+  "或继续使用用过的文件夹": [
+    "apps/web/src/components/workbenchShell.vue"
+  ],
+  "{0}，已从列表移除": [
+    "apps/web/src/components/workbenchShell.vue"
+  ],
+  "已从列表移除，文件夹里的文件都还在": [
+    "apps/web/src/components/workbenchShell.vue"
+  ],
+  "将永久删除「{0}」里工作台生成的{1}、参考素材和生成记录，删除后无法恢复。文件夹里的其他文件会保留；删完为空时文件夹也一起删除。": [
+    "apps/web/src/components/workbenchShell.vue"
+  ],
+  "永久删除": [
+    "apps/web/src/components/workbenchShell.vue"
+  ],
+  "已删除文件夹": [
+    "apps/web/src/components/workbenchShell.vue"
+  ],
+  "已删除工作台作品，文件夹里的其他文件已保留": [
+    "apps/web/src/components/workbenchShell.vue"
+  ],
+  "暖白": [
+    "apps/web/src/lib/canvasBackground.ts"
+  ],
+  "米纸": [
+    "apps/web/src/lib/canvasBackground.ts"
+  ],
+  "雾灰": [
+    "apps/web/src/lib/canvasBackground.ts"
+  ],
+  "浅薄荷": [
+    "apps/web/src/lib/canvasBackground.ts"
+  ],
+  "淡蓝": [
+    "apps/web/src/lib/canvasBackground.ts"
+  ],
+  "浅杏": [
+    "apps/web/src/lib/canvasBackground.ts"
+  ],
+  "淡紫": [
+    "apps/web/src/lib/canvasBackground.ts"
+  ],
+  "炭黑": [
+    "apps/web/src/lib/canvasBackground.ts"
+  ],
+  "午夜蓝": [
+    "apps/web/src/lib/canvasBackground.ts"
+  ],
+  "墨绿": [
+    "apps/web/src/lib/canvasBackground.ts"
+  ],
+  "深棕": [
+    "apps/web/src/lib/canvasBackground.ts"
+  ],
+  "深紫灰": [
+    "apps/web/src/lib/canvasBackground.ts"
+  ],
+  "石板": [
+    "apps/web/src/lib/canvasBackground.ts"
+  ],
+  "酒红": [
+    "apps/web/src/lib/canvasBackground.ts"
+  ],
   "成组": [
-    "apps/web/src/lib/canvasShortcuts.ts"
+    "apps/web/src/lib/canvasShortcuts.ts",
+    "apps/web/src/pages/workspace/panels/canvas/components/selectionToolbar.vue"
   ],
   "合并分组": [
     "apps/web/src/lib/canvasShortcuts.ts"
@@ -3448,18 +3807,17 @@
   ],
   "创建副本": [
     "apps/web/src/lib/canvasShortcuts.ts",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/nodeMenu.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/selectionToolbar.vue"
   ],
   "放大": [
     "apps/web/src/lib/canvasShortcuts.ts",
-    "apps/web/src/lib/i18n.ts",
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasControls.vue"
+    "apps/web/src/lib/i18n.ts"
   ],
   "缩小": [
     "apps/web/src/lib/canvasShortcuts.ts",
-    "apps/web/src/lib/i18n.ts",
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasControls.vue"
+    "apps/web/src/lib/i18n.ts"
   ],
   "适应画布": [
     "apps/web/src/lib/canvasShortcuts.ts"
@@ -3476,24 +3834,36 @@
   "追加选择": [
     "apps/web/src/lib/canvasShortcuts.ts"
   ],
-  "移动": [
+  "框选工具": [
     "apps/web/src/lib/canvasShortcuts.ts"
   ],
-  "抓手工具": [
+  "平移工具": [
     "apps/web/src/lib/canvasShortcuts.ts"
   ],
   "整理画布": [
     "apps/web/src/lib/canvasShortcuts.ts",
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasControls.vue"
+    "apps/web/src/pages/workspace/index.vue"
   ],
   "重做": [
     "apps/web/src/lib/canvasShortcuts.ts",
+    "apps/web/src/pages/workspace/index.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/nodeMenu.vue",
     "apps/desktop/src/index.ts"
   ],
   "画布节点搜索": [
     "apps/web/src/lib/canvasShortcuts.ts",
     "apps/web/src/pages/workspace/panels/canvas/components/nodeSearch.vue"
+  ],
+  "切换画布": [
+    "apps/web/src/lib/canvasShortcuts.ts",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "全选节点": [
+    "apps/web/src/lib/canvasShortcuts.ts"
+  ],
+  "取消选择": [
+    "apps/web/src/lib/canvasShortcuts.ts"
   ],
   "复制到剪贴板": [
     "apps/web/src/lib/canvasShortcuts.ts"
@@ -3528,9 +3898,6 @@
   "小键盘 {0}": [
     "apps/web/src/lib/canvasShortcuts.ts"
   ],
-  "读取剪贴板失败": [
-    "apps/web/src/lib/clipboard.ts"
-  ],
   "读取剪贴板图片失败": [
     "apps/web/src/lib/clipboard.ts"
   ],
@@ -3544,10 +3911,13 @@
     "apps/web/src/lib/clipboard.ts"
   ],
   "图片读取失败": [
-    "apps/web/src/lib/clipboard.ts"
+    "apps/web/src/lib/clipboard.ts",
+    "apps/web/src/pages/imageStudio/resultCard.vue",
+    "apps/web/src/pages/imageStudio/studioImage.vue"
   ],
   "当前环境无法处理图片": [
-    "apps/web/src/lib/clipboard.ts"
+    "apps/web/src/lib/clipboard.ts",
+    "apps/web/src/pages/home/projectCoverFile.ts"
   ],
   "图片转换失败": [
     "apps/web/src/lib/clipboard.ts"
@@ -3606,6 +3976,8 @@
   ],
   "下载": [
     "apps/web/src/lib/i18n.ts",
+    "apps/web/src/pages/imageStudio/resultCard.vue",
+    "apps/web/src/pages/videoStudio/videoCard.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/assetMenu.vue"
   ],
   "最小化": [
@@ -3708,7 +4080,8 @@
     "apps/web/src/lib/i18n.ts"
   ],
   "上传图片": [
-    "apps/web/src/lib/i18n.ts"
+    "apps/web/src/lib/i18n.ts",
+    "apps/web/src/pages/projects/index.vue"
   ],
   "上传附件": [
     "apps/web/src/lib/i18n.ts"
@@ -3814,37 +4187,14 @@
   "选择保存位置失败": [
     "apps/web/src/lib/saveFile.ts"
   ],
-  "请先配置 TF-Router API Key": [
-    "apps/web/src/lib/tf.ts"
-  ],
-  "TF-Router 请求失败": [
-    "apps/web/src/lib/tf.ts"
-  ],
-  "TF-Router 响应格式不正确": [
-    "apps/web/src/lib/tf.ts"
-  ],
-  "页码必须为正整数": [
-    "apps/web/src/lib/tf.ts"
-  ],
-  "每页数量必须为 1 至 50 的整数": [
-    "apps/web/src/lib/tf.ts"
-  ],
-  "加载插件市场失败": [
-    "apps/web/src/lib/tf.ts"
-  ],
-  "插件 ID 必须为正整数": [
-    "apps/web/src/lib/tf.ts"
-  ],
-  "更新插件收藏失败": [
-    "apps/web/src/lib/tf.ts"
-  ],
-  "插件收藏响应格式不正确": [
-    "apps/web/src/lib/tf.ts"
+  "素材库中同名文件过多，请先整理后重试": [
+    "apps/web/src/lib/saveToAssets.ts"
   ],
   "请先选择工作目录": [
     "apps/web/src/lib/workspaceFiles.ts",
     "apps/web/src/pages/workspace/panels/canvas/canvasHost.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/selectionToolbar.vue",
     "apps/web/src/pages/workspace/panels/canvas/index.vue",
     "apps/web/src/pages/workspace/panels/canvas/useCanvasTools.ts"
   ],
@@ -3884,6 +4234,142 @@
   "启动失败": [
     "apps/web/src/main.ts"
   ],
+  "遇到问题或有好点子都可以告诉我们，每一条都会认真看并在这里回复你": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "正在读取账号…": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "登录麦麦云账号后即可提交反馈": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "请在左下角「设置 → 账号」中登录，反馈与回复会跟随账号保存": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "想反馈什么？": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "需要发送截图、录屏或日志文件？请发邮件到": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "，并在邮件里注明工单编号。": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "我的反馈": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "还没有提交过反馈": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "选择上面的类型开始第一条反馈吧": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "有新回复": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "#{0} · {1} · {2} 条消息 · {3}": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "提交反馈": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "反馈类型": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "标题": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "详细描述": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "会自动附带客户端版本与系统信息，方便我们排查。": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "截图等文件请发到 {0}。": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "提交": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "我": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "麦麦客服": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "工单已关闭，如有新问题请重新提交": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "补充说明或回复客服": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "回复内容": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "问题已解决，关闭工单": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "发送": [
+    "apps/web/src/pages/feedback/index.vue",
+    "apps/web/src/pages/home/index.vue"
+  ],
+  "Bug 问题": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "功能报错、闪退、结果不对": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "功能优化建议": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "体验不顺手、想要新功能": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "插件问题与建议": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "插件市场、节点、工具插件": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "模型与生成效果": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "出图出视频质量、速度、失败": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "账号与计费": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "登录、余额、充值、扣费": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "以上都不是，随便聊聊": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "请填写标题": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "请填写详细描述": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "已提交，我们会尽快回复": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "关闭后不能再回复，有新问题可以重新提交。": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "关闭工单": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "邮箱已复制": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "复制失败，请手动选择邮箱": [
+    "apps/web/src/pages/feedback/index.vue"
+  ],
+  "使用说明目录": [
+    "apps/web/src/pages/guide/index.vue"
+  ],
   "快速开始": [
     "apps/web/src/pages/hello/index.vue"
   ],
@@ -3896,29 +4382,6 @@
   "保存引导状态失败，请重试": [
     "apps/web/src/pages/hello/index.vue"
   ],
-  "素材库": [
-    "apps/web/src/pages/home/assetLibraryDialog.vue",
-    "apps/web/src/pages/home/index.vue",
-    "apps/web/src/pages/workspace/panels/canvas/components/assetBrowser.vue",
-    "apps/web/src/pages/workspace/panels/canvas/components/assetLibrary.vue",
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasControls.vue"
-  ],
-  "首页侧栏": [
-    "apps/web/src/pages/home/index.vue"
-  ],
-  "展开侧栏": [
-    "apps/web/src/pages/home/index.vue"
-  ],
-  "收起侧栏": [
-    "apps/web/src/pages/home/index.vue"
-  ],
-  "首页导航": [
-    "apps/web/src/pages/home/index.vue"
-  ],
-  "设置，有新版本可用": [
-    "apps/web/src/pages/home/index.vue",
-    "apps/web/src/pages/workspace/components/workspaceMenu.vue"
-  ],
   "创建项目": [
     "apps/web/src/pages/home/index.vue"
   ],
@@ -3928,9 +4391,6 @@
   "创作描述": [
     "apps/web/src/pages/home/index.vue"
   ],
-  "发送": [
-    "apps/web/src/pages/home/index.vue"
-  ],
   "选择工作目录": [
     "apps/web/src/pages/home/index.vue",
     "apps/web/src/pages/home/workspacePicker.vue"
@@ -3938,45 +4398,41 @@
   "请先选择一个空文件夹作为工作目录，画布和素材会保存在这里。": [
     "apps/web/src/pages/home/index.vue"
   ],
-  "项目": [
-    "apps/web/src/pages/home/index.vue",
-    "apps/server/src/routes/workspaces/files/export.ts"
-  ],
-  "选择空文件夹新建，或打开已有项目": [
+  "开始创作": [
     "apps/web/src/pages/home/index.vue"
   ],
-  "新建项目": [
+  "最近项目": [
     "apps/web/src/pages/home/index.vue"
   ],
-  "或打开已有项目": [
+  "查看全部": [
     "apps/web/src/pages/home/index.vue"
   ],
   "打开项目 {0}": [
-    "apps/web/src/pages/home/index.vue"
-  ],
-  "最近打开 {0}": [
-    "apps/web/src/pages/home/index.vue"
-  ],
-  "打包导出项目 {0}": [
-    "apps/web/src/pages/home/index.vue"
-  ],
-  "打包导出 ZIP": [
-    "apps/web/src/pages/home/index.vue"
-  ],
-  "重命名项目 {0}": [
-    "apps/web/src/pages/home/index.vue"
-  ],
-  "重命名": [
     "apps/web/src/pages/home/index.vue",
-    "apps/web/src/pages/home/workspacePicker.vue",
-    "apps/web/src/pages/workspace/panels/canvas/components/assetMenu.vue",
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue",
-    "apps/web/src/pages/workspace/panels/document/components/fileTree.vue"
+    "apps/web/src/pages/projects/index.vue"
   ],
-  "移除项目 {0}": [
+  "选择要进入的画布（共 {0} 个）": [
     "apps/web/src/pages/home/index.vue"
   ],
-  "从列表移除，不删除文件": [
+  "选择 {0} 要进入的画布": [
+    "apps/web/src/pages/home/index.vue"
+  ],
+  "最近作品": [
+    "apps/web/src/pages/home/index.vue"
+  ],
+  "打开生图工作台": [
+    "apps/web/src/pages/home/index.vue"
+  ],
+  "打开视频工作台": [
+    "apps/web/src/pages/home/index.vue"
+  ],
+  "写一句描述，直接出图": [
+    "apps/web/src/pages/home/index.vue"
+  ],
+  "用文字或图片生成一段视频": [
+    "apps/web/src/pages/home/index.vue"
+  ],
+  "在画布上编排分镜与工作流": [
     "apps/web/src/pages/home/index.vue"
   ],
   "描述你想创作的内容，让灵感从这里开始…": [
@@ -4015,35 +4471,30 @@
   "取回文本失败，请重试": [
     "apps/web/src/pages/home/index.vue"
   ],
-  "项目“{0}”的文件夹不存在，是否重新选择文件夹？": [
-    "apps/web/src/pages/home/index.vue"
-  ],
-  "工作目录不存在": [
-    "apps/web/src/pages/home/index.vue"
-  ],
-  "重新选择": [
-    "apps/web/src/pages/home/index.vue"
-  ],
-  "无法打开项目，请重试": [
-    "apps/web/src/pages/home/index.vue"
-  ],
-  "导出项目失败，请重试": [
-    "apps/web/src/pages/home/index.vue"
-  ],
-  "请输入项目名称": [
-    "apps/web/src/pages/home/index.vue"
-  ],
-  "重命名项目": [
-    "apps/web/src/pages/home/index.vue"
-  ],
-  "项目名称不能为空": [
-    "apps/web/src/pages/home/index.vue"
-  ],
-  "该文件夹不为空，请重新选择空文件夹；已有项目请使用“新建项目”入口或点击项目列表打开。": [
+  "该文件夹不为空，请重新选择空文件夹；已有项目请到“无限画布”打开。": [
     "apps/web/src/pages/home/index.vue"
   ],
   "无法打开或创建项目，请重试": [
-    "apps/web/src/pages/home/index.vue"
+    "apps/web/src/pages/home/index.vue",
+    "apps/web/src/pages/projects/index.vue"
+  ],
+  "无法读取这张图片，请换一张": [
+    "apps/web/src/pages/home/projectCoverFile.ts"
+  ],
+  "图片编码失败": [
+    "apps/web/src/pages/home/projectCoverFile.ts"
+  ],
+  "项目“{0}”的文件夹不存在，是否重新选择文件夹？": [
+    "apps/web/src/pages/home/projectEntry.ts"
+  ],
+  "工作目录不存在": [
+    "apps/web/src/pages/home/projectEntry.ts"
+  ],
+  "重新选择": [
+    "apps/web/src/pages/home/projectEntry.ts"
+  ],
+  "无法打开项目，请重试": [
+    "apps/web/src/pages/home/projectEntry.ts"
   ],
   "工作目录": [
     "apps/web/src/pages/home/workspacePicker.vue"
@@ -4069,6 +4520,7 @@
     "apps/web/src/pages/workspace/panels/canvas/components/assetLibrary.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/assetMenu.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue",
     "apps/web/src/pages/workspace/panels/document/components/fileTree.vue"
   ],
   "当前目录为空": [
@@ -4079,6 +4531,14 @@
   ],
   "重命名 {0}": [
     "apps/web/src/pages/home/workspacePicker.vue"
+  ],
+  "重命名": [
+    "apps/web/src/pages/home/workspacePicker.vue",
+    "apps/web/src/pages/projects/index.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/assetMenu.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue",
+    "apps/web/src/pages/workspace/panels/document/components/fileTree.vue"
   ],
   "选择此目录": [
     "apps/web/src/pages/home/workspacePicker.vue"
@@ -4100,12 +4560,407 @@
   ],
   "请输入名称": [
     "apps/web/src/pages/home/workspacePicker.vue",
-    "apps/web/src/pages/workspace/panels/canvas/components/assetMenu.vue"
+    "apps/web/src/pages/workspace/panels/canvas/components/assetMenu.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
   ],
   "请输入有效的单个文件或文件夹名称": [
     "apps/web/src/pages/home/workspacePicker.vue"
   ],
+  "图片加载中": [
+    "apps/web/src/pages/imageStudio/resultCard.vue",
+    "apps/web/src/pages/imageStudio/studioImage.vue"
+  ],
+  "预览大图": [
+    "apps/web/src/pages/imageStudio/resultCard.vue"
+  ],
+  "加入素材库": [
+    "apps/web/src/pages/imageStudio/resultCard.vue",
+    "apps/web/src/pages/videoStudio/videoCard.vue"
+  ],
+  "用作参考图": [
+    "apps/web/src/pages/imageStudio/resultCard.vue"
+  ],
+  "已加入素材库：{0}": [
+    "apps/web/src/pages/imageStudio/resultCard.vue",
+    "apps/web/src/pages/videoStudio/videoCard.vue"
+  ],
+  "加入素材库失败": [
+    "apps/web/src/pages/imageStudio/resultCard.vue",
+    "apps/web/src/pages/videoStudio/videoCard.vue"
+  ],
+  "提示词": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue",
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "提示词库": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue",
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "描述你想要的画面，例如：清晨薄雾中的江南小镇，石桥与乌篷船，电影感光影；有参考图时可写“参考图1的人物”": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue"
+  ],
+  "参考图": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue"
+  ],
+  "生成模型": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue"
+  ],
+  "暂无可用的图片模型": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue"
+  ],
+  "质量": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue"
+  ],
+  "取决于模型是否支持": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue"
+  ],
+  "图片质量": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue"
+  ],
+  "分辨率": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue",
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "输出 {0}": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue"
+  ],
+  "图片分辨率": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue"
+  ],
+  "比例": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue",
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "分辨率为自动时由模型决定": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue"
+  ],
+  "图片比例": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue"
+  ],
+  "透明背景": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue"
+  ],
+  "生成无背景的透明图，仅部分模型可用": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue"
+  ],
+  "数量": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue"
+  ],
+  "每张单独生成、单独计费": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue"
+  ],
+  "生成数量": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue"
+  ],
+  "自定义生成数量": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue"
+  ],
+  "（单张，共 {0} 张）": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue"
+  ],
+  "预估费用{0}": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue"
+  ],
+  "生成 {0} 张图片": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue"
+  ],
+  "生成中 {0}/{1}": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue"
+  ],
+  "回填参数": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue",
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "正在生成": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue"
+  ],
+  "正在绘制…": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue"
+  ],
+  "正在提交…": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue",
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "生成失败": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue",
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "高": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue"
+  ],
+  "中": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue"
+  ],
+  "低": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue"
+  ],
+  "模型读取失败": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue",
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "请先选择图片模型": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue"
+  ],
+  "图片生成失败": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue"
+  ],
+  "请输入提示词": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue"
+  ],
+  "已回填这条记录的参数": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue",
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "重试失败": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue",
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "这条记录还在生成中，删除后结果不会再写入记录（云端仍会扣费）。生成的图片文件保留在文件夹里。": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue"
+  ],
+  "只删除记录，已生成的图片文件保留在文件夹里。": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue"
+  ],
+  "删除生成记录": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue",
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "删除记录失败": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue",
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "当前模型不支持参考图，只填入了提示词": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue",
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "参考图已达上限": [
+    "apps/web/src/pages/imageStudio/studioPanel.vue"
+  ],
+  "选择空文件夹新建，或打开已有项目": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
+  "新建项目": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
+  "或打开已有项目": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
+  "最近打开 {0}": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
+  "设置项目 {0} 的封面": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
+  "自定义封面": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
+  "从项目图片选择": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
+  "恢复自动封面": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
+  "打包导出项目 {0}": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
+  "打包导出 ZIP": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
+  "重命名项目 {0}": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
+  "移除项目 {0}": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
+  "从列表移除，不删除文件": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
+  "选择封面图片": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
+  "导出项目失败，请重试": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
+  "封面设置失败，请重试": [
+    "apps/web/src/pages/projects/index.vue",
+    "apps/web/src/pages/projects/projectCoverPicker.vue"
+  ],
+  "请选择图片文件": [
+    "apps/web/src/pages/projects/index.vue",
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "请输入项目名称": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
+  "重命名项目": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
+  "项目名称不能为空": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
+  "从项目图片选择封面": [
+    "apps/web/src/pages/projects/projectCoverPicker.vue"
+  ],
+  "这个项目里还没有图片": [
+    "apps/web/src/pages/projects/projectCoverPicker.vue"
+  ],
+  "项目图片": [
+    "apps/web/src/pages/projects/projectCoverPicker.vue"
+  ],
+  "仅显示最近的 {0} 张图片": [
+    "apps/web/src/pages/projects/projectCoverPicker.vue"
+  ],
+  "设为封面": [
+    "apps/web/src/pages/projects/projectCoverPicker.vue"
+  ],
+  "上传{0}": [
+    "apps/web/src/pages/videoStudio/frameSlot.vue"
+  ],
+  "上传中": [
+    "apps/web/src/pages/videoStudio/frameSlot.vue"
+  ],
+  "视频读取失败": [
+    "apps/web/src/pages/videoStudio/videoCard.vue"
+  ],
+  "视频模型": [
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "暂无可用的视频模型": [
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "生成方式": [
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "描述镜头内容，可用“图1”“视频1”“音频1”引用下方素材，例如：图1的人物在图2的场景里跳舞，配乐参考音频1": [
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "描述镜头内容与运动，例如：镜头缓缓推近，少女在樱花树下回眸微笑，花瓣随风飘落": [
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "首尾帧": [
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "首帧": [
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "尾帧": [
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "参考素材": [
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "视频比例": [
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "时长": [
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "视频时长": [
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "视频时长（秒）": [
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "约 {0}": [
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "视频分辨率": [
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "生成音频": [
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "预估费用": [
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "生成中，通常需要几分钟": [
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "视频生成中，关闭应用后也会继续，回来自动领取": [
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "{0}秒": [
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "文生视频": [
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "全能参考": [
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "上传失败": [
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "请先选择视频模型": [
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "视频生成失败": [
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "请输入生成提示词": [
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue",
+    "apps/server/src/utils/media/generation.ts"
+  ],
+  "请至少添加一个参考素材": [
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "当前模型不支持这种参考素材组合，请调整素材数量": [
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "当前模型不支持这种首尾帧组合，请调整首尾帧或更换模型": [
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "这条记录还在生成中，删除后结果不会再写入记录（云端仍会扣费）。生成的视频文件保留在文件夹里。": [
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "只删除记录，已生成的视频文件保留在文件夹里。": [
+    "apps/web/src/pages/videoStudio/videoWorkbench.vue"
+  ],
+  "组合主题": [
+    "apps/web/src/pages/workspace/components/canvasBackgroundPicker.vue"
+  ],
+  "组合主题：{0}": [
+    "apps/web/src/pages/workspace/components/canvasBackgroundPicker.vue"
+  ],
+  "图案": [
+    "apps/web/src/pages/workspace/components/canvasBackgroundPicker.vue"
+  ],
+  "背景图案": [
+    "apps/web/src/pages/workspace/components/canvasBackgroundPicker.vue"
+  ],
+  "图案：{0}": [
+    "apps/web/src/pages/workspace/components/canvasBackgroundPicker.vue"
+  ],
+  "{0}模式底色": [
+    "apps/web/src/pages/workspace/components/canvasBackgroundPicker.vue"
+  ],
+  "底色：{0}": [
+    "apps/web/src/pages/workspace/components/canvasBackgroundPicker.vue"
+  ],
+  "自定义底色": [
+    "apps/web/src/pages/workspace/components/canvasBackgroundPicker.vue"
+  ],
+  "图案{0}": [
+    "apps/web/src/pages/workspace/components/canvasBackgroundPicker.vue"
+  ],
+  "四周暗角": [
+    "apps/web/src/pages/workspace/components/canvasBackgroundPicker.vue"
+  ],
   "AI 对话": [
+    "apps/web/src/pages/workspace/components/floatingAgent.vue"
+  ],
+  "还原对话框": [
+    "apps/web/src/pages/workspace/components/floatingAgent.vue"
+  ],
+  "最大化对话框": [
+    "apps/web/src/pages/workspace/components/floatingAgent.vue"
+  ],
+  "还原（双击标题栏）": [
+    "apps/web/src/pages/workspace/components/floatingAgent.vue"
+  ],
+  "最大化（双击标题栏）": [
     "apps/web/src/pages/workspace/components/floatingAgent.vue"
   ],
   "切换为悬浮": [
@@ -4118,6 +4973,9 @@
     "apps/web/src/pages/workspace/components/floatingAgent.vue"
   ],
   "从右侧调整对话宽度": [
+    "apps/web/src/pages/workspace/components/floatingAgent.vue"
+  ],
+  "从上方调整对话高度": [
     "apps/web/src/pages/workspace/components/floatingAgent.vue"
   ],
   "从下方调整对话高度": [
@@ -4135,13 +4993,26 @@
   "画布工具": [
     "apps/web/src/pages/workspace/index.vue"
   ],
-  "移动工具，点击切换为抓手": [
+  "平移": [
     "apps/web/src/pages/workspace/index.vue"
   ],
-  "抓手工具，点击切换为移动": [
+  "框选": [
     "apps/web/src/pages/workspace/index.vue"
   ],
-  "切换抓手/移动工具": [
+  "关闭素材库": [
+    "apps/web/src/pages/workspace/index.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/assetLibrary.vue"
+  ],
+  "打开素材库": [
+    "apps/web/src/pages/workspace/index.vue"
+  ],
+  "画布外观": [
+    "apps/web/src/pages/workspace/index.vue"
+  ],
+  "网格吸附": [
+    "apps/web/src/pages/workspace/index.vue"
+  ],
+  "显示连线": [
     "apps/web/src/pages/workspace/index.vue"
   ],
   "搜索节点": [
@@ -4351,7 +5222,7 @@
   "更多 {0}": [
     "apps/web/src/pages/workspace/panels/canvas/components/assetBrowser.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/assetLibrary.vue",
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
   ],
   "目录操作": [
     "apps/web/src/pages/workspace/panels/canvas/components/assetBrowser.vue"
@@ -4399,9 +5270,11 @@
   "{0} 文件": [
     "apps/web/src/pages/workspace/panels/canvas/components/assetBrowser.vue"
   ],
-  "关闭素材库": [
-    "apps/web/src/pages/workspace/panels/canvas/components/assetLibrary.vue",
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasControls.vue"
+  "上传到 {0}": [
+    "apps/web/src/pages/workspace/panels/canvas/components/assetLibrary.vue"
+  ],
+  "上传素材": [
+    "apps/web/src/pages/workspace/panels/canvas/components/assetLibrary.vue"
   ],
   "文件夹名称": [
     "apps/web/src/pages/workspace/panels/canvas/components/assetLibrary.vue",
@@ -4410,17 +5283,20 @@
   "预览（也可双击素材）": [
     "apps/web/src/pages/workspace/panels/canvas/components/assetLibrary.vue"
   ],
+  "插入画布 {0}": [
+    "apps/web/src/pages/workspace/panels/canvas/components/assetLibrary.vue"
+  ],
+  "插入到画布中央（也可拖到画布）": [
+    "apps/web/src/pages/workspace/panels/canvas/components/assetLibrary.vue"
+  ],
   "更多": [
     "apps/web/src/pages/workspace/panels/canvas/components/assetLibrary.vue",
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
   ],
   "关闭音频预览": [
     "apps/web/src/pages/workspace/panels/canvas/components/assetLibrary.vue"
   ],
   "音频无法播放，文件可能已损坏或当前浏览器不支持其编码。": [
-    "apps/web/src/pages/workspace/panels/canvas/components/assetLibrary.vue"
-  ],
-  "视频无法播放，文件可能已损坏或当前浏览器不支持其编码。": [
     "apps/web/src/pages/workspace/panels/canvas/components/assetLibrary.vue"
   ],
   "保存到素材库": [
@@ -4447,13 +5323,14 @@
   "已保存到素材库": [
     "apps/web/src/pages/workspace/panels/canvas/components/assetLibrary.vue"
   ],
+  "已上传 {0} 个文件": [
+    "apps/web/src/pages/workspace/panels/canvas/components/assetLibrary.vue"
+  ],
   "移动到": [
-    "apps/web/src/pages/workspace/panels/canvas/components/assetMenu.vue",
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
+    "apps/web/src/pages/workspace/panels/canvas/components/assetMenu.vue"
   ],
   "移动到目录": [
-    "apps/web/src/pages/workspace/panels/canvas/components/assetMenu.vue",
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
+    "apps/web/src/pages/workspace/panels/canvas/components/assetMenu.vue"
   ],
   "请先删除文件夹内的素材": [
     "apps/web/src/pages/workspace/panels/canvas/components/assetMenu.vue"
@@ -4472,48 +5349,31 @@
     "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
   ],
   "确定删除“{0}”？": [
-    "apps/web/src/pages/workspace/panels/canvas/components/assetMenu.vue"
+    "apps/web/src/pages/workspace/panels/canvas/components/assetMenu.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
   ],
   "删除素材": [
     "apps/web/src/pages/workspace/panels/canvas/components/assetMenu.vue"
   ],
-  "打开素材库": [
+  "画布视图": [
     "apps/web/src/pages/workspace/panels/canvas/components/canvasControls.vue"
   ],
-  "撤销整理": [
+  "隐藏小地图": [
     "apps/web/src/pages/workspace/panels/canvas/components/canvasControls.vue"
   ],
-  "隐藏地图": [
+  "显示小地图": [
     "apps/web/src/pages/workspace/panels/canvas/components/canvasControls.vue"
   ],
-  "显示地图": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasControls.vue"
-  ],
-  "显示或隐藏地图": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasControls.vue"
-  ],
-  "关闭网格吸附": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasControls.vue"
-  ],
-  "开启网格吸附": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasControls.vue"
-  ],
-  "网格吸附": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasControls.vue"
-  ],
-  "隐藏连线": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasControls.vue"
-  ],
-  "显示连线": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasControls.vue"
-  ],
-  "显示或隐藏连线": [
+  "小地图": [
     "apps/web/src/pages/workspace/panels/canvas/components/canvasControls.vue"
   ],
   "适应视图": [
     "apps/web/src/pages/workspace/panels/canvas/components/canvasControls.vue"
   ],
-  "缩放菜单（滚轮调整缩放）": [
+  "画布缩放比例": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasControls.vue"
+  ],
+  "缩放比例（点击输入，滚轮调整）": [
     "apps/web/src/pages/workspace/panels/canvas/components/canvasControls.vue"
   ],
   "缩放菜单": [
@@ -4522,13 +5382,10 @@
   "缩放百分比": [
     "apps/web/src/pages/workspace/panels/canvas/components/canvasControls.vue"
   ],
-  "适合屏幕": [
+  "重置为 100%": [
     "apps/web/src/pages/workspace/panels/canvas/components/canvasControls.vue"
   ],
   "整理画布失败": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasControls.vue"
-  ],
-  "撤销整理失败": [
     "apps/web/src/pages/workspace/panels/canvas/components/canvasControls.vue"
   ],
   "双击画布 自由生成节点": [
@@ -4549,31 +5406,13 @@
   "项目名称": [
     "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
   ],
-  "切换画布": [
+  "选择画布 JSON 文件": [
     "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
   ],
-  "搜索画布": [
+  "点击刷新麦浪余额": [
     "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
   ],
-  "新建画布文件夹": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
-  ],
-  "新增画布": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
-  ],
-  "新画布名称": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
-  ],
-  "画布名称": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
-  ],
-  "点击刷新麦麦云余额": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
-  ],
-  "刷新麦麦云余额": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
-  ],
-  "请先移出或删除文件夹内的内容": [
+  "麦浪余额 {0}，点击刷新": [
     "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
   ],
   "未命名工作区": [
@@ -4582,22 +5421,11 @@
   "选择画布": [
     "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
   ],
-  "画布根目录": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
-  ],
-  "读取文件夹失败": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
-  ],
-  "搜索画布失败": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
-  ],
-  "读取移动目录失败": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
-  ],
   "读取画布失败": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
   ],
-  "画布正在加载或编辑，请稍后重试": [
+  "画布正在加载，请稍后重试": [
     "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
   ],
   "工作目录已切换，本次画布操作已停止": [
@@ -4633,31 +5461,31 @@
   "新增画布失败": [
     "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
   ],
-  "“assets”是保留的节点素材目录名称，请使用其他文件夹名称。": [
+  "重命名画布": [
     "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
   ],
-  "“.agent”是保留的 Agent 数据目录名称，请使用其他文件夹名称。": [
+  "画布名称": [
     "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
   ],
-  "创建文件夹失败": [
+  "重命名文件夹": [
     "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
   ],
-  "工作区文件管理尚未就绪": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
-  ],
-  "移动失败": [
+  "文件夹将创建在画布根目录": [
     "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
   ],
   "新文件夹将创建在画布根目录": [
     "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
   ],
-  "确定删除文件夹“{0}”？": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
-  ],
   "删除文件夹": [
     "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
   ],
-  "文件夹操作失败": [
+  "工作区文件管理尚未就绪": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
+  ],
+  "“assets”是保留的节点素材目录名称，请使用其他文件夹名称。": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
+  ],
+  "“.agent”是保留的 Agent 数据目录名称，请使用其他文件夹名称。": [
     "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
   ],
   "文件夹名称不是有效文件名": [
@@ -4666,8 +5494,327 @@
   "画布名称不是有效文件名": [
     "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
   ],
-  "重命名画布失败": [
+  "请先选择画布": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue",
+    "apps/web/src/pages/workspace/panels/canvas/useCanvasTools.ts"
+  ],
+  "画布已切换，请重新导出": [
     "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
+  ],
+  "画布 JSON 已导出": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
+  ],
+  "导出画布失败": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
+  ],
+  "画布 JSON 解析失败，请确认文件内容完整": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
+  ],
+  "这不是麦麦工坊的画布 JSON 文件": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
+  ],
+  "画布 JSON 版本不受支持，请升级客户端后再导入": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
+  ],
+  "画布 JSON 格式无效：节点或视口数据不完整": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
+  ],
+  "画布 JSON 格式无效：节点重复或连线指向不存在的节点": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
+  ],
+  "画布 JSON 不能超过 50 MB": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
+  ],
+  "同名画布过多，请先重命名导入文件": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
+  ],
+  "已导入为画布「{0}」": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
+  ],
+  "导入画布失败": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
+  ],
+  "选择要进入的画布": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "搜索画布名称或文件夹": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "搜索画布": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "显示方式": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "卡片": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "卡片视图": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "列表": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "列表视图": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "导入画布 JSON": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "导出当前画布 JSON": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "根目录": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "新建在{0}": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "新建画布": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "画布分类": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "最近打开": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "全部画布": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "新建画布文件夹": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  " · 按修改时间": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "{0} 个画布{1}": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "空画布": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "当前": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "已在后台打开，切换无需重新加载": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "位置": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "修改时间": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "没有匹配的画布": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "这里还没有画布": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "选择": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "随时唤起": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "新建文件夹…": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue",
+    "apps/web/src/pages/workspace/panels/document/components/fileTree.vue"
+  ],
+  "画布根目录": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "移动到…": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "请先移出或删除文件夹内的画布": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "搜索结果": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "刚刚": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "{0} 分钟前": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "{0} 小时前": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "{0} 天前": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "{0} 个节点": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPickerDialog.vue"
+  ],
+  "展开画布侧栏": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "画布元素 {0}": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "画布侧栏": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "资产": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "收起画布侧栏": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "开启后点击元素可多选": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "只显示生成失败的元素": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "失败 {0}": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "按类型筛选": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "全部类型": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "搜索名称、提示词或类型": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "搜索画布元素": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "画布元素": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "展开分组": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "折叠分组": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "没有匹配的元素": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "画布上还没有元素": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "已选 {0}": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "全选": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue",
+    "apps/desktop/src/index.ts"
+  ],
+  "清空": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "删除所选": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "导出所选": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "重试中 {0}/{1}": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "停止排队": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "重试全部失败": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "定位": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "搜索标题、提示词或标签": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "搜索提示词": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "按标签筛选": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "全部标签": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "刷新提示词库": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "暂无可用的{0}提示词库": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "复制提示词": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "显示更多（剩余 {0}）": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "画布已用提示词": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "点击复制提示词": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "定位使用此提示词的 {0} 个节点": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "定位节点": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "画布上还没有使用过的提示词": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "调整侧栏宽度": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "生成中": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "生成成功": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "确定删除选中的 {0} 个元素？": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "删除元素": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "，跳过 {0} 个": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "，{0} 个无法启动": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "已重试 {0} 个{1}{2}{3}": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "读取媒体文件失败": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "提示词库读取失败": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "填入选中节点": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "新建{0}生成节点并填入": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "已填入 {0} 个{1}节点": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "提示词已填入": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "提示词已复制": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
+  ],
+  "复制提示词失败": [
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue"
   ],
   "分组": [
     "apps/web/src/pages/workspace/panels/canvas/components/groupNode.vue",
@@ -4677,6 +5824,12 @@
     "apps/web/src/pages/workspace/panels/canvas/components/groupNode.vue"
   ],
   "调整分组{0}": [
+    "apps/web/src/pages/workspace/panels/canvas/components/groupNode.vue"
+  ],
+  "组输出：把组内图片和文本整体作为参考输入": [
+    "apps/web/src/pages/workspace/panels/canvas/components/groupNode.vue"
+  ],
+  "组输出": [
     "apps/web/src/pages/workspace/panels/canvas/components/groupNode.vue"
   ],
   "左上角": [
@@ -4723,10 +5876,6 @@
   "宫格排列": [
     "apps/web/src/pages/workspace/panels/canvas/components/nodeMenu.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/selectionToolbar.vue"
-  ],
-  "上传": [
-    "apps/web/src/pages/workspace/panels/canvas/components/nodeMenu.vue",
-    "apps/web/src/pages/workspace/panels/canvas/components/nodeMenuItems.vue"
   ],
   "粘贴中…": [
     "apps/web/src/pages/workspace/panels/canvas/components/nodeMenu.vue"
@@ -4794,7 +5943,13 @@
   "自定义分组颜色和透明度": [
     "apps/web/src/pages/workspace/panels/canvas/components/selectionToolbar.vue"
   ],
-  "打组": [
+  "成组（{0}）": [
+    "apps/web/src/pages/workspace/panels/canvas/components/selectionToolbar.vue"
+  ],
+  "解组（{0}）": [
+    "apps/web/src/pages/workspace/panels/canvas/components/selectionToolbar.vue"
+  ],
+  "导出选中节点的媒体文件": [
     "apps/web/src/pages/workspace/panels/canvas/components/selectionToolbar.vue"
   ],
   "灰色": [
@@ -4840,6 +5995,12 @@
     "apps/web/src/pages/workspace/panels/canvas/components/selectionToolbar.vue"
   ],
   "选区操作失败": [
+    "apps/web/src/pages/workspace/panels/canvas/components/selectionToolbar.vue"
+  ],
+  "选中的节点没有可导出的图片、视频或音频": [
+    "apps/web/src/pages/workspace/panels/canvas/components/selectionToolbar.vue"
+  ],
+  "导出失败": [
     "apps/web/src/pages/workspace/panels/canvas/components/selectionToolbar.vue"
   ],
   "从左上角打开一个画布，就可以开始创作啦": [
@@ -4940,6 +6101,12 @@
   "节点删除失败": [
     "apps/web/src/pages/workspace/panels/canvas/index.vue"
   ],
+  "已新建“{0}”并填入提示词": [
+    "apps/web/src/pages/workspace/panels/canvas/index.vue"
+  ],
+  "新建节点失败": [
+    "apps/web/src/pages/workspace/panels/canvas/index.vue"
+  ],
   "画布已关闭": [
     "apps/web/src/pages/workspace/panels/canvas/index.vue"
   ],
@@ -4983,9 +6150,6 @@
   "画布已不可用，请重新发送消息": [
     "apps/web/src/pages/workspace/panels/canvas/useCanvasTools.ts"
   ],
-  "请先选择画布": [
-    "apps/web/src/pages/workspace/panels/canvas/useCanvasTools.ts"
-  ],
   "当前浏览器或 WebView 不支持音频文件语音识别": [
     "apps/web/src/pages/workspace/panels/canvas/useCanvasTools.ts"
   ],
@@ -5016,10 +6180,25 @@
   "连接无效：{0} -> {1}，请检查端口方向、数据类型以及目标节点的连接规则": [
     "apps/web/src/pages/workspace/panels/canvas/useCanvasTools.ts"
   ],
+  "节点不是分组：{0}": [
+    "apps/web/src/pages/workspace/panels/canvas/useCanvasTools.ts"
+  ],
+  "分组内没有可连接的节点：{0}": [
+    "apps/web/src/pages/workspace/panels/canvas/useCanvasTools.ts"
+  ],
+  "分组连接无效：{0} -> {1}，请检查目标输入端口、组内成员的数据类型以及目标节点的数量限制": [
+    "apps/web/src/pages/workspace/panels/canvas/useCanvasTools.ts"
+  ],
+  "分组连接未能创建：{0} -> {1}": [
+    "apps/web/src/pages/workspace/panels/canvas/useCanvasTools.ts"
+  ],
   "连线不存在：{0}": [
     "apps/web/src/pages/workspace/panels/canvas/useCanvasTools.ts"
   ],
   "连线不允许删除：{0}": [
+    "apps/web/src/pages/workspace/panels/canvas/useCanvasTools.ts"
+  ],
+  "连线由分组输入自动生成：{0}，请删除对应的分组连线 {1}": [
     "apps/web/src/pages/workspace/panels/canvas/useCanvasTools.ts"
   ],
   "节点不允许选择": [
@@ -5148,9 +6327,6 @@
     "apps/web/src/pages/workspace/panels/document/components/fileTree.vue"
   ],
   "新建文件…": [
-    "apps/web/src/pages/workspace/panels/document/components/fileTree.vue"
-  ],
-  "新建文件夹…": [
     "apps/web/src/pages/workspace/panels/document/components/fileTree.vue"
   ],
   "以资源管理器打开": [
@@ -5499,10 +6675,17 @@
   "请在桌面客户端中检查更新。": [
     "apps/web/src/stores/desktopUpdate.ts"
   ],
+  "标准": [
+    "apps/web/src/stores/settings.ts",
+    "apps/server/src/utils/cloud/models.ts"
+  ],
   "读取文本模型失败": [
     "apps/web/src/stores/settings.ts"
   ],
   "读取设置失败": [
+    "apps/web/src/stores/settings.ts"
+  ],
+  "画布操作设置保存失败，已保留原设置，下次启动时重试": [
     "apps/web/src/stores/settings.ts"
   ],
   "保存设置失败": [
@@ -5512,7 +6695,11 @@
     "apps/web/src/stores/settings.ts"
   ],
   "工作目录校验失败": [
+    "apps/web/src/stores/workbench.ts",
     "apps/web/src/stores/workspace.ts"
+  ],
+  "生成记录尚未读取完成，请稍后重试": [
+    "apps/web/src/stores/workbenchHistory.ts"
   ],
   "团队已禁用，不能接收新消息": [
     "apps/server/src/agent/a2a/index.ts"
@@ -6018,7 +7205,8 @@
     "apps/server/src/lib/middleware.ts",
     "apps/server/src/lib/responseFormat.ts",
     "apps/server/src/routes/ai/media/generate.ts",
-    "apps/server/src/routes/ai/media/price.ts"
+    "apps/server/src/routes/ai/media/price.ts",
+    "apps/server/src/routes/workbench/submit.ts"
   ],
   "成功": [
     "apps/server/src/lib/responseFormat.ts"
@@ -6166,6 +7354,10 @@
   ],
   "模型上下文不能超过 8 MB": [
     "apps/server/src/routes/ai/generate.ts"
+  ],
+  "图片张数须为 1 到 15 的整数": [
+    "apps/server/src/routes/ai/media/generate.ts",
+    "apps/server/src/routes/ai/media/price.ts"
   ],
   "只能读取文件": [
     "apps/server/src/routes/assets/read.ts",
@@ -6504,6 +7696,9 @@
   "项目 ZIP 文件不能超过 1 GB": [
     "apps/server/src/routes/workspaces/files/export.ts"
   ],
+  "项目": [
+    "apps/server/src/routes/workspaces/files/export.ts"
+  ],
   "文件超过本次文本读取的大小限制": [
     "apps/server/src/routes/workspaces/files/read.ts"
   ],
@@ -6595,29 +7790,37 @@
   ],
   "无法连接麦麦云，请检查网络后重试": [
     "apps/server/src/utils/cloud/index.ts",
-    "apps/server/src/utils/cloud/models.ts"
+    "apps/server/src/utils/cloud/models.ts",
+    "apps/server/src/utils/cloud/tickets.ts"
   ],
   "麦麦云请求失败（HTTP {0}）": [
     "apps/server/src/utils/cloud/index.ts",
-    "apps/server/src/utils/cloud/models.ts"
+    "apps/server/src/utils/cloud/models.ts",
+    "apps/server/src/utils/cloud/tickets.ts"
   ],
-  "麦麦云客户端 Key 创建失败：": [
-    "apps/server/src/utils/cloud/index.ts"
-  ],
-  "麦麦工坊客户端": [
-    "apps/server/src/utils/cloud/index.ts"
-  ],
-  "请先在账号设置中修改初始密码": [
+  "麦麦云凭据无法解密，需重新登录：": [
     "apps/server/src/utils/cloud/index.ts"
   ],
   "请先登录麦麦云": [
     "apps/server/src/utils/cloud/index.ts"
   ],
-  "麦麦云客户端 Key 删除失败：": [
-    "apps/server/src/utils/cloud/index.ts"
-  ],
   "麦麦云退出失败：": [
     "apps/server/src/utils/cloud/index.ts"
+  ],
+  "张": [
+    "apps/server/src/utils/cloud/models.ts"
+  ],
+  "秒": [
+    "apps/server/src/utils/cloud/models.ts"
+  ],
+  " 起": [
+    "apps/server/src/utils/cloud/models.ts"
+  ],
+  "加密麦麦云凭据失败": [
+    "apps/server/src/utils/cloud/protect.ts"
+  ],
+  "解密麦麦云凭据失败": [
+    "apps/server/src/utils/cloud/protect.ts"
   ],
   "清理无效更新核验记录失败：": [
     "apps/server/src/utils/desktop/index.ts"
@@ -7112,16 +8315,16 @@
   "预估费用，以麦麦云实际扣费为准": [
     "apps/server/src/utils/media/cloud.ts"
   ],
-  "当前视频模型不支持参考视频": [
-    "apps/server/src/utils/media/cloud.ts"
-  ],
   "请选择整数秒的视频时长": [
     "apps/server/src/utils/media/cloud.ts"
   ],
-  "参考音频需要选择参考生视频模式": [
+  "参考视频与参考音频需要选择全能参考模式": [
     "apps/server/src/utils/media/cloud.ts"
   ],
-  "视频生成失败，费用已退回": [
+  "麦麦云未返回任务编号": [
+    "apps/server/src/utils/media/cloud.ts"
+  ],
+  "生成失败，费用已退回": [
     "apps/server/src/utils/media/cloud.ts"
   ],
   "参考媒体须为不超过 100 MB 的文件": [
@@ -7157,22 +8360,40 @@
   "参考媒体需要工作目录": [
     "apps/server/src/utils/media/generation.ts"
   ],
-  "请输入生成提示词": [
-    "apps/server/src/utils/media/generation.ts"
-  ],
   "麦麦云暂未开放音频生成": [
     "apps/server/src/utils/media/generation.ts"
   ],
   "麦麦云未返回生成结果": [
     "apps/server/src/utils/media/generation.ts"
   ],
+  "麦麦云已找不到该任务（可能已过期），请重新生成": [
+    "apps/server/src/utils/media/tasks.ts"
+  ],
+  "应用重启前任务尚未提交到麦麦云，请重新生成": [
+    "apps/server/src/utils/media/tasks.ts"
+  ],
+  "生成任务记录读取失败，已忽略": [
+    "apps/server/src/utils/media/tasks.ts"
+  ],
+  "生成任务记录保存失败": [
+    "apps/server/src/utils/media/tasks.ts"
+  ],
   "生成任务因页面长时间未连接而停止": [
+    "apps/server/src/utils/media/tasks.ts"
+  ],
+  "页面长时间未连接，暂停领取结果": [
+    "apps/server/src/utils/media/tasks.ts"
+  ],
+  "等待麦麦云生成结果超时，请重新生成": [
     "apps/server/src/utils/media/tasks.ts"
   ],
   "生成任务已存在，请勿重复提交": [
     "apps/server/src/utils/media/tasks.ts"
   ],
   "生成任务过多，请稍后重试": [
+    "apps/server/src/utils/media/tasks.ts"
+  ],
+  "生成任务提交被中断，请重新生成": [
     "apps/server/src/utils/media/tasks.ts"
   ],
   "生成任务不存在或已过期": [
@@ -7923,9 +9144,6 @@
   "读取启动设置失败，使用默认启动动画：": [
     "apps/desktop/src/index.ts"
   ],
-  "全选": [
-    "apps/desktop/src/index.ts"
-  ],
   "原生启动画面创建失败：": [
     "apps/desktop/src/index.ts"
   ],
@@ -8029,6 +9247,18 @@
   "插件文件名或扩展名不符合 {0} 的要求。文件名须使用小驼峰，并使用对应的扩展名，例如：{1}。": [
     "apps/desktop/src/protocol.ts"
   ],
+  "saveFileDialog.exe 启动失败，改用 PowerShell 另存为窗口：": [
+    "apps/desktop/src/saveFile.ts"
+  ],
+  "另存为": [
+    "apps/desktop/src/saveFile.ts"
+  ],
+  "系统阻止了另存为窗口启动，可能被火绒、360 等安全软件拦截。请将麦麦工坊安装目录加入信任区后重试（{0}）": [
+    "apps/desktop/src/saveFile.ts"
+  ],
+  "另存为窗口运行失败：{0}": [
+    "apps/desktop/src/saveFile.ts"
+  ],
   "保存文件名无效，不能包含路径或控制字符": [
     "apps/desktop/src/saveFile.ts"
   ],
@@ -8038,19 +9268,10 @@
   "当前系统不支持桌面另存为": [
     "apps/desktop/src/saveFile.ts"
   ],
-  "另存为": [
-    "apps/desktop/src/saveFile.ts"
-  ],
   "另存为窗口返回了无效的文件路径": [
     "apps/desktop/src/saveFile.ts"
   ],
   "选择保存位置失败：{0}": [
-    "apps/desktop/src/saveFile.ts"
-  ],
-  "系统阻止了另存为窗口启动，可能被火绒、360 等安全软件拦截。请将麦麦工坊安装目录加入信任区后重试（{0}）": [
-    "apps/desktop/src/saveFile.ts"
-  ],
-  "另存为窗口运行失败：{0}": [
     "apps/desktop/src/saveFile.ts"
   ],
   "保存位置已过期，请重新选择保存位置": [
@@ -8328,83 +9549,5 @@
   ],
   "FFmpeg 不能操作悬空符号链接": [
     "packages/ffmpeg/src/runtime.ts"
-  ],
-  "出错": [
-    "apps/web/src/components/agent/conversation.vue"
-  ],
-  "等待你回答": [
-    "apps/web/src/components/agent/conversation.vue"
-  ],
-  "运行中 · 调用 {0}": [
-    "apps/web/src/components/agent/conversation.vue"
-  ],
-  "运行中…": [
-    "apps/web/src/components/agent/conversation.vue"
-  ],
-  "导出画布 JSON": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
-  ],
-  "导入画布 JSON": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
-  ],
-  "选择画布 JSON 文件": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
-  ],
-  "画布已切换，请重新导出": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
-  ],
-  "画布 JSON 已导出": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
-  ],
-  "导出画布失败": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
-  ],
-  "画布 JSON 解析失败，请确认文件内容完整": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
-  ],
-  "这不是麦麦工坊的画布 JSON 文件": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
-  ],
-  "画布 JSON 版本不受支持，请升级客户端后再导入": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
-  ],
-  "画布 JSON 格式无效：节点或视口数据不完整": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
-  ],
-  "画布 JSON 格式无效：节点重复或连线指向不存在的节点": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
-  ],
-  "画布 JSON 不能超过 50 MB": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
-  ],
-  "同名画布过多，请先重命名导入文件": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
-  ],
-  "已导入为画布「{0}」": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
-  ],
-  "导入画布失败": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
-  ],
-  "组输出：把组内图片和文本整体作为参考输入": [
-    "apps/web/src/pages/workspace/panels/canvas/components/groupNode.vue"
-  ],
-  "组输出": [
-    "apps/web/src/pages/workspace/panels/canvas/components/groupNode.vue"
-  ],
-  "节点不是分组：{0}": [
-    "apps/web/src/pages/workspace/panels/canvas/useCanvasTools.ts"
-  ],
-  "分组内没有可连接的节点：{0}": [
-    "apps/web/src/pages/workspace/panels/canvas/useCanvasTools.ts"
-  ],
-  "分组连接无效：{0} -> {1}，请检查目标输入端口、组内成员的数据类型以及目标节点的数量限制": [
-    "apps/web/src/pages/workspace/panels/canvas/useCanvasTools.ts"
-  ],
-  "分组连接未能创建：{0} -> {1}": [
-    "apps/web/src/pages/workspace/panels/canvas/useCanvasTools.ts"
-  ],
-  "连线由分组输入自动生成：{0}，请删除对应的分组连线 {1}": [
-    "apps/web/src/pages/workspace/panels/canvas/useCanvasTools.ts"
   ]
 }
