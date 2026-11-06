@@ -354,6 +354,8 @@ docker compose -f docker-compose.yml up -d --no-deps --wait --wait-timeout 60 --
 
 旧 Toonflow-app、maimai-cloud 目录含业务数据、安装包、未跟踪内容及关联工作树，不能按重复源码整目录删除。maimaiLinksBackup 是旧目录联接入口，不是当前源码实体。历史证据中的旧路径是当时事实，不表示今后继续在那里开发。
 
+宣传视频资产 2026-11-06 从 Toonflow-app\promoVideo 移到 D:\2api-codes\maimai\promoVideo（493 个文件、298,544,724 字节，逐文件 SHA256 核对一致后删除旧位置；成片 maimaiStudioPromo.mp4 SHA256 7574576e1384d1ab4ee05a1009d9cbcd6c26710f0fc787c2f7a2c3b9a8e49cf8）。体积大，不进 Git；在 promoVideo 目录内运行脚本（其余路径为相对路径），capture.py、demoProject.py、gen.py 依赖 D:\2api-codes\maimaiDemo 演示工程，二者一起保留。
+
 迁移来源：
 
 - D:\2api-codes\ssh-server\maimaiCloud.md
