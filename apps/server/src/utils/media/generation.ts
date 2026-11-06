@@ -15,7 +15,7 @@ const mediaExtensions: Record<string, string> = {
   "audio/flac": "flac", "audio/aac": "aac", "audio/mp4": "m4a", "audio/opus": "opus", "audio/pcm": "pcm",
 };
 
-export function detectMimeType(bytes: Uint8Array, fallback: string) {
+function detectMimeType(bytes: Uint8Array, fallback: string) {
   const header = Buffer.from(bytes.buffer, bytes.byteOffset, Math.min(bytes.byteLength, 16));
   const text = header.toString("ascii");
   const mimeType = fallback.split(";")[0].trim().toLowerCase();

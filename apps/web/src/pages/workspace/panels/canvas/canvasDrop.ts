@@ -43,7 +43,7 @@ function clipboardMediaName(type: string, index: number) {
   return "pasted-media-" + Date.now() + "-" + (index + 1) + "." + extension;
 }
 
-export function createClipboardMediaFile(blob: Blob, index = 0) {
+function createClipboardMediaFile(blob: Blob, index = 0) {
   const file = blob instanceof File ? blob : undefined;
   const type = (file && inferredMediaType(file)) || (/^(image|audio|video)\//.test(blob.type) ? blob.type : "application/octet-stream");
   return new File([blob], clipboardMediaName(type, index), { type });

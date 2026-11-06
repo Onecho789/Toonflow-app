@@ -4,9 +4,8 @@ import type { updateSnapshot } from "@toonflow/server/desktop";
 import { settings } from "@/stores/settings";
 import { actualPlatform } from "@/lib/platform";
 
-export const desktopUpdateCustomUrl = computed(() => typeof settings.value.desktopUpdateCustomUrl === "string" ? settings.value.desktopUpdateCustomUrl : "");
 // ACT: 自有更新服务器上线前只有开发者选项里的自定义地址一个更新源，地址变化即视为切换更新源。
-export const desktopUpdateKey = desktopUpdateCustomUrl;
+const desktopUpdateKey = computed(() => typeof settings.value.desktopUpdateCustomUrl === "string" ? settings.value.desktopUpdateCustomUrl : "");
 export const desktopUpdateSnapshot = shallowRef<updateSnapshot | null>(null);
 export const desktopUpdateAction = ref<"read" | "check" | "download" | "apply" | null>(null);
 export const desktopUpdateChecking = computed(() => desktopUpdateAction.value === "check");

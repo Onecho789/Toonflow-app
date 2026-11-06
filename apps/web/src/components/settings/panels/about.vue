@@ -109,7 +109,6 @@ import { translate, t } from "@toonflow/i18n/vue";
 
 import { computed, onMounted, onBeforeUnmount, ref } from "vue";
 import axios from "axios";
-import { ElMessage } from "element-plus";
 import { actualPlatform, isMobile, isRemoteConnection } from "@/lib/platform";
 import {
   IconRefresh,
@@ -119,7 +118,6 @@ import {
   IconArrowRight,
 } from "@tabler/icons-vue";
 import logoUrl from "@toonflow/assets/logo.png";
-import { saveSettings } from "@/stores/settings";
 import {
   desktopUpdateSnapshot as snapshot,
   desktopUpdateError as updateError,
@@ -181,10 +179,6 @@ function openUpdate() {
   resultVisible.value = true;
   if (working.value || snapshot.value?.updateReady || snapshot.value?.installFailure) return;
   void runUpdate("check");
-}
-
-function getUpdateError(error: unknown) {
-  return axios.isAxiosError<{ message?: string }>(error) ? error.response?.data?.message || error.message : String(error);
 }
 
 function formatBytes(bytes: number) {

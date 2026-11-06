@@ -22,7 +22,7 @@ type TextModel = { id: string; label: string; vendor?: string; contextWindow?: n
 const builtinModels: Model<KnownApi>[] = getBuiltinProviders().flatMap(provider => getBuiltinModels(provider));
 
 // 档位只来自云端下发；客户端统一发 OpenAI 风格的档位名（含 off），由网关按模型格式转换。
-export function getModelReasoning(model: TextModel, protocol: string) {
+function getModelReasoning(model: TextModel, protocol: string) {
   const { reasoningLevels } = model;
   const thinkingLevelMap: ThinkingLevelMap = {};
   for (const level of thinkingLevels) thinkingLevelMap[level] = reasoningLevels.includes(level) ? level : null;
@@ -31,7 +31,7 @@ export function getModelReasoning(model: TextModel, protocol: string) {
   return { reasoning: reasoningLevels.length > 0, thinkingLevelMap, reasoningLevels, compat };
 }
 
-export function getModelLimits(providerId: string, model: TextModel) {
+function getModelLimits(providerId: string, model: TextModel) {
   // 云端后台填写的上下文与输出上限各自优先，缺的一项再查内置限制表和 SDK 模型目录。
   const limits = findModelContextLimits(model.id);
   const matches = builtinModels.filter(item => item.id === model.id);

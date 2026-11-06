@@ -24,12 +24,12 @@ function nodeData(node: MentionCanvasNode) {
   return mentionRecord(node.data) ? node.data : {};
 }
 
-export function mentionNodeName(node: MentionCanvasNode) {
+function mentionNodeName(node: MentionCanvasNode) {
   const label = nodeData(node).label ?? node.label;
   return (typeof label === "string" && label.trim() ? label : node.id).slice(0, 255);
 }
 
-export function mentionOutputValue(node: MentionCanvasNode, outputId: string) {
+function mentionOutputValue(node: MentionCanvasNode, outputId: string) {
   const data = nodeData(node);
   const outputs = mentionRecord(data.outputs) ? data.outputs : {};
   const output = outputs[outputId];

@@ -40,7 +40,7 @@ function pixelsTier(pixels: unknown) {
 }
 
 // 与云端网关的计费公式一致，金额单位 0.0001 元；实际以云端扣费为准。
-export function estimateCost(model: CloudModel, request: MediaGenerationRequest & ImageCount) {
+function estimateCost(model: CloudModel, request: MediaGenerationRequest & ImageCount) {
   if (model.type === "image") {
     const meta = model.meta as ImageMeta;
     const tier = pixelsTier(request.other?.pixels) ?? request.size ?? "";

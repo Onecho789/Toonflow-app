@@ -135,7 +135,7 @@ export function extensionRevision(id: string) {
   return extension?.revision ?? extension?.version;
 }
 
-export function updateExtensionConfig(id: string, config: Record<string, unknown>) {
+function updateExtensionConfig(id: string, config: Record<string, unknown>) {
   configChanges.set(id, { revision: ++configRevision, config });
   definitions.value = definitions.value.map(extension => extension.id === id ? { ...extension, config } : extension);
 }

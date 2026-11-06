@@ -22,7 +22,7 @@ export function isGroupInputEdge(edge: EdgeLike) {
   return edge.id.startsWith(derivedPrefix) || typeof edge.data?.groupInput === "string";
 }
 
-export function isGroupOutputEdge(edge: EdgeLike, nodes: Map<string, GraphNode> | GraphNode[]) {
+function isGroupOutputEdge(edge: EdgeLike, nodes: Map<string, GraphNode> | GraphNode[]) {
   if (edge.sourceHandle !== groupOutputHandle) return false;
   const source = Array.isArray(nodes) ? nodes.find(node => node.id === edge.source) : nodes.get(edge.source);
   return source?.type === "canvasGroup";

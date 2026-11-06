@@ -23,7 +23,7 @@ export const documentFormats: Record<string, string> = {
   pdf: "application/pdf",
 };
 
-export const documentAccept = Object.keys(documentFormats).map(extension => `.${extension}`).join(",");
+const documentAccept = Object.keys(documentFormats).map(extension => `.${extension}`).join(",");
 
 export function getDocumentExtension(name: string, mimeType = ""): string | undefined {
   const extension = name.split(/[\\/]/).pop()?.match(/\.([^.]+)$/)?.[1].toLowerCase() ?? "";
@@ -39,7 +39,7 @@ export function getDocumentMimeType(name: string, mimeType = ""): string | undef
   return extension ? documentFormats[extension] : undefined;
 }
 
-export const textFormats: Record<string, string> = {
+const textFormats: Record<string, string> = {
   txt: "text/plain", text: "text/plain", log: "text/x-log",
   html: "text/html", htm: "text/html", xhtml: "application/xhtml+xml",
   md: "text/markdown", markdown: "text/markdown", mdx: "text/mdx", rst: "text/x-rst", adoc: "text/asciidoc",
