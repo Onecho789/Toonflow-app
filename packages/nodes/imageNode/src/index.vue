@@ -7,7 +7,7 @@
     topWidth="max-content"
     :downloadUrl="previewUrl"
     :downloadName="outputFile?.url.split(/[\\/]/).at(-1)"
-    @fullscreen="previewVisible = !!previewUrl"
+    @fullscreen="openPreview"
     :style="{ width: previewUrl && imageWidth ? `${imageWidth + 18}px` : undefined }">
     <template v-if="editor?.mode" #top><div ref="paintToolbar" /></template>
     <template #topActions>
@@ -32,7 +32,7 @@
     <template #topRightActions>
       <el-button v-if="visible('mark')" :icon="IconPencil" :disabled="uploading || lighting?.generating || multiAngle?.generating || panorama?.busy || !previewUrl || gridSplit?.splitting" text title="标记" aria-label="标记" @click.stop="startEditor('mark')" />
     </template>
-    <div class="imageContent nopan" :class="{ empty: !outputFile }" @dblclick.stop="previewVisible = !!previewUrl && !editor?.mode">
+    <div class="imageContent nopan" :class="{ empty: !outputFile }" @dblclick.stop="!editor?.mode && openPreview()">
       <imageEditor
         v-if="previewUrl"
         ref="editor"
@@ -65,7 +65,7 @@
   <imageMultiAngle v-if="multiAngleVisible" ref="multiAngle" :src="previewUrl" :source="outputFile" :target="multiAngleTarget" :disabled="uploading || gridSplit?.splitting" @close="multiAngleVisible = false" />
   <imagePanorama ref="panorama" :src="previewUrl" :source="outputFile" :disabled="uploading || editor?.busy || lighting?.generating || multiAngle?.generating || gridSplit?.splitting || inpaintPrompt?.creating" @open="openPanorama" />
   <imageGridSplit ref="gridSplit" :src="previewUrl" :disabled="uploading || lighting?.generating || multiAngle?.generating || panorama?.busy" :active="node.selected" />
-  <mediaPreview v-model="previewVisible" :items="previewUrl ? [{ url: previewUrl, type: 'image', name: outputFile?.url.split(/[\\/]/).at(-1) }] : []" />
+  <mediaPreview v-model="canvasImages.visible.value" v-model:index="canvasImages.index.value" :items="canvasImages.items.value" @locate="canvasImages.locate" />
 </template>
 
 <script setup lang="ts">
@@ -73,6 +73,7 @@ import { computed, nextTick, ref } from "vue";
 import { IconPhoto, IconUpload, IconTransfer, IconLayoutGrid, IconBrush, IconPencil, IconSun, IconCameraRotate, IconPanoramaHorizontal, IconChevronDown } from "@tabler/icons-vue";
 import { ElButton, ElMessage } from "element-plus";
 import mediaPreview from "@toonflow/node-shared/mediaPreview";
+import { useCanvasImages } from "@toonflow/node-shared/useCanvasImages";
 import { nodeSkeleton, nodeTools, useNode, z, type NodeHandle } from "@toonflow/nodes-scaffold/runtime";
 import imageGridSplit from "./components/imageGridSplit.vue";
 import imageEditor from "./components/imageEditor.vue";
@@ -92,7 +93,7 @@ defineOptions({
     { id: "image", type: "source", dataType: "IMAGE", label: "图片输出" },
   ] satisfies NodeHandle[],
 });
-const { node, nodeProps, outputs, nodeEvent, files, updateNodeInternals } = useNode({
+const { id, node, nodeProps, outputs, nodeEvent, files, updateNodeInternals } = useNode({
   label: "图片",
 });
 const fileInput = ref<HTMLInputElement>();
@@ -110,7 +111,8 @@ const multiAngleVisible = ref(false);
 const panorama = ref<InstanceType<typeof imagePanorama>>();
 const uploading = ref(false);
 const tools = ref<InstanceType<typeof imageTools>>();
-const previewVisible = ref(false);
+// 放大预览翻看当前画布全部图片，按生成时间从新到旧。
+const canvasImages = useCanvasImages();
 const { visible, showLabels } = useImageToolbar();
 const toolIds: ImageToolId[] = ["panorama", "inpaint", "lighting", "multiAngle", "gridSplit", "replace", "mark"];
 const imageWidth = ref(0);
@@ -148,7 +150,7 @@ nodeTools.register({
       const content = await files.getWorkspaceFiles().read(path);
       signal?.throwIfAborted();
       if (!content.byteLength || content.byteLength > 100 * 1024 * 1024) throw new Error("图片不能为空且不能超过 100 MB");
-      outputs.value.image = { dataType: "IMAGE", value: { url: path, mimeType } };
+      outputs.value.image = { dataType: "IMAGE", value: { url: path, mimeType, createdAt: Date.now() } };
       return outputs.value.image;
     } finally {
       uploading.value = false;
@@ -217,12 +219,16 @@ async function uploadImage(event: Event) {
   try {
     const url = await files.uploadFile(file);
     // ACT: 复制节点可能仍引用旧图片，替换输出不删除共享文件。
-    outputs.value.image = { dataType: "IMAGE", value: { url, mimeType: file.type } };
+    outputs.value.image = { dataType: "IMAGE", value: { url, mimeType: file.type, createdAt: Date.now() } };
   } catch (error) {
     showError(error, "图片替换失败");
   } finally {
     uploading.value = false;
   }
+}
+
+function openPreview() {
+  if (previewUrl.value) void canvasImages.open(id, outputFile.value?.url);
 }
 
 function showError(error: unknown, fallback: string) {

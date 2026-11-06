@@ -1,4 +1,5 @@
-export type NodeMediaValue = { url: string; mimeType: string };
+// createdAt：生成或上传时的毫秒时间戳，老数据可能缺省。
+export type NodeMediaValue = { url: string; mimeType: string; createdAt?: number };
 
 export type NodeValueMap = {
   STRING: string;

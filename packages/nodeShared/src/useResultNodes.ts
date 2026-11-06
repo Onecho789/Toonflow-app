@@ -1,6 +1,7 @@
 import { inject, nextTick } from "vue";
 import { useNode, useVueFlow } from "@vue-flow/core";
 import type { NodeMediaValue } from "@toonflow/nodes-scaffold/values";
+import { copyLabel } from "@toonflow/nodes-scaffold/nodeLabel";
 
 const nodeKinds = {
   image: { type: "remote-imageNode", output: "image", dataType: "IMAGE", label: "图片", plugin: "图片节点" },
@@ -76,7 +77,7 @@ export function useResultNodes(mediaType: "image" | "video") {
       try {
         addNodes({
           id: copyId, type: node.type, zIndex: node.zIndex, parentNode: node.parentNode, position,
-          data: { ...data, label: `${node.data.label || kind.label} - 副本`, outputs: { ...(data.outputs as object), [kind.output]: { dataType: kind.dataType, value } } },
+          data: { ...data, label: copyLabel(String(node.data.label || kind.label), new Set(getNodes.value.map(other => String(other.data?.label ?? "")))), outputs: { ...(data.outputs as object), [kind.output]: { dataType: kind.dataType, value } } },
         });
         addEdges(incoming.map(edge => ({ id: crypto.randomUUID(), source: edge.source, sourceHandle: edge.sourceHandle, target: copyId, targetHandle: edge.targetHandle })));
       } catch (error) {

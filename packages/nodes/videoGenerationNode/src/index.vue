@@ -9,6 +9,9 @@
     @fullscreen="previewVisible = !!previewUrl"
     :bottomWidth="660"
     :style="{ width: previewUrl && videoWidth ? `${videoWidth + 18}px` : undefined }">
+    <template v-if="data.prompt.trim()" #menuItems>
+      <el-dropdown-item :icon="IconPencil" @click="renameByPrompt(node.data, data.prompt)">按提示词重命名</el-dropdown-item>
+    </template>
     <template #topActions>
       <el-button :icon="IconMusic" text :disabled="!outputFile || generating || deleting || uploading || actions?.processing" @click.stop="actions?.open('extractAudio')">提取音轨</el-button>
       <el-button :icon="IconLayersSubtract" text :disabled="!outputFile || generating || deleting || uploading || actions?.processing" @click.stop="actions?.open('separate')">分离音视频</el-button>
@@ -111,10 +114,11 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onScopeDispose, ref, shallowRef, watch } from "vue";
 import { ElButton, ElCard, ElSelect, ElOption, ElOptionGroup, ElLoading, ElDropdown, ElDropdownMenu, ElDropdownItem } from "element-plus";
-import { IconCameraAi, IconSparkles, IconArrowUp, IconPlayerStop, IconTransfer, IconMusic, IconLayersSubtract, IconScissors, IconMovie, IconPhotoScan, IconPlayerSkipBack, IconPlayerSkipForward, IconArrowsSplit2 } from "@tabler/icons-vue";
+import { IconCameraAi, IconSparkles, IconArrowUp, IconPlayerStop, IconTransfer, IconMusic, IconLayersSubtract, IconScissors, IconMovie, IconPhotoScan, IconPlayerSkipBack, IconPlayerSkipForward, IconArrowsSplit2, IconPencil } from "@tabler/icons-vue";
 import { nodeSkeleton, nodeTools, useNode, z, type NodeMediaModel, type NodeVideoRequest, type NodeMediaValue, type NodeHandle } from "@toonflow/nodes-scaffold/runtime";
 import { groupNodeModels } from "@toonflow/node-shared/groupNodeModels";
 import { showNodeError } from "@toonflow/node-shared/showNodeError";
+import { applyPromptLabel, renameByPrompt } from "@toonflow/node-shared/promptLabel";
 import { useNodeGeneration } from "@toonflow/node-shared/useNodeGeneration";
 import { useResultNodes } from "@toonflow/node-shared/useResultNodes";
 import generationStatus from "@toonflow/node-shared/generationState";
@@ -345,7 +349,7 @@ async function replaceOutput(event: Event) {
       return;
     }
     // ACT: 保留历史输出文件，避免破坏撤销记录和复制节点的引用。
-    outputs.value.video = { dataType: "VIDEO", value: { url, mimeType: file.type } };
+    outputs.value.video = { dataType: "VIDEO", value: { url, mimeType: file.type, createdAt: Date.now() } };
   } catch (error) {
     showNodeError(error, "视频替换失败");
   } finally {
@@ -392,6 +396,7 @@ async function startGeneration() {
     if (reference?.dataType === "STRING" && !reference.value?.trim()) throw new Error(`参考 ${match[1]} 的文本为空，请补充内容或移除提示词中的引用`);
   }
   if (choice.mode?.length && !matchingModes.value.length) throw new Error("当前模型没有适合这些参考素材的生成模式，请更换模型或调整引用");
+  applyPromptLabel(node.data, data.value.prompt, "视频生成");
   return runRequest(input);
 }
 
@@ -429,7 +434,7 @@ function launch(task: (signal: AbortSignal, directory: string) => Promise<{ path
     .then(([result]) => {
       controller.signal.throwIfAborted();
       if (!result) throw new Error("供应商未返回视频");
-      const value = { url: result.path, mimeType: result.mimeType };
+      const value = { url: result.path, mimeType: result.mimeType, createdAt: Date.now() };
       outputs.value.video = { dataType: "VIDEO", value };
       return value;
     }), retryWith)

@@ -16,7 +16,7 @@
       @contextmenu.stop>
       <div class="previewToolbar">
         <span class="previewInfo">
-          <span class="previewName" :title="current.name">{{ current.name }}</span>
+          <span class="previewName" :title="title">{{ title }}</span>
           <span v-if="details" class="previewMeta">{{ details }}</span>
         </span>
         <span v-if="items.length > 1" class="previewCount">{{ activeIndex + 1 }} / {{ items.length }}</span>
@@ -28,6 +28,7 @@
           <button type="button" class="previewButton" title="向右旋转（R）" aria-label="向右旋转" @click="rotation += 90"><icon-rotate-clockwise :size="20" /></button>
           <button type="button" class="previewButton" title="复原（0）" aria-label="复原" @click="restoreView"><icon-arrows-minimize :size="20" /></button>
         </template>
+        <button v-if="current.nodeId" type="button" class="previewButton" title="定位到节点" aria-label="定位到节点" @click="emit('locate', current.nodeId)"><icon-current-location :size="20" /></button>
         <button v-if="current.prompt" type="button" class="previewButton" title="复制提示词" aria-label="复制提示词" @click="copyPrompt"><icon-copy :size="20" /></button>
         <a
           class="previewButton"
@@ -74,7 +75,7 @@
 import { computed, inject, nextTick, ref, watch } from "vue";
 import { ElMessage, useZIndex } from "element-plus";
 import {
-  IconArrowsMinimize, IconChevronLeft, IconChevronRight, IconCopy, IconDownload, IconRotate, IconRotateClockwise, IconX, IconZoomIn, IconZoomOut,
+  IconArrowsMinimize, IconChevronLeft, IconChevronRight, IconCopy, IconCurrentLocation, IconDownload, IconRotate, IconRotateClockwise, IconX, IconZoomIn, IconZoomOut,
 } from "@tabler/icons-vue";
 import { showNodeError } from "../showNodeError";
 
@@ -87,9 +88,15 @@ export interface MediaPreviewItem {
   prompt?: string;
   // 字节数；不传时按 url 读取
   size?: number;
+  // 画布图片预览：标题显示「节点名 · 生成时间」，文件名移到下方；带 nodeId 时工具栏显示「定位到节点」
+  nodeLabel?: string;
+  // 毫秒时间戳，没有时不显示时间
+  createdAt?: number;
+  nodeId?: string;
 }
 
 const props = defineProps<{ items: MediaPreviewItem[] }>();
+const emit = defineEmits<{ locate: [nodeId: string] }>();
 const visible = defineModel<boolean>({ default: false });
 const activeIndex = defineModel<number>("index", { default: 0 });
 const { nextZIndex } = useZIndex();
@@ -111,7 +118,11 @@ const writeClipboardText = inject<(text: string) => Promise<void>>("writeClipboa
 const actualScale = computed(() => dimensions.value?.fitWidth ? dimensions.value.width / dimensions.value.fitWidth : 1);
 const actualSize = computed(() => Math.abs(scale.value - actualScale.value) < 0.001);
 const percent = computed(() => `${Math.round(scale.value / actualScale.value * 100)}%`);
+const title = computed(() => current.value?.nodeLabel
+  ? [current.value.nodeLabel, current.value.createdAt && formatTime(current.value.createdAt)].filter(Boolean).join(" · ")
+  : current.value?.name);
 const details = computed(() => [
+  current.value?.nodeLabel ? current.value.name : undefined,
   current.value?.source,
   dimensions.value && `${dimensions.value.width} × ${dimensions.value.height}`,
   fileSize.value !== undefined && formatSize(fileSize.value),
@@ -175,6 +186,12 @@ async function readSize() {
     const size = item.url.startsWith("blob:") ? (await response.blob()).size : Number(response.headers.get("content-length"));
     if (current.value === item && Number.isFinite(size) && size > 0) fileSize.value = size;
   } catch { /* 大小只是附加信息 */ }
+}
+
+function formatTime(time: number) {
+  const date = new Date(time);
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 function formatSize(bytes: number) {

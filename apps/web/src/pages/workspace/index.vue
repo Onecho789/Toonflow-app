@@ -85,7 +85,7 @@
             </el-tooltip>
             <el-tooltip content="画布外观" placement="top" :showArrow="false" :hideAfter="0" :enterable="false" :triggerKeys="[]" :disabled="appearanceVisible">
               <span class="toolTrigger">
-                <el-popover v-model:visible="appearanceVisible" trigger="click" placement="top" :width="280" :showArrow="false">
+                <el-popover v-model:visible="appearanceVisible" trigger="click" placement="top" :width="320" :showArrow="false">
                   <template #reference>
                     <el-button class="toolButton" :class="{ isActive: appearanceVisible }" text :type="appearanceVisible ? 'primary' : 'default'" aria-label="画布外观" aria-haspopup="dialog" :aria-expanded="appearanceVisible"><icon-palette :size="18" aria-hidden="true" /></el-button>
                   </template>
@@ -93,8 +93,7 @@
                     <strong class="appearanceTitle">画布外观</strong>
                     <label class="appearanceLabel" id="canvasThemeLabel">外观模式</label>
                     <el-segmented :modelValue="uiSettings.theme" :options="[{ label: '浅色', value: 'light' }, { label: '深色', value: 'dark' }, { label: '系统', value: 'system' }]" aria-labelledby="canvasThemeLabel" @change="value => updateUiSettings({ theme: String(value) })" />
-                    <label class="appearanceLabel" id="canvasBackgroundLabel">画布背景</label>
-                    <el-segmented :modelValue="generalSettings.canvasBackgroundMode" :options="[{ label: '点阵', value: 'dots' }, { label: '网格', value: 'lines' }, { label: '空白', value: 'blank' }]" aria-labelledby="canvasBackgroundLabel" @change="value => updateGeneralSettings({ canvasBackgroundMode: value as 'dots' | 'lines' | 'blank' })" />
+                    <canvasBackgroundPicker />
                     <div class="appearanceSwitch"><span>网格吸附</span><el-switch :modelValue="canvasPanelRef?.snapEnabled ?? false" :disabled="canvasActionsDisabled" aria-label="网格吸附" @change="value => canvasPanelRef?.setSnapEnabled(value === true)" /></div>
                     <div class="appearanceSwitch"><span>显示连线</span><el-switch :modelValue="canvasPanelRef?.showEdges ?? true" :disabled="canvasActionsDisabled" aria-label="显示连线" @change="value => canvasPanelRef?.setShowEdges(value === true)" /></div>
                   </div>
@@ -163,6 +162,7 @@ import { useCloudBalanceRefresh } from "@/stores/cloudAccount";
 import canvasPanel from "./panels/canvas/canvasHost.vue";
 import type { DocumentNodeOptions } from "./panels/canvas/canvasFiles";
 import workspaceMenu from "./components/workspaceMenu.vue";
+import canvasBackgroundPicker from "./components/canvasBackgroundPicker.vue";
 import floatingAgent from "./components/floatingAgent.vue";
 
 const documentPanel = defineAsyncComponent(() => import("./panels/document/index.vue"));
@@ -643,6 +643,10 @@ function saveDocumentNode(directory: string, canvasPath: string, nodeId: string,
   display: flex;
   flex-direction: column;
   gap: 8px;
+  max-height: min(640px, calc(100vh - 120px));
+  margin-right: -8px;
+  padding-right: 8px;
+  overflow-y: auto;
 
   .appearanceTitle { margin-bottom: 4px; font-size: 14px; }
   .appearanceLabel { color: var(--el-text-color-secondary); font-size: 12px; }

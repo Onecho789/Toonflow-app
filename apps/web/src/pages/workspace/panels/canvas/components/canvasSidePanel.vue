@@ -18,23 +18,24 @@
       <div class="paneToolbar">
         <span class="paneTitle">画布元素 {{ items.length }}</span>
         <el-button size="small" :type="selecting ? 'primary' : 'default'" :aria-pressed="selecting" title="开启后点击元素可多选" @click="selecting = !selecting">选择</el-button>
+        <el-button v-if="failedCount || failedOnly" size="small" :type="failedOnly ? 'danger' : 'default'" :aria-pressed="failedOnly" title="只显示生成失败的元素" @click="failedOnly = !failedOnly">失败 {{ failedCount }}</el-button>
         <el-select v-model="typeFilter" class="typeFilter" size="small" aria-label="按类型筛选" clearable placeholder="全部类型">
           <el-option v-for="type in types" :key="type" :label="typeLabel(type)" :value="type" />
         </el-select>
       </div>
-      <el-input v-model="query" class="searchInput" size="small" :prefixIcon="IconSearch" placeholder="搜索提示词、名称或类型" aria-label="搜索画布元素" clearable @keydown.esc.stop="query = ''" />
+      <el-input v-model="query" class="searchInput" size="small" :prefixIcon="IconSearch" placeholder="搜索名称、提示词或类型" aria-label="搜索画布元素" clearable @keydown.esc.stop="query = ''" />
       <el-scrollbar class="paneScroll">
         <div class="nodeList" role="list" aria-label="画布元素">
-          <div v-for="item in visibleItems" :key="item.node.id" class="nodeItem" :class="{ selected: item.node.selected }" :style="{ paddingLeft: `${item.depth * 16}px` }" role="listitem">
+          <div v-for="item in visibleItems" :key="item.node.id" class="nodeItem" :class="{ selected: item.node.selected }" :style="{ paddingLeft: `${item.depth * 16}px` }" role="listitem" @contextmenu.prevent="openItemMenu($event, item)">
             <el-button v-if="item.isGroup && item.childCount" class="iconButton foldButton" text :icon="collapsed.has(item.node.id) ? IconChevronRight : IconChevronDown" :aria-label="collapsed.has(item.node.id) ? '展开分组' : '折叠分组'" :aria-expanded="!collapsed.has(item.node.id)" @click="toggleGroup(item.node.id)" />
-            <button class="nodeMain" type="button" :aria-pressed="selecting ? !!item.node.selected : undefined" :title="item.title" @click="clickNode(item.node)">
+            <button class="nodeMain" type="button" :aria-pressed="selecting ? !!item.node.selected : undefined" :title="item.prompt ? `${item.title}\n${item.prompt}` : item.title" aria-keyshortcuts="Delete" @click="clickNode(item.node)" @keydown="deleteByKey($event, item)">
               <mentionThumbnail v-if="item.media" class="nodeThumbnail" :thumbnail="item.media.value" :directory="directory">
                 <component :is="typeIcon(item.node.type)" :size="18" />
               </mentionThumbnail>
               <span v-else class="nodeThumbnail"><component :is="typeIcon(item.node.type)" :size="18" /></span>
               <span class="nodeText">
                 <span class="nodeTitle">{{ item.title }}</span>
-                <span class="nodeType">{{ typeLabel(item.node.type) }}</span>
+                <span class="nodeType">{{ item.prompt || typeLabel(item.node.type) }}</span>
               </span>
               <span v-if="item.status" class="statusDot" :class="item.status" role="img" :aria-label="statusLabels[item.status]" :title="statusLabels[item.status]" />
             </button>
@@ -47,8 +48,24 @@
         <span class="selectionCount">已选 {{ selectedCount }}</span>
         <el-button size="small" text :disabled="disabled || !filteredItems.length" @click="selectAll">全选</el-button>
         <el-button size="small" text :disabled="disabled || !selectedCount" @click="clearSelection">清空</el-button>
+        <el-button size="small" text type="danger" :disabled="disabled || !selectedCount" @click="deleteNodes(flow.getSelectedNodes.value)">删除所选</el-button>
         <el-button size="small" type="primary" :disabled="disabled || !selectedCount" @click="emit('exportSelection')">导出所选</el-button>
       </div>
+      <div v-if="failedOnly" class="selectionBar">
+        <span class="selectionCount">{{ retrying ? `重试中 ${retryDone}/${retryTotal}` : `失败 ${failedCount}` }}</span>
+        <el-button v-if="retrying" size="small" text @click="stopRetry">停止排队</el-button>
+        <el-button size="small" type="primary" :loading="retrying" :disabled="disabled || retrying || !failedCount" @click="retryFailed">重试全部失败</el-button>
+      </div>
+      <el-dropdown ref="itemMenu" trigger="contextmenu" virtualTriggering :virtualRef="menuAnchor" placement="bottom-start" :showArrow="false" @command="handleItemCommand">
+        <template #dropdown>
+          <el-dropdown-menu v-if="menuItem">
+            <el-dropdown-item command="locate" :icon="IconFocus2" :disabled="disabled">定位</el-dropdown-item>
+            <el-dropdown-item v-if="menuItem.media && menuItem.media.dataType !== 'AUDIO'" command="preview" :icon="IconEye" :disabled="disabled">预览</el-dropdown-item>
+            <el-dropdown-item command="rename" :icon="IconPencil" :disabled="disabled">重命名</el-dropdown-item>
+            <el-dropdown-item command="delete" :icon="IconTrash" :disabled="disabled || menuItem.node.deletable === false" divided>删除</el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
     </div>
 
     <div v-show="tab === 'assets'" class="assetsPane"><slot name="assets" /></div>
@@ -111,13 +128,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from "vue";
+import { computed, nextTick, onScopeDispose, ref, shallowRef, watch } from "vue";
 import { useVueFlow, type GraphNode } from "@vue-flow/core";
-import { ElButton, ElCard, ElInput, ElMessage, ElOption, ElScrollbar, ElSegmented, ElSelect, ElTabPane, ElTabs, vLoading } from "element-plus";
+import {
+  ElButton, ElCard, ElDropdown, ElDropdownItem, ElDropdownMenu, ElInput, ElMessage, ElMessageBox, ElOption, ElScrollbar, ElSegmented, ElSelect, ElTabPane, ElTabs, vLoading,
+  type DropdownInstance,
+} from "element-plus";
 import {
   IconArrowBarToRight, IconBoxMultiple, IconChevronDown, IconChevronRight, IconCopy, IconEye, IconFileText, IconFocus2, IconLayoutSidebarLeftCollapse,
-  IconLayoutSidebarLeftExpand, IconMusic, IconPhoto, IconRefresh, IconSearch, IconSquare, IconVideo,
+  IconLayoutSidebarLeftExpand, IconMusic, IconPencil, IconPhoto, IconRefresh, IconSearch, IconSquare, IconTrash, IconVideo,
 } from "@tabler/icons-vue";
+import { useNodeToolsContext } from "@toonflow/nodes-scaffold/nodeTools";
 import mediaPreview, { type MediaPreviewItem } from "@toonflow/node-shared/mediaPreview";
 import promptDetail from "@toonflow/node-shared/promptDetail";
 import { promptModelOf, readCloudPrompts, type CloudPromptItem, type CloudPromptSource } from "@toonflow/node-shared/cloudPrompts";
@@ -132,7 +153,9 @@ type GenerationStatus = "running" | "succeeded" | "failed";
 const props = defineProps<{ directory?: string; nodeOptions: { type: string; label: string }[]; disabled?: boolean }>();
 const open = defineModel<boolean>("open", { default: false });
 const tab = defineModel<"nodes" | "assets" | "prompts">("tab", { default: "nodes" });
-const emit = defineEmits<{ exportSelection: [] }>();
+// deleteNodes 交给画布按撤销批次删除，删除完成或失败后再结束 Promise。
+// deleteNodes 交给画布按一步撤销删除。
+const emit = defineEmits<{ exportSelection: []; deleteNodes: [nodes: GraphNode[]] }>();
 const flow = useVueFlow();
 const collapsed = ref(new Set<string>());
 const storageKey = "toonflow.canvasSidePanel";
@@ -161,23 +184,38 @@ const detailVisible = ref(false);
 const detailItem = ref<CloudPromptItem>();
 let releasePreview: (() => void) | undefined;
 let loadPreview: ((index: number) => Promise<void>) | undefined;
+const failedOnly = ref(false);
+const itemMenu = ref<DropdownInstance>();
+const menuAnchor = shallowRef({ getBoundingClientRect: () => new DOMRect() });
+const menuItem = shallowRef<(typeof items.value)[number]>();
+const getNodeTools = useNodeToolsContext();
+const retrying = ref(false);
+const retryDone = ref(0);
+const retryTotal = ref(0);
+// ACT: 同时最多重试 2 个节点，每启动一个间隔 1.5 秒，避免批量请求触发供应商 429。
+const retryConcurrency = 2;
+const retryInterval = 1500;
+let retryController: AbortController | undefined;
+onScopeDispose(() => retryController?.abort());
 
 const items = computed(() => flow.getNodes.value.filter(node => !node.hidden).map(node => {
   const data = (node.data ?? {}) as { label?: string; prompt?: unknown; outputs?: Record<string, NodeOutput | undefined>; generationStatus?: GenerationStatus };
   const prompt = typeof data.prompt === "string" ? data.prompt.trim() : "";
   const media = Object.values(data.outputs ?? {}).find((output): output is MediaOutput =>
     output?.dataType === "IMAGE" || output?.dataType === "VIDEO" || output?.dataType === "AUDIO");
-  return { node, prompt, media, status: data.generationStatus, title: prompt || String(data.label || typeLabel(node.type)) };
+  // 主标题用节点名称，提示词放到副标题单行省略。
+  return { node, prompt, media, status: data.generationStatus, title: String(data.label || typeLabel(node.type)) };
 }));
 const types = computed(() => [...new Set(items.value.map(item => item.node.type))]);
+const failedCount = computed(() => items.value.filter(item => item.status === "failed").length);
 const filteredItems = computed(() => {
   const keyword = query.value.trim().toLocaleLowerCase();
-  return items.value.filter(item => (!typeFilter.value || item.node.type === typeFilter.value)
-    && `${item.title} ${item.node.data?.label ?? ""} ${typeLabel(item.node.type)}`.toLocaleLowerCase().includes(keyword));
+  return items.value.filter(item => (!typeFilter.value || item.node.type === typeFilter.value) && (!failedOnly.value || item.status === "failed")
+    && `${item.title} ${item.prompt} ${typeLabel(item.node.type)}`.toLocaleLowerCase().includes(keyword));
 });
-// 无筛选时按分组展示为树，子元素缩进在分组下；有搜索或类型筛选时平铺匹配结果。
+// 无筛选时按分组展示为树，子元素缩进在分组下；有搜索、类型或失败筛选时平铺匹配结果。
 const visibleItems = computed(() => {
-  if (typeFilter.value || query.value.trim()) return filteredItems.value.map(item => ({ ...item, depth: 0, isGroup: false, childCount: 0 }));
+  if (typeFilter.value || failedOnly.value || query.value.trim()) return filteredItems.value.map(item => ({ ...item, depth: 0, isGroup: false, childCount: 0 }));
   const ids = new Set(items.value.map(item => item.node.id));
   const children = new Map<string, typeof items.value>();
   for (const item of items.value) {
@@ -309,6 +347,127 @@ async function locateNodes(nodes: GraphNode[]) {
   flow.nodesSelectionActive.value = nodes.length > 1;
   await nextTick();
   await flow.fitView({ nodes: nodes.map(node => node.id), padding: 0.4, maxZoom: 1.4, duration: 200 });
+}
+
+async function openItemMenu(event: MouseEvent, item: (typeof items.value)[number]) {
+  if (props.disabled) return;
+  itemMenu.value?.handleClose();
+  menuItem.value = item;
+  const rect = new DOMRect(event.clientX, event.clientY, 0, 0);
+  menuAnchor.value = { getBoundingClientRect: () => rect };
+  await nextTick();
+  itemMenu.value?.handleOpen();
+}
+
+function handleItemCommand(command: string) {
+  const item = menuItem.value;
+  if (!item || props.disabled || flow.findNode(item.node.id) !== item.node) return;
+  if (command === "locate") void locateNodes([item.node]);
+  else if (command === "preview") openPreview(item);
+  else if (command === "rename") void renameNode(item.node);
+  else if (command === "delete") void deleteNodes([item.node]);
+}
+
+async function renameNode(node: GraphNode) {
+  try {
+    const { value } = await ElMessageBox.prompt("名称", "重命名", {
+      inputValue: String(node.data?.label || typeLabel(node.type)),
+      inputValidator: text => !!text.trim() || "请输入名称",
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+    });
+    if (props.disabled || flow.findNode(node.id) !== node) return;
+    // 与节点标题手动改名一致，之后生成不再按提示词自动命名。
+    Object.assign(node.data, { label: value.trim(), labelLocked: true });
+  } catch {
+    // 取消重命名
+  }
+}
+
+async function deleteNodes(nodes: GraphNode[]) {
+  const targets = nodes.filter(node => node.deletable !== false);
+  if (props.disabled || !targets.length) return;
+  try {
+    await ElMessageBox.confirm(
+      targets.length > 1 ? `确定删除选中的 ${targets.length} 个元素？` : `确定删除“${targets[0]!.data?.label || typeLabel(targets[0]!.type)}”？`,
+      "删除元素",
+      { type: "warning", confirmButtonText: "删除", cancelButtonText: "取消" },
+    );
+  } catch {
+    return;
+  }
+  if (props.disabled) return;
+  emit("deleteNodes", targets.filter(node => flow.findNode(node.id) === node));
+}
+
+// 焦点在列表项上按 Delete：该项在多选中时删除全部所选，否则只删除该项。
+function deleteByKey(event: KeyboardEvent, item: (typeof items.value)[number]) {
+  if (event.key !== "Delete" || event.isComposing || event.repeat) return;
+  event.preventDefault();
+  event.stopPropagation();
+  void deleteNodes(item.node.selected && selectedCount.value > 1 ? flow.getSelectedNodes.value : [item.node]);
+}
+
+function waitIdle(node: GraphNode, signal: AbortSignal) {
+  return new Promise<void>(resolve => {
+    const timer = setInterval(() => {
+      if (signal.aborted || flow.findNode(node.id) !== node || node.data?.generationStatus !== "running") {
+        clearInterval(timer);
+        resolve();
+      }
+    }, 1000);
+  });
+}
+
+// 按列表顺序用失败时的原请求重试；正在生成或没有 retryGeneration 函数的节点跳过。
+async function retryFailed() {
+  if (props.disabled || retrying.value) return;
+  const queue = items.value.filter(item => item.status === "failed").map(item => item.node);
+  if (!queue.length) return;
+  const controller = new AbortController();
+  retryController = controller;
+  retrying.value = true;
+  retryDone.value = 0;
+  retryTotal.value = queue.length;
+  let started = 0;
+  let skipped = 0;
+  let failed = 0;
+  const worker = async () => {
+    while (queue.length && !controller.signal.aborted) {
+      const node = queue.shift()!;
+      const tools = getNodeTools();
+      const canRetry = flow.findNode(node.id) === node && node.data?.generationStatus === "failed"
+        && [...tools.list([node.id], ["node:retryGeneration"])].length > 0;
+      if (!canRetry) {
+        skipped++;
+        retryDone.value++;
+        continue;
+      }
+      try {
+        await tools.call({ nodeId: node.id, name: "node:retryGeneration", args: {} }, controller.signal);
+        started++;
+        await waitIdle(node, controller.signal);
+      } catch {
+        if (!controller.signal.aborted) failed++;
+      }
+      retryDone.value++;
+      if (queue.length && !controller.signal.aborted) await new Promise(resolve => setTimeout(resolve, retryInterval));
+    }
+  };
+  try {
+    await Promise.all(Array.from({ length: Math.min(retryConcurrency, queue.length) }, (_, index) =>
+      new Promise(resolve => setTimeout(resolve, index * retryInterval)).then(worker)));
+  } finally {
+    if (retryController === controller) retryController = undefined;
+    retrying.value = false;
+  }
+  const stopped = controller.signal.aborted ? "，已停止排队" : "";
+  ElMessage({ type: failed ? "warning" : "success", message: `已重试 ${started} 个${skipped ? `，跳过 ${skipped} 个` : ""}${failed ? `，${failed} 个无法启动` : ""}${stopped}` });
+}
+
+// 只停止排队中的节点，已在生成的节点继续完成。
+function stopRetry() {
+  retryController?.abort();
 }
 
 // 预览当前筛选结果里的全部图片和视频，切换到哪一项才读取哪一项。

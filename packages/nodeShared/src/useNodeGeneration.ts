@@ -59,6 +59,17 @@ export function useNodeGeneration(outputs: Readonly<Ref<NodeOutputs>>, cancel: (
     },
   });
 
+  nodeTools.register({
+    name: "retryGeneration",
+    description: "生成失败后用失败那次的原请求参数重新生成；只在 getGenerationStatus 为 failed 时可用，立即返回已开始，用 getGenerationStatus 查询完成结果",
+    parameters: z.strictObject({}),
+    async execute() {
+      if (!canRetry.value) throw new Error(generating.value ? "节点正在生成，请等待完成" : "当前没有可重试的失败生成");
+      await retryHandler.value!();
+      return getStatus();
+    },
+  });
+
   // 记录可恢复任务，应在拿到任务编号后、等待结果前调用；不传参数时清除旧记录。
   function track(task?: NodeGenerationTask) {
     if (task) node.data.generationTask = task;

@@ -87,6 +87,7 @@ import {
   IconLayoutGrid, IconLayoutColumns, IconLayoutRows,
 } from "@tabler/icons-vue";
 import { useNodeEvent } from "@toonflow/nodes-scaffold/nodeEvent";
+import { copyLabel } from "@toonflow/nodes-scaffold/nodeLabel";
 import { finishGroupDrag, getSelectionRoots, getSelectionTree } from "../selectionNodes";
 import { arrangeSelection, type ArrangeSelectionMode } from "../arrangeSelection";
 import { remapNodeReferences } from "../canvasFiles";
@@ -201,9 +202,11 @@ async function duplicateNodes(selection: GraphNode[], signal: AbortSignal, withE
     copy.parentNode = ids.get(saved.parentNode ?? "") ?? saved.parentNode;
     copy.position = positions ? { ...positions.get(node.id)! }
       : { x: saved.position.x + (rootsIds.has(node.id) ? bounds.width + 64 : 0), y: saved.position.y };
-    copy.data = { ...copy.data, label: `${copy.data?.label || "未命名节点"} - 副本` };
     return copy;
   }));
+  // 按选择顺序依次取序号，同一批副本之间也不重名。
+  const labels = new Set(flow.getNodes.value.map(node => String(node.data?.label ?? "")));
+  for (const copy of copies) copy.data = { ...copy.data, label: copyLabel(String(copy.data?.label || "未命名节点"), labels) };
   signal.throwIfAborted();
   if (nodes.some(node => flow.findNode(node.id) !== node)) throw new Error("节点已变化，请重新创建副本");
   const edges = incomingEdges.filter(edge => ids.has(edge.source) || flow.findNode(edge.source)).map(edge => ({

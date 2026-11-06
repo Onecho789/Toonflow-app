@@ -748,7 +748,7 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 
 - 日期：2026-11-01
 - 首页、项目页、工作台背景提供三种样式：晨曦麦浪（暖阳、光芒、上飘花粉）、流星许愿（星空、银河、流星与星尘，指针移动留下星尘）、星云穿梭（原粒子穿梭换成粉紫蓝金配色）。界面设置新增「背景样式」，存为 `ui.background`（`dawn` / `meteor` / `nebula`）。默认界面为浅色 + 流星许愿（`defaultUiSettings` 的 `theme: "light"`、`background: "meteor"`，上游默认深色）
-- 画布背景改用 infinite-canvas 的配色（2026-11-05）：暖灰底色 `--canvasBgColor`（浅 `#f4f2ed` / 深 `#181715`），点阵 `--canvasDotColor`、网格 `--canvasLineColor` 为半透明暖灰，背景层整体 40% 透明；间距 48、点固定 1.15px 屏幕半径（`size` 按缩放反算）、网格线 1px。改动上游文件 `pages/workspace/panels/canvas/index.vue`，冲突时保留上游并补回 `<background>` 的 `gap`/`size`/`lineWidth`/`patternColor` 与这三个变量
+- 画布背景改用 infinite-canvas 的配色（2026-11-05）：暖灰底色 `--canvasBgColor`（浅 `#f4f2ed` / 深 `#181715`），点阵 `--canvasDotColor`、网格 `--canvasLineColor` 为半透明暖灰，背景层整体 40% 透明；间距 48、点固定 1.15px 屏幕半径（`size` 按缩放反算）、网格线 1px。改动上游文件 `pages/workspace/panels/canvas/index.vue`，冲突时保留上游并补回 `<background>` 的 `gap`/`size`/`lineWidth`/`patternColor` 与这三个变量（2026-11-06 起由「画布背景扩展」的自绘背景组件取代，默认配色不变）
 - 深色三套背景调淡（2026-11-05）：底色由饱和紫红换成近中性的暖炭灰（晨曦）、蓝黑夜空（流星）、石墨（星云）；柔光、光芒、光束约减半，深色颗粒减半。浅色不变
 - 深色流星许愿改为程序生成的静态银河星空（`meteorSkyImage`）：藏蓝夜空、由底部粉紫斜升到右上蓝紫的云纹银河、暗尘带、约 4000 颗星点与一颗十字星芒亮星；首次使用时在 1920×1200 离屏画布画一次（约 0.3 秒）并缓存为 WebP，按 cover 铺满。柔光层只保留银河核心与底部粉光呼吸，动态闪烁星减为三分之一，流星与星尘不变
 - 场景代码在新增的 `pages/home/bgScenes.ts`；`bg.vue` 改为柔光层（1/4 分辨率画布 + CSS 模糊）与清晰层两张画布，每个场景自带深浅两套底色。`still`、滚动视差（仅柔光层）、40fps 上限、减少动态效果、页面隐藏暂停等行为保留
@@ -1077,3 +1077,49 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 改动的上游文件：无（均为麦麦云专用文件）。
 
 冲突时保留：`gatewayCooldown`、`gatewayBucket` 与 `postJson` 的 429 重试循环。
+
+## 生成节点自动命名与副本编号（2026-11-06）
+
+- 图片生成、视频生成节点点生成时，名称仍为默认值且未手动命名过，就用提示词第一句命名：按中英文句读和换行分句，去标点与符号、合并空白，最多 16 个字符（`nodeShared/promptLabel.ts`）。局部重绘优先用重绘提示词。
+- 手动改名写 `data.labelLocked = true`，此后不再自动覆盖；节点菜单新增「按提示词重命名」（`nodeSkeleton.vue` 新增通用 `#menuItems` 插槽，由插件填入）。
+- 副本命名由叠加「 - 副本」改为「名称 2」「名称 3」，取画布内最小未用序号（`nodeScaffold/nodeLabel.ts` 的 `copyLabel`）；粘贴只在重名时编号。
+
+改动的上游文件：`packages/nodeScaffold/src/nodeSkeleton.vue`、`packages/nodeShared/src/useResultNodes.ts`、`apps/web/src/pages/workspace/panels/canvas/components/selectionToolbar.vue`、`apps/web/src/pages/workspace/panels/canvas/index.vue`、`packages/nodes/{imageGenerationNode,videoGenerationNode}/src/index.vue`。
+
+冲突时保留：`applyPromptLabel` 调用、`labelLocked`、`copyLabel` 三处替换与 `#menuItems` 插槽。
+
+## 画布元素面板：名称标题、删除、失败重试（2026-11-06）
+
+- 列表主标题改为节点名称，副标题为提示词（无提示词时显示类型）。
+- 选择模式底栏新增「删除所选」，列表项右键菜单（定位、预览、重命名、删除），焦点在列表项上按 Delete 删除。删除交给画布 `deleteSideNodes`，与键盘删除同一逻辑、合并为一步撤销，磁盘文件保留策略不变。
+- 新增「失败 N」筛选和「重试全部失败」：`useNodeGeneration` 注册节点函数 `retryGeneration`（用失败那次的原请求重试，Agent 也可调用）；面板最多 2 个并发、间隔 1.5 秒排队，跳过已不是失败状态的节点。
+- 修复文件树移动/重命名的引用检查只看 `outputs.*.url` 与 `textPath`、漏看 `results` 等字段：改为递归扫描节点 data 中形如相对路径的字符串（`canvasHost.vue` 的 `checkNodeResources`）。
+
+改动的上游文件：`apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue`、`canvas/index.vue`、`canvas/canvasHost.vue`、`packages/nodeShared/src/useNodeGeneration.ts`。
+
+冲突时保留：`deleteNodes` 事件、失败筛选与重试队列、`retryGeneration` 节点函数、`checkNodeResources` 递归扫描。
+
+## 全画布图片预览与多图展开置顶（2026-11-06）
+
+- 双击图片生成节点、图片节点或结果卡，预览列表为当前画布全部图片（各节点 `results` 与 IMAGE 输出，按路径去重），按生成时间从新到旧，同批结果按顺序相邻；起始为被双击的那张，循环翻页。
+- 生成、上传、替换时给媒体值写 `createdAt`（`NodeMediaValue` 新增可选字段）；老数据用文件 `mtimeMs` 兜底（按目录 list 并缓存），仍无时间的排最后按画布位置排序。
+- 只读取当前张并预取相邻一张，其余释放 blob URL。预览标题显示「节点名 · 生成时间」，工具栏新增「定位到节点」（选中并居中）。
+- 实现在 `nodeShared/useCanvasImages.ts`，直接用 `useVueFlow()` 读取节点，没有新增宿主接口。
+- 多图结果展开被相邻节点遮挡：展开面板溢出节点外，而「N 张」按钮 `.stop` 不会选中节点，层级未提升。画布样式新增 `.vue-flow__node:has(.mediaResults) { z-index: 2000 }`，只在展开期间生效，不写入画布 zIndex。
+
+改动的上游文件：`packages/nodeScaffold/src/{values,workspaceFiles}.ts`、`packages/nodeShared/src/components/{mediaPreview,mediaHistory}.vue`、`packages/nodes/{imageGenerationNode,imageNode,videoGenerationNode,videoNode}/src/index.vue`、`apps/web/src/pages/workspace/panels/canvas/index.vue`。
+
+冲突时保留：`createdAt` 写入、`useCanvasImages` 调用、`mediaPreview` 的 `nodeLabel/createdAt/nodeId` 与 `locate`、`:has(.mediaResults)` 置顶规则。
+
+## 画布背景扩展（2026-11-06）
+
+- 图案在原有点阵、网格、空白之外新增：细点、十字、工程纸（主次网格）、等距、斜线、蜂巢、星点、纸纹（SVG `feTurbulence`），共 11 种。改用自绘组件 `canvas/components/canvasBackground.vue`（每层一个 SVG pattern，随平移缩放对齐），不再使用 `@vue-flow/background`。
+- 底色预设：浅色、深色各 8 种（含"默认"），另可自定义取色；浅色和深色分别保存，图案颜色按底色相对亮度自动取深浅。
+- 组合主题 12 个：默认、极简、蓝图、黑板、牛皮纸、夜空、工程纸、方格本、蜂巢、等距、宣纸、深海。
+- 参数：间距 16–160、浓度 10–100、大小 50–300%，四周暗角开关；滑块松开后才保存。
+- 全局设置，新增 `generalSettings` 字段 `canvasBackgroundLight`、`canvasBackgroundDark`、`canvasBackgroundGap`(48)、`canvasBackgroundOpacity`(40)、`canvasBackgroundSize`(100)、`canvasBackgroundVignette`(false)，`canvasBackgroundMode` 扩展取值；非法值回落默认。默认值与原观感一致（暖灰底、48 间距、1.15px 点、40% 透明）。
+- 设置界面：「画布外观」弹层中原"画布背景"分段改为 `canvasBackgroundPicker.vue`（组合主题、图案缩略图网格、底色色块、滑块、恢复默认）。
+
+改动的上游文件：`apps/web/src/pages/workspace/panels/canvas/index.vue`、`apps/web/src/pages/workspace/index.vue`、`apps/web/src/stores/settings.ts`。
+
+冲突时保留：`normalizeCanvasBackground` 展开、`canvasBackgroundVars` 样式变量、`<canvasBackground>` 替换 `<background>`、`--canvasBgLight/Dark` 等变量回退。

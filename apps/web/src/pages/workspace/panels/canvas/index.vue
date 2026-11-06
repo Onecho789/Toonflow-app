@@ -3,7 +3,7 @@
     ref="canvasElement"
     class="canvas"
     :class="{ canvasUnselected: !canvasId, edgesHidden: !showEdges, handMode, temporarySelectionMode: selectionKeyPressed, multiSelectionMode: flow.multiSelectionActive.value, compositingEnabled: generalSettings.canvasCompositingEnabled }"
-    :style="{ '--canvasEdgeColor': generalSettings.canvasEdgeColorMode === 'custom' ? generalSettings.canvasEdgeColor : 'var(--el-color-primary)' }"
+    :style="{ '--canvasEdgeColor': generalSettings.canvasEdgeColorMode === 'custom' ? generalSettings.canvasEdgeColor : 'var(--el-color-primary)', ...canvasBackgroundVars(generalSettings) }"
     @dblclick="openNodeMenu"
     @wheel.capture="zoomCanvas"
     @gesturestart.capture="zoomCanvas"
@@ -62,13 +62,15 @@
           :error="nodeErrors[type]"
           :loading="nodeLoads.has(type) || (nodeListLoading && !nodeTypes[type] && !nodeErrors[type])" />
       </template>
-      <background
-        v-if="canvasId && generalSettings.canvasBackgroundMode !== 'blank'"
-        :variant="generalSettings.canvasBackgroundMode"
-        :gap="48"
-        :size="2.3 / viewport.zoom"
-        :lineWidth="1"
-        :patternColor="generalSettings.canvasBackgroundMode === 'lines' ? 'var(--canvasLineColor)' : 'var(--canvasDotColor)'" />
+      <canvasBackground
+        v-if="canvasId"
+        :pattern="generalSettings.canvasBackgroundMode"
+        :unit="generalSettings.canvasBackgroundGap * viewport.zoom"
+        :scale="generalSettings.canvasBackgroundSize / 100"
+        :opacity="generalSettings.canvasBackgroundOpacity / 100"
+        :x="viewport.x"
+        :y="viewport.y"
+        :vignette="generalSettings.canvasBackgroundVignette" />
       <div v-if="!canvasId" class="canvasOverlay" role="status" @contextmenu.prevent @dragover.prevent @drop.prevent>
         从左上角打开一个画布，就可以开始创作啦
       </div>
@@ -77,7 +79,7 @@
         :availableNodes="availableNodes"
         @create="createEmptyNode" />
       <canvasMenu ref="canvasMenuRef" v-model:canvasId="canvasId" :directory="project?.directory" :initialCanvasId="initialCanvasId" :activateCanvas="activateCanvas" :flushSave="flushCanvases ?? flushCanvasSave">
-        <canvasSidePanel v-if="canvasId" v-model:open="sidePanelOpen" v-model:tab="sidePanelTab" :directory="project?.directory" :nodeOptions="nodeOptions" :disabled="!active || settingsVisible || !project?.directory" @exportSelection="selectionToolbarRef?.exportMedia()">
+        <canvasSidePanel v-if="canvasId" v-model:open="sidePanelOpen" v-model:tab="sidePanelTab" :directory="project?.directory" :nodeOptions="nodeOptions" :disabled="!active || settingsVisible || !project?.directory" @exportSelection="selectionToolbarRef?.exportMedia()" @deleteNodes="deleteSideNodes">
           <template #assets><assetLibrary ref="assetLibraryRef" v-model="assetsVisible" :directory="project?.directory" :insertAsset="insertAsset" /></template>
         </canvasSidePanel>
         <assetLibrary v-else ref="assetLibraryRef" v-model="assetsVisible" :directory="project?.directory" />
@@ -166,7 +168,6 @@ import {
   type NodeTypesObject,
   type XYPosition,
 } from "@vue-flow/core";
-import { Background } from "@vue-flow/background";
 import { useCanvasTools } from "./useCanvasTools";
 import type { CanvasContext } from "@toonflow/tool-canvas/runtime";
 import { loadNodeComponent } from "./loadNodeComponent";
@@ -178,6 +179,8 @@ import { readClipboardFiles, readClipboardText, writeClipboardImage, writeClipbo
 import nodeMenu from "./components/nodeMenu.vue";
 import remoteNode from "./components/remoteNode.vue";
 import canvasMenu from "./components/canvasMenu.vue";
+import canvasBackground from "./components/canvasBackground.vue";
+import { canvasBackgroundVars } from "@/lib/canvasBackground";
 import canvasControls from "./components/canvasControls.vue";
 import canvasEmpty from "./components/canvasEmpty.vue";
 import assetLibrary from "./components/assetLibrary.vue";
@@ -191,6 +194,7 @@ import { validateConnection, type NodeConnectionFeedback, type NodeHandle } from
 import { useNodeEvent } from "@toonflow/nodes-scaffold/nodeEvent";
 import type { NodeDocumentContext, NodeDocumentState } from "@toonflow/nodes-scaffold/nodeDocument";
 import { useNodeToolsContext } from "@toonflow/nodes-scaffold/nodeTools";
+import { copyLabel } from "@toonflow/nodes-scaffold/nodeLabel";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { generalSettings } from "@/stores/settings";
 import { getShortcutBindings, shortcutLabel, shortcutMatches, shortcutPressed } from "@/lib/canvasShortcuts";
@@ -1053,6 +1057,13 @@ async function pasteClipboardNode(position: { x: number; y: number }, command?: 
       }
       const ids = new Map(snapshot.nodes.map(node => [node.id, crypto.randomUUID()]));
       for (const node of snapshot.nodes) remapNodeReferences(node, ids);
+      // ACT: 粘贴到没有同名节点的画布时保留原名，只有重名时才按副本规则编号。
+      const labels = new Set(flow.getNodes.value.map(node => String(node.data?.label ?? "")));
+      for (const node of snapshot.nodes) {
+        const label = node.data?.label;
+        if (typeof label === "string" && label && labels.has(label)) node.data = { ...node.data, label: copyLabel(label, labels) };
+        else if (typeof label === "string") labels.add(label);
+      }
       const roots = snapshot.nodes.filter(node => !node.parentNode);
       const left = Math.min(...roots.map(node => node.position.x));
       const top = Math.min(...roots.map(node => node.position.y));
@@ -1157,6 +1168,15 @@ function updateCanvasGestures(event: MouseEvent | KeyboardEvent) {
   if (!selectionKeyPressed.value && !flow.userSelectionActive.value) flow.userSelectionRect.value = null;
   updateCanvasSelection(event);
   return { inCanvas, editing };
+}
+
+// 画布侧栏删除与 Delete 键共用节点菜单的删除流程，合并为一步撤销。
+function deleteSideNodes(nodes: GraphNode[]) {
+  const menu = nodeMenuRef.value;
+  if (!menu || !props.active || !nodes.some(node => node.deletable !== false)) return;
+  void canvasHistory.batch(() => menu.deleteSelection(nodes)).catch(error => {
+    ElMessage.error(error instanceof Error ? error.message : "节点删除失败");
+  });
 }
 
 function updateCanvasKeys(event: KeyboardEvent) {
@@ -1403,22 +1423,18 @@ const defaultEdgeOptions = markRaw({
 }
 
 .canvas {
-  // 暖灰底色与点阵/网格配色参照 infinite-canvas 的 canvasThemes；点保持固定屏幕尺寸，图层整体 40% 透明。
-  --canvasBgColor: #f4f2ed;
-  --canvasDotColor: rgb(68 64 60 / 28%);
-  --canvasLineColor: rgb(68 64 60 / 12%);
+  // 底色与图案色由 canvasBackgroundVars 按浅色/深色两套输出，默认沿用 infinite-canvas 暖灰配色（见 lib/canvasBackground.ts）。
+  --canvasBgColor: var(--canvasBgLight);
+  --canvasDotColor: var(--canvasDotLight);
+  --canvasLineColor: var(--canvasLineLight);
   width: 100%;
   height: 100%;
   background: var(--canvasBgColor);
 
   html.dark & {
-    --canvasBgColor: #181715;
-    --canvasDotColor: rgb(245 245 244 / 24%);
-    --canvasLineColor: rgb(245 245 244 / 10%);
-  }
-
-  :deep(.vue-flow__background) {
-    opacity: 0.4;
+    --canvasBgColor: var(--canvasBgDark);
+    --canvasDotColor: var(--canvasDotDark);
+    --canvasLineColor: var(--canvasLineDark);
   }
 
   &.canvasUnselected :deep(.vue-flow__viewport) {
@@ -1463,6 +1479,11 @@ const defaultEdgeOptions = markRaw({
 
   &:has(.selectionConnection) :deep(.vue-flow__node:not(.selected) .nodeHandle.target .handleIcon) {
     opacity: 1;
+  }
+
+  // 多图结果展开期间置顶，高于选中节点的 +1000；只是运行时样式，收起后恢复，不写入画布 zIndex。
+  :deep(.vue-flow__node:has(.mediaResults)) {
+    z-index: 2000 !important;
   }
 
   :deep(.vue-flow__node.mentionHighlight) {

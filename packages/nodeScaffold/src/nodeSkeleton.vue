@@ -18,6 +18,7 @@
           <el-dropdown-item v-if="assetOutputs.length && saveNodeToAssets" command="saveAsset" :icon="IconFolderPlus">保存到素材库</el-dropdown-item>
           <el-dropdown-item :divided="!!(assetOutputs.length && saveNodeToAssets)" command="copy" :icon="IconCopy">复制节点</el-dropdown-item>
           <el-dropdown-item command="duplicate" :icon="IconCopyPlus">创建副本</el-dropdown-item>
+          <slot name="menuItems" />
           <el-dropdown-item command="delete" :icon="IconTrash">删除节点</el-dropdown-item>
           <el-dropdown-item divided command="clipboard" :icon="IconCopy" :disabled="!copyNodeToClipboard || copyingToClipboard">
             复制到剪贴板
@@ -223,6 +224,7 @@ import {
 import { ElCard, ElButton, ElDivider, ElDropdown, ElDropdownMenu, ElDropdownItem, ElMessage, ElTooltip } from "element-plus";
 import type { DropdownInstance } from "element-plus";
 import { validateConnection } from "./connection";
+import { copyLabel } from "./nodeLabel";
 import { useNodeEvent } from "./nodeEvent";
 import type { NodeConnectionFeedback, NodeData, NodeHandle } from "./connection";
 import type { NodeOutput } from "./values";
@@ -606,7 +608,8 @@ async function handleCommand(command: string) {
       zIndex: node.zIndex,
       type: node.type,
       position: copyPosition,
-      data: { ...data, label: `${props.label} - 副本` },
+      // 副本沿用 data 中的 labelLocked，未手动命名的副本生成时仍会按提示词自动命名。
+      data: { ...data, label: copyLabel(props.label, new Set(getNodes.value.map(item => String(item.data?.label ?? "")))) },
       parentNode: node.parentNode,
     });
     await nextTick();
@@ -626,7 +629,8 @@ async function editLabel() {
 function saveLabel() {
   if (props.readOnly || !editingLabel.value) return;
   const label = labelDraft.value.trim();
-  if (label) node.data.label = label;
+  // 手动改过名后，生成时不再按提示词自动命名。
+  if (label && label !== props.label) Object.assign(node.data, { label, labelLocked: true });
   editingLabel.value = false;
 }
 

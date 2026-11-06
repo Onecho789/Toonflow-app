@@ -94,7 +94,8 @@ watch(visible, async (open, _previous, onCleanup) => {
       const mimeType = mimeTypes[entry.name.split(".").at(-1)?.toLowerCase() ?? ""];
       if (entry.type === "file" && mimeType?.startsWith(`${props.mediaType}/`)) {
         const url = entry.path.replaceAll("\\", "/");
-        results.set(url, { url, mimeType });
+        // 历史文件以修改时间作为生成时间，设为当前后放大预览仍能按时间排序。
+        results.set(url, entry.mtimeMs ? { url, mimeType, createdAt: entry.mtimeMs } : { url, mimeType });
       }
     }
     // ACT: 副本使用新 ID，但当前结果仍可能引用原节点文件；只补当前结果，不继承原目录的全部历史。

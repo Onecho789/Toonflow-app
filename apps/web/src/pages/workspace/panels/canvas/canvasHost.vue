@@ -234,13 +234,22 @@ function checkNodeResources(path: string) {
   const requested = path.toLowerCase();
   for (const panel of instances.values()) {
     for (const node of panel.getRetainedNodes()) {
-      const data = node.data as { textPath?: unknown; outputs?: Record<string, { value?: unknown } | undefined> } | undefined;
-      const references: unknown[] = [`assets/${node.id}`, data?.textPath];
-      for (const output of Object.values(data?.outputs ?? {})) {
-        if (output?.value && typeof output.value === "object" && "url" in output.value) references.push(output.value.url);
+      // 与 getCanvasAssetDirectories 一致，递归扫描 data 中全部字符串，覆盖 outputs、results、textPath、生成任务等字段。
+      const references: string[] = [`assets/${node.id}`];
+      const pending: unknown[] = [node.data];
+      const visited = new WeakSet<object>();
+      while (pending.length) {
+        const value = pending.pop();
+        if (typeof value === "string") references.push(value);
+        else if (value && typeof value === "object" && !visited.has(value)) {
+          visited.add(value);
+          for (const item of Object.values(value)) pending.push(item);
+        }
       }
       for (const reference of references) {
-        if (typeof reference !== "string" || !reference || /^(?:[a-z][a-z\d+.-]*:|[\\/])/i.test(reference)) continue;
+        // ACT: 只把像工作区相对路径的字符串（含分隔符或扩展名、无换行）当作资源引用，避免名称、提示词、模型名误拦截。
+        if (!reference || reference.length > 1024 || /[\r\n]/.test(reference) || !/[\\/]|\.[a-z\d]{1,8}$/i.test(reference)) continue;
+        if (/^(?:[a-z][a-z\d+.-]*:|[\\/])/i.test(reference)) continue;
         const resource = reference.replaceAll("\\", "/").split("/").filter(part => part && part !== ".").join("/").toLowerCase();
         // ACT: 包含撤销历史，并保守合并大小写；节点资源仍被运行时持有时拒绝移动，避免后台生成写回旧路径。
         if (containsPath(requested, resource) || containsPath(resource, requested)) throw new Error(`“${path}”仍被画布“${panel.canvasId}”中的节点使用，无法重命名或移动`);

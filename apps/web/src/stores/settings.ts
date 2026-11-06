@@ -4,6 +4,7 @@ import { computed, nextTick, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
 import { invalidateNodeModels } from "@toonflow/nodes-scaffold/nodeAi";
 import { canvasShortcutFields, defaultCanvasShortcuts, getShortcutBindings, isShortcutAllowed, normalizeShortcut, type CanvasShortcuts } from "@/lib/canvasShortcuts";
+import { normalizeCanvasBackground } from "@/lib/canvasBackground";
 import { normalizeNodeMenu, type StoredNodeMenuItem } from "@toonflow/server/nodeMenu";
 import type { ThinkingLevel } from "@toonflow/server/modelReasoning";
 import "element-plus/es/components/message/style/css";
@@ -66,7 +67,7 @@ export const generalSettings = computed(() => {
     nodeMenu: normalizeNodeMenu(general.nodeMenu),
     agentNotificationsEnabled: general.agentNotificationsEnabled !== false,
     canvasCompositingEnabled: general.canvasCompositingEnabled === true,
-    canvasBackgroundMode: general.canvasBackgroundMode === "lines" ? "lines" as const : general.canvasBackgroundMode === "blank" ? "blank" as const : "dots" as const,
+    ...normalizeCanvasBackground(general),
     canvasEdgeAnimationEnabled: general.canvasEdgeAnimationEnabled !== false,
     canvasEdgeColorMode: general.canvasEdgeColorMode === "none" || general.canvasEdgeColorMode === "custom" ? general.canvasEdgeColorMode : "theme",
     canvasEdgeColor: typeof general.canvasEdgeColor === "string" && /^#[\da-f]{6}$/i.test(general.canvasEdgeColor) ? general.canvasEdgeColor : defaultUiSettings.primaryColor,

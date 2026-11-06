@@ -11,6 +11,9 @@
     :stackLayers="editor?.mode || resultsExpanded ? 0 : Math.max(0, resultCount - 1)"
     :style="{ width: (previewUrl || inpaintGuideUrl) && imageWidth ? `${imageWidth + 18}px` : undefined }">
     <template v-if="editor?.mode" #top><div ref="paintToolbar" /></template>
+    <template v-if="data.prompt.trim()" #menuItems>
+      <el-dropdown-item :icon="IconPencil" @click="renameByPrompt(node.data, data.prompt)">按提示词重命名</el-dropdown-item>
+    </template>
     <template #topActions>
       <span class="toolbarGroup" :class="{ iconOnly: !showLabels }">
         <el-button v-if="visible('panorama')" class="panoramaButton" :icon="IconPanoramaHorizontal" :disabled="generating || deleting || uploading || editor?.busy || lighting?.generating || multiAngle?.generating || gridSplit?.splitting || panorama?.busy || !previewUrl" text title="全景图" aria-label="全景图" @click.stop="panorama?.open($event)">全景图<icon-chevron-down class="menuChevron" :size="14" /></el-button>
@@ -161,20 +164,22 @@
   <imagePanorama ref="panorama" :src="previewUrl" :source="outputFile" :disabled="generating || deleting || uploading || editor?.busy || lighting?.generating || multiAngle?.generating || gridSplit?.splitting" @open="openPanorama" />
   <imageGridSplit ref="gridSplit" :src="previewUrl" :disabled="generating || deleting || uploading || lighting?.generating || multiAngle?.generating || panorama?.busy" :active="node.selected" />
   <el-image-viewer v-if="inpaintPreviewVisible && inpaintGuideUrl" :urlList="[inpaintGuideUrl]" teleported @close="inpaintPreviewVisible = false" />
-  <mediaPreview v-model="previewVisible" v-model:index="previewIndex" :items="previewItems" />
+  <mediaPreview v-model="canvasImages.visible.value" v-model:index="canvasImages.index.value" :items="canvasImages.items.value" @locate="canvasImages.locate" />
 </template>
 
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onScopeDispose, ref, shallowRef, watch } from "vue";
-import { ElButton, ElCard, ElSelect, ElOption, ElOptionGroup, ElLoading, ElImageViewer } from "element-plus";
+import { ElButton, ElCard, ElSelect, ElOption, ElOptionGroup, ElLoading, ElImageViewer, ElDropdownItem } from "element-plus";
 import { IconCheck, IconPhotoAi, IconSparkles, IconArrowUp, IconPlayerStop, IconTransfer, IconLayoutGrid, IconBrush, IconPencil, IconSun, IconCameraRotate, IconPanoramaHorizontal, IconChevronDown, IconChevronRight, IconArrowsSplit2, IconFileZip, IconLoader2 } from "@tabler/icons-vue";
 import { nodeSkeleton, nodeTools, useNode, z, type NodeMediaModel, type NodeImageRequest, type NodeImageResult, type NodeMediaValue, type NodeHandle } from "@toonflow/nodes-scaffold/runtime";
 import { groupNodeModels } from "@toonflow/node-shared/groupNodeModels";
 import mediaPreview from "@toonflow/node-shared/mediaPreview";
+import { useCanvasImages } from "@toonflow/node-shared/useCanvasImages";
 import copyPrompt from "@toonflow/node-shared/copyPrompt";
 import promptLibrary from "@toonflow/node-shared/promptLibrary";
 import { promptModelOf } from "@toonflow/node-shared/cloudPrompts";
 import { showNodeError } from "@toonflow/node-shared/showNodeError";
+import { applyPromptLabel, renameByPrompt } from "@toonflow/node-shared/promptLabel";
 import { useNodeGeneration } from "@toonflow/node-shared/useNodeGeneration";
 import { useResultNodes } from "@toonflow/node-shared/useResultNodes";
 import generationStatus from "@toonflow/node-shared/generationState";
@@ -250,8 +255,6 @@ const { visible, showLabels } = useImageToolbar();
 const toolIds: ImageToolId[] = ["panorama", "inpaint", "lighting", "multiAngle", "gridSplit", "splitNodes", "copyPrompt", "history", "replace", "mark"];
 let disposed = false;
 const deleting = ref(false);
-const previewVisible = ref(false);
-const previewIndex = ref(0);
 const resultsExpanded = ref(false);
 const inpaintPreviewVisible = ref(false);
 const imageWidth = ref(0);
@@ -351,38 +354,8 @@ const previewUrl = files.useFileUrl(
   outputFile,
   (error) => showNodeError(error, "图片读取失败")
 );
-// 批量结果预览时逐张读取地址，可在大图里左右切换；单张直接用当前预览地址。
-const batchUrls = ref<string[]>([]);
-watch(() => previewVisible.value && resultCount.value > 1 ? data.value.results!.map(item => item.url).join("\n") : "", async (key, _previous, onCleanup) => {
-  batchUrls.value = [];
-  if (!key) return;
-  let cancelled = false;
-  const owned: string[] = [];
-  const shared: { release(): void }[] = [];
-  onCleanup(() => {
-    cancelled = true;
-    shared.forEach(item => item.release());
-    owned.forEach(url => URL.revokeObjectURL(url));
-  });
-  const workspace = files.getWorkspaceFiles();
-  const urls = await Promise.all(data.value.results!.map(async item => {
-    try {
-      const handle = workspace.acquireUrl?.(item.url, item.mimeType);
-      if (handle) { shared.push(handle); return await handle.url; }
-      const url = URL.createObjectURL(new Blob([await workspace.read(item.url)], { type: item.mimeType }));
-      owned.push(url);
-      return url;
-    } catch { return ""; }
-  }));
-  if (!cancelled) batchUrls.value = urls;
-});
-const previewItems = computed(() => {
-  const name = (url: string) => url.split(/[\\/]/).at(-1);
-  if (resultCount.value > 1 && batchUrls.value.length) {
-    return data.value.results!.flatMap((item, index) => batchUrls.value[index] ? [{ url: batchUrls.value[index]!, type: "image" as const, name: name(item.url), prompt: data.value.prompt }] : []);
-  }
-  return previewUrl.value ? [{ url: previewUrl.value, type: "image" as const, name: outputFile.value && name(outputFile.value.url), prompt: data.value.prompt }] : [];
-});
+// 放大预览翻看当前画布全部图片，按生成时间从新到旧；只读当前张和相邻一张。
+const canvasImages = useCanvasImages();
 
 onMounted(() => {
   window.addEventListener("toonflow:plugin-installed", refreshProviderModels);
@@ -429,7 +402,7 @@ async function replaceOutput(event: Event) {
       return;
     }
     // ACT: 保留历史输出文件，避免破坏撤销记录和复制节点的引用。
-    outputs.value.image = { dataType: "IMAGE", value: { url, mimeType: file.type } };
+    outputs.value.image = { dataType: "IMAGE", value: { url, mimeType: file.type, createdAt: Date.now() } };
   } catch (error) {
     showNodeError(error, "图片替换失败");
   } finally {
@@ -487,6 +460,7 @@ async function startGeneration() {
   if (references.some(item => item.value === undefined)) throw new Error("引用节点暂无内容，请先补充引用内容");
   if (!input) throw new Error("请先选择图片模型");
   const inpaintData = data.value.inpaint;
+  applyPromptLabel(node.data, (inpaintData ? data.value.inpaintPrompt : "") || data.value.prompt, "图片生成");
   return inpaintData ? runInpaint(input, inpaintData) : runRequest(input);
 }
 
@@ -526,7 +500,9 @@ function launch(task: (signal: AbortSignal, workspace: ReturnType<typeof files.g
   recoverable = canRecover;
   generation = generationState.run(() => task(controller.signal, workspace).then((results) => {
     controller.signal.throwIfAborted();
-    const items = results.map(result => ({ url: result.path, mimeType: result.mimeType }));
+    // 同一批结果共用完成时间，预览排序时再按结果顺序排列。
+    const createdAt = Date.now();
+    const items = results.map(result => ({ url: result.path, mimeType: result.mimeType, createdAt }));
     if (!items.length) throw new Error("供应商未返回图片");
     data.value.results = items;
     outputs.value.image = { dataType: "IMAGE", value: items[0]! };
@@ -574,15 +550,13 @@ function downloadSingleResult(item: NodeMediaValue, index: number) {
 }
 
 function previewResult(index: number) {
-  if (!data.value.results?.[index]) return;
-  previewIndex.value = index;
-  previewVisible.value = true;
+  const item = data.value.results?.[index];
+  if (item) void canvasImages.open(id, item.url);
 }
 
 function openPreview() {
   if (!previewUrl.value || editor.value?.mode) return;
-  previewIndex.value = Math.max(0, resultCount.value > 1 ? data.value.results!.findIndex(item => item.url === outputFile.value?.url) : 0);
-  previewVisible.value = true;
+  void canvasImages.open(id, outputFile.value?.url);
 }
 
 nodeEvent.on("save", (reason) => {

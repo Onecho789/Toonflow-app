@@ -6,6 +6,7 @@
   "exports": {
     "./promptInput": "./src/components/promptInput.vue",
     "./promptText": "./src/promptText.ts",
+    "./promptLabel": "./src/promptLabel.ts",
     "./referenceItem": "./src/components/referenceItem.vue",
     "./mediaHistory": "./src/components/mediaHistory.vue",
     "./mediaPrice": "./src/components/mediaPrice.vue",
@@ -20,6 +21,7 @@
     "./useNodeReferences": "./src/useNodeReferences.ts",
     "./useNodeGeneration": "./src/useNodeGeneration.ts",
     "./useResultNodes": "./src/useResultNodes.ts",
+    "./useCanvasImages": "./src/useCanvasImages.ts",
     "./generationState": "./src/components/generationState.vue",
     "./mediaResults": "./src/components/mediaResults.vue",
     "./downloadResults": "./src/downloadResults.ts",

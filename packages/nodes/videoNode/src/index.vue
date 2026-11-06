@@ -119,7 +119,7 @@ nodeTools.register({
       const content = await files.getWorkspaceFiles().read(path);
       signal?.throwIfAborted();
       if (!content.byteLength || content.byteLength > 100 * 1024 * 1024) throw new Error("视频不能为空且不能超过 100 MB");
-      outputs.value.video = { dataType: "VIDEO", value: { url: path, mimeType } };
+      outputs.value.video = { dataType: "VIDEO", value: { url: path, mimeType, createdAt: Date.now() } };
       return outputs.value.video;
     } finally {
       uploading.value = false;
@@ -146,7 +146,7 @@ async function uploadVideo(event: Event) {
   try {
     const url = await files.uploadFile(file);
     // ACT: 复制节点可能仍引用旧视频，替换输出不删除共享文件。
-    outputs.value.video = { dataType: "VIDEO", value: { url, mimeType: file.type } };
+    outputs.value.video = { dataType: "VIDEO", value: { url, mimeType: file.type, createdAt: Date.now() } };
   } catch (error) {
     showError(error, "视频替换失败");
   } finally {
