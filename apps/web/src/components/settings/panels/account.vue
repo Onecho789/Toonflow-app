@@ -5,7 +5,7 @@
       <div v-if="cloudAccount" class="accountRow">
         <div class="accountInfo">
           <span class="email" dir="ltr">{{ cloudAccount.email }}</span>
-          <el-tag v-if="cloudAccount.role >= 10" size="small">管理员</el-tag>
+          <el-tag v-if="cloudAccount.role >= 100" size="small">管理员</el-tag>
         </div>
         <el-button :loading="cloudAccountLoading" @click="logoutCloudAccount">退出登录</el-button>
       </div>

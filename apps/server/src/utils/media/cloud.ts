@@ -1,10 +1,8 @@
 import type { MediaGenerationRequest } from "@toonflow/tools-scaffold/runtime";
-import { findCloudModel, gatewayError, gatewayFetch, type CloudModel } from "@/utils/cloud/models";
+import { durationAllows, findCloudModel, foldRate, gatewayError, gatewayFetch, resolutionChoices, sizeRates, type CloudModel, type ImageMeta, type VideoMeta } from "@/utils/cloud/models";
 
 type MediaInput = { data: string; mimeType: string };
 export type CloudAsset = { type: "url"; url: string } | { type: "base64"; data: string } | { type: "binary"; data: Uint8Array; mimeType: string };
-type ImageMeta = { sizePrices?: Record<string, number>; gifFramePrice?: number };
-type VideoMeta = { resolutionPrices?: Record<string, number>; audioPrice?: number };
 // 图片张数不在工具 schema 里，由路由单独校验后随请求传入；缺省为 1 张。
 export type ImageCount = { n?: number };
 
@@ -32,25 +30,56 @@ async function postJson<T>(path: string, body: unknown, signal: AbortSignal) {
   }
 }
 
-// 与云端 pixelsTier 一致：自定义像素（other.pixels）按面积归入能容纳它的最低档位计费。
-function pixelsTier(pixels: unknown) {
-  const [width = 0, height = 0] = typeof pixels === "string" ? pixels.split("x").map(Number) : [];
+const text = (value: unknown) => typeof value === "string" ? value.trim() : "";
+const highest = (rates: number[]) => rates.length ? Math.max(...rates) : 1;
+
+// 与云端 pixelsTier 一致：“宽x高”像素（x 大小写均可）按面积归入能容纳它的最低档位；不是像素格式返回 undefined。
+function pixelsTier(pixels: string) {
+  const [, width = 0, height = 0] = /^(\d+)x(\d+)$/i.exec(pixels)?.map(Number) ?? [];
   if (!width || !height) return;
   return width * height <= 2016 * 864 ? "1K" : width * height <= 2048 * 2048 ? "2K" : "4K";
 }
 
-// 与云端网关的计费公式一致，金额单位 0.0001 元；实际以云端扣费为准。
+// 与云端 planImage 一致：总倍率 = 档位 × 画质 × GIF 帧。未传尺寸时按 defaultSize，再按倍率最高的档位；
+// 配置了画质倍率时未传画质按 defaultQuality，再按倍率最高的一档。云端会拒绝的参数按 1 倍估算。
+function imageMultiplier(meta: ImageMeta, request: MediaGenerationRequest) {
+  const size = text(request.size);
+  // 后台把像素直接声明为档位时按档位计价，其余像素按面积归档。
+  const declared = [...(meta.imageSizes ?? []), ...Object.keys(meta.sizePrices ?? {})].some(key => key.trim().toLowerCase() === size.toLowerCase());
+  const tier = pixelsTier(text(request.other?.pixels)) ?? (declared ? undefined : pixelsTier(size)) ?? (size || text(meta.defaultSize));
+  const sizeRate = tier ? foldRate(meta.sizePrices, tier) ?? 1 : highest(sizeRates(meta));
+  const qualityPrices = meta.qualityPrices ?? {};
+  const quality = text(request.other?.quality) || text(meta.defaultQuality);
+  const qualityRate = Object.keys(qualityPrices).length ? foldRate(qualityPrices, quality) ?? highest(Object.values(qualityPrices)) : 1;
+  // GIF 按 帧数（缺省 9）× 每帧倍率 计，与云端 gifFrames 一致。
+  const frames = text(request.other?.output_format).toLowerCase() === "gif" ? (Number(request.other?.frame_count) || 9) * (meta.gifFramePrice ?? 1) : 1;
+  return sizeRate * qualityRate * frames;
+}
+
+// 与云端 fillResolution 一致：未传分辨率时取该时长可用的 defaultResolution（配了倍率时须在可选值里），否则在该时长允许的分辨率里取倍率最高的。
+function resolutionRate(meta: VideoMeta, request: MediaGenerationRequest) {
+  const resolution = text(request.resolution);
+  if (resolution) return foldRate(meta.resolutionPrices, resolution) ?? 1;
+  const priced = Object.keys(meta.resolutionPrices ?? {}).length > 0;
+  const choices = resolutionChoices(meta);
+  const fallback = text(meta.defaultResolution);
+  const duration = request.duration ?? 0;
+  if (fallback && (!priced || choices.some(item => item.toLowerCase() === fallback.toLowerCase())) && durationAllows(meta, duration, fallback)) return foldRate(meta.resolutionPrices, fallback) ?? 1;
+  return highest(choices.filter(item => durationAllows(meta, duration, item)).map(item => foldRate(meta.resolutionPrices, item) ?? 1));
+}
+
+// 与云端 checkVideoMeta 一致：audio 为 false 时无声、true 时有声；其余情况未传 generate_audio 时按 audioDefault，未配置但有 audioPrice 时按有声。
+function videoAudio(meta: VideoMeta, request: MediaGenerationRequest) {
+  if (meta.audio === false || meta.audio === true) return meta.audio;
+  return request.generateAudio ?? meta.audioDefault ?? meta.audioPrice != null;
+}
+
+// 与云端网关的计费公式一致（未计分组倍率），金额单位 0.0001 元；实际以云端扣费为准。
 function estimateCost(model: CloudModel, request: MediaGenerationRequest & ImageCount) {
-  if (model.type === "image") {
-    const meta = model.meta as ImageMeta;
-    const tier = pixelsTier(request.other?.pixels) ?? request.size ?? "";
-    // GIF 按 帧数（缺省 9）× 每帧倍率 计，与云端 gifFrames 一致。
-    const frames = String(request.other?.output_format).toLowerCase() === "gif" ? (Number(request.other?.frame_count) || 9) * (meta.gifFramePrice ?? 1) : 1;
-    return Math.ceil(model.pricing.unit * (meta.sizePrices?.[tier] ?? 1) * frames) * (request.n ?? 1);
-  }
+  if (model.type === "image") return Math.ceil(model.pricing.unit * (request.n ?? 1) * imageMultiplier(model.meta as ImageMeta, request));
   const meta = model.meta as VideoMeta;
-  const audio = request.generateAudio ? meta.audioPrice ?? 1 : 1;
-  return Math.ceil(model.pricing.unit * (request.duration ?? 0) * (meta.resolutionPrices?.[request.resolution ?? ""] ?? 1) * audio);
+  const audio = videoAudio(meta, request) ? meta.audioPrice ?? 1 : 1;
+  return Math.ceil(model.pricing.unit * (request.duration ?? 0) * resolutionRate(meta, request) * audio);
 }
 
 export async function getPrice(mediaType: "image" | "video" | "audio", request: MediaGenerationRequest & ImageCount) {

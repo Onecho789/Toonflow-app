@@ -77,14 +77,56 @@ export async function requestGroup(path: string, method = "GET", body?: unknown)
 
 const yuan = (value: number) => `¥${(value / 10000).toFixed(4).replace(/(\.\d\d\d*?)0+$/, "$1")}`;
 
-// 设置页展示用的价格说明，与云端计费公式一致：图片按张、视频按秒，档位倍率不同时显示起步价。
+// 模型 meta 中与计费相关的字段，契约见云端 docs/apiContract.md“模型 meta”。
+export type ImageMeta = {
+  imageSizes?: string[]; sizePrices?: Record<string, number>; defaultSize?: string;
+  qualityPrices?: Record<string, number>; defaultQuality?: string; gifFramePrice?: number;
+};
+export type VideoMeta = {
+  durationResolutionMap?: { duration?: number[]; resolution?: string[] }[]; resolutionPrices?: Record<string, number>; defaultResolution?: string;
+  // false 不支持有声，true 固定有声，其余（如 "optional"、未配置）由调用方选。
+  audio?: unknown; audioPrice?: number; audioDefault?: boolean;
+};
+
+const sameText = (left: string, right: string) => left.trim().toLowerCase() === right.trim().toLowerCase();
+
+// 与云端 foldPrice 一致：键去空格后大小写不敏感匹配，仅大小写不同的键并存时取最高倍率；查不到返回 undefined。
+export function foldRate(prices: Record<string, number> | undefined, value: string) {
+  const rates = Object.entries(prices ?? {}).filter(([key]) => sameText(key, value)).map(([, rate]) => rate);
+  return rates.length ? Math.max(...rates) : undefined;
+}
+
+// 可选档位的倍率：配置了 sizePrices 时，声明了 imageSizes 只在其中选（未定价按 1 倍），否则为定价表的倍率；未定价统一 1 倍。
+export function sizeRates(meta: ImageMeta) {
+  if (!Object.keys(meta.sizePrices ?? {}).length) return [1];
+  return meta.imageSizes?.length ? meta.imageSizes.map(size => foldRate(meta.sizePrices, size) ?? 1) : Object.values(meta.sizePrices!);
+}
+
+// 与云端 resolutionChoices 一致：resolutionPrices 的键与 durationResolutionMap 里的分辨率都可选。
+export const resolutionChoices = (meta: VideoMeta) => [...Object.keys(meta.resolutionPrices ?? {}), ...(meta.durationResolutionMap ?? []).flatMap(rule => rule.resolution ?? [])];
+
+// 与云端 durationAllows 一致：该时长下 durationResolutionMap 是否允许这个分辨率，未配置时不限制。
+export const durationAllows = (meta: VideoMeta, duration: number, resolution: string) =>
+  !meta.durationResolutionMap?.length || meta.durationResolutionMap.some(rule => rule.duration?.includes(duration) && rule.resolution?.some(item => sameText(item, resolution)));
+
+// 每个计费因子可取的倍率，用于起步价：图片为 档位 × 画质，视频为 分辨率 × 有声；GIF 帧数不计入起步价。
+function priceFactors(model: CloudModel) {
+  if (model.type === "image") {
+    const meta = model.meta as ImageMeta;
+    return [sizeRates(meta), Object.values(meta.qualityPrices ?? {})];
+  }
+  const meta = model.meta as VideoMeta;
+  const audio = meta.audioPrice ?? 1;
+  return [resolutionChoices(meta).map(value => foldRate(meta.resolutionPrices, value) ?? 1), meta.audio === true ? [audio] : meta.audio === false ? [1] : [1, audio]];
+}
+
+// 设置页展示用的价格说明，与云端计费公式一致：图片按张、视频按秒，倍率可选时显示起步价。
 export function cloudPriceText(model: CloudModel) {
   const { input, output, unit } = model.pricing;
   if (model.type === "text") return `输入 ${yuan(input)} · 输出 ${yuan(output)} / 百万 token`;
-  const meta = model.meta as { sizePrices?: Record<string, number>; resolutionPrices?: Record<string, number> };
-  const rates = Object.values((model.type === "image" ? meta.sizePrices : meta.resolutionPrices) ?? {}).filter(rate => typeof rate === "number" && rate > 0);
-  const lowest = rates.length ? Math.min(...rates) : 1;
-  const varies = rates.some(rate => rate !== lowest);
+  const factors = priceFactors(model).map(rates => rates.filter(rate => typeof rate === "number" && rate > 0)).filter(rates => rates.length);
+  const lowest = factors.reduce((total, rates) => total * Math.min(...rates), 1);
+  const varies = factors.some(rates => rates.some(rate => rate !== rates[0]));
   return `${yuan(Math.ceil(unit * lowest))} / ${model.type === "image" ? "张" : "秒"}${varies ? " 起" : ""}`;
 }
 

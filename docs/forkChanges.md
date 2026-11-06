@@ -1141,3 +1141,15 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 改动的上游文件：`apps/web/src/pages/workspace/panels/canvas/index.vue`、`packages/nodeScaffold/src/nodeSkeleton.vue`、`packages/nodes/imageNode/src/components/imagePanorama.vue`。
 
 冲突时保留：背景组件内读视口（宿主模板不得引用 `viewport`）、两处下拉的 `:persistent="false"`。
+
+## 麦麦云估价对齐云端新计价规则（2026-11-07）
+
+- `apps/server/src/utils/media/cloud.ts` 的 `estimateCost` 按云端 `planImage`、`fillResolution`、`checkVideoMeta` 重写，原则同云端：允许多估不允许少估，未计分组倍率。
+  - 图片：总倍率 = 档位 × 画质 × GIF 帧。档位去空格后与 `imageSizes`/`sizePrices` 大小写不敏感匹配；`size` 为“宽x高”时按面积归档（后台把像素声明为档位时按档位）；未传尺寸取 `defaultSize`，再取倍率最高的档位（声明了 `imageSizes` 时只在其中选，未定价按 1 倍）。配置 `qualityPrices` 后 `quality` 大小写不敏感匹配，未传取 `defaultQuality`，再取最高倍率。
+  - 视频：`resolution` 大小写不敏感匹配 `resolutionPrices`；未传时取该时长可用的 `defaultResolution`（配了倍率时须在可选值里），否则在该时长允许的分辨率里取倍率最高的。`audio` 为 false/true 时按无声/有声；其余情况未传 `generate_audio` 时按 `audioDefault`，未配置但有 `audioPrice` 时按有声。
+- `apps/server/src/utils/cloud/models.ts`：新增 `ImageMeta`、`VideoMeta` 类型与 `foldRate`、`sizeRates`、`resolutionChoices`、`durationAllows`；`cloudPriceText` 起步价改为各因子（档位 × 画质、分辨率 × 有声）最低倍率之积，任一因子可变时显示“起”。
+- `apps/web/src/components/settings/panels/account.vue`：云端角色只剩用户(1)和超管(100)，“管理员”标签改为 `role >= 100`。
+
+改动的上游文件：`apps/server/src/utils/cloud/models.ts`（`cloudPriceText` 与计费 meta 工具）；`utils/media/cloud.ts`、`account.vue` 为本 fork 自有文件。
+
+冲突时保留：`estimateCost` 及其辅助函数、`cloudPriceText` 的多因子起步价、`role >= 100`。
