@@ -167,7 +167,9 @@ function previewStyle(color: string) {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    // 选中色块的外圈超出色块 4px，留出内边距避免被弹层滚动容器裁掉。
+    padding: 4px;
 
     .colorSwatch {
       width: 22px;

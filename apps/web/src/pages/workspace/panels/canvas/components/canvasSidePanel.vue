@@ -4,7 +4,7 @@
       画布元素 {{ items.length }}
     </el-button>
   </el-card>
-  <el-card v-show="open" class="canvasSidePanel" shadow="never" :bodyStyle="{ padding: '0' }" :style="{ width: `${width}px` }" role="region" aria-label="画布侧栏" @dblclick.stop>
+  <el-card v-show="open" class="canvasSidePanel" shadow="never" :bodyStyle="{ padding: '0' }" :style="{ width: `var(--dragWidth, ${width}px)` }" role="region" aria-label="画布侧栏" @dblclick.stop>
     <div class="panelHeader">
       <el-tabs v-model="tab" class="panelTabs">
         <el-tab-pane label="画布" name="nodes" />
@@ -100,7 +100,7 @@
                   </span>
                 </button>
                 <el-button class="iconButton" text :icon="IconCopy" aria-label="复制提示词" title="复制" @click="copyPrompt(item.prompt)" />
-                <el-button class="iconButton" text :icon="IconArrowBarToRight" :disabled="disabled" aria-label="填入选中节点" title="填入选中节点" @click="fillPrompt(item)" />
+                <el-button class="iconButton" text :icon="IconArrowBarToRight" :disabled="disabled" :aria-label="fillLabel" :title="fillLabel" @click="fillPrompt(item)" />
               </div>
               <el-button v-if="source.items.length > (sourceLimits[source.id] ?? 30)" class="moreButton" size="small" text @click="sourceLimits[source.id] = (sourceLimits[source.id] ?? 30) + 30">
                 显示更多（剩余 {{ source.items.length - (sourceLimits[source.id] ?? 30) }}）
@@ -124,7 +124,7 @@
       @pointerdown="startResize" @pointermove="resize" @pointerup="finishResize" @pointercancel="finishResize" @keydown.left.prevent="setWidth(width - 16, true)" @keydown.right.prevent="setWidth(width + 16, true)" />
   </el-card>
   <mediaPreview v-model="previewVisible" v-model:index="previewIndex" :items="previewItems" />
-  <promptDetail v-model="detailVisible" :item="detailItem" fillLabel="填入选中节点" :fillDisabled="disabled" @fill="fillPrompt" />
+  <promptDetail v-model="detailVisible" :item="detailItem" :fillLabel="fillLabel" :fillDisabled="disabled" @fill="fillPrompt" />
 </template>
 
 <script setup lang="ts">
@@ -155,7 +155,8 @@ const open = defineModel<boolean>("open", { default: false });
 const tab = defineModel<"nodes" | "assets" | "prompts">("tab", { default: "nodes" });
 // deleteNodes 交给画布按撤销批次删除，删除完成或失败后再结束 Promise。
 // deleteNodes 交给画布按一步撤销删除。
-const emit = defineEmits<{ exportSelection: []; deleteNodes: [nodes: GraphNode[]] }>();
+// createNode 交给画布在视口中央新建节点（一步撤销）。
+const emit = defineEmits<{ exportSelection: []; deleteNodes: [nodes: GraphNode[]]; createNode: [type: string, data: Record<string, unknown>] }>();
 const flow = useVueFlow();
 const collapsed = ref(new Set<string>());
 const storageKey = "toonflow.canvasSidePanel";
@@ -280,21 +281,34 @@ function setWidth(value: number, save = false) {
   if (save) localStorage.setItem(storageKey, JSON.stringify({ width: width.value }));
 }
 
-let resizeStart: { x: number; width: number } | undefined;
+// 拖动中只按帧改 --dragWidth，不触发整个侧栏（含全部列表项）重新渲染；松手后再写回 width。
+let resizeStart: { x: number; width: number; panel: HTMLElement; next?: number; frame?: number } | undefined;
 function startResize(event: PointerEvent) {
   if (event.button !== 0) return;
-  (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
-  resizeStart = { x: event.clientX, width: width.value };
+  const handle = event.currentTarget as HTMLElement;
+  const panel = handle.closest<HTMLElement>(".canvasSidePanel");
+  if (!panel) return;
+  handle.setPointerCapture(event.pointerId);
+  resizeStart = { x: event.clientX, width: width.value, panel };
 }
 
 function resize(event: PointerEvent) {
-  if (resizeStart) setWidth(resizeStart.width + event.clientX - resizeStart.x);
+  const state = resizeStart;
+  if (!state) return;
+  state.next = Math.round(Math.min(Math.max(state.width + event.clientX - state.x, minWidth), maxWidth));
+  state.frame ??= requestAnimationFrame(() => {
+    state.frame = undefined;
+    state.panel.style.setProperty("--dragWidth", `${state.next}px`);
+  });
 }
 
 function finishResize() {
-  if (!resizeStart) return;
+  const state = resizeStart;
+  if (!state) return;
   resizeStart = undefined;
-  setWidth(width.value, true);
+  if (state.frame !== undefined) cancelAnimationFrame(state.frame);
+  setWidth(state.next ?? width.value, true);
+  state.panel.style.removeProperty("--dragWidth");
 }
 
 function typeLabel(type: string) {
@@ -529,13 +543,21 @@ function showDetail(item: CloudPromptItem) {
   detailVisible.value = true;
 }
 
-// 写入选中的同类生成节点；多选时全部填入
+const fillTargets = computed(() => promptKind.value === "canvas" ? [] : flow.getSelectedNodes.value.filter(node => node.type === promptNodeTypes[promptKind.value as "image" | "video"]));
+const fillLabel = computed(() => fillTargets.value.length ? "填入选中节点" : `新建${promptKind.value === "video" ? "视频" : "图片"}生成节点并填入`);
+
+// 写入选中的同类生成节点，多选时全部填入；没有选中同类节点时新建一个。
 function fillPrompt(item: CloudPromptItem) {
   if (props.disabled || promptKind.value === "canvas") return;
   const kindLabel = promptKind.value === "image" ? "图片生成" : "视频生成";
-  const targets = flow.getSelectedNodes.value.filter(node => node.type === promptNodeTypes[promptKind.value as "image" | "video"]);
-  if (!targets.length) return void ElMessage.warning(`请先在画布上选中${kindLabel}节点`);
-  for (const node of targets) flow.updateNodeData(node.id, { prompt: item.prompt, promptModel: promptModelOf(item.prompt) });
+  const targets = fillTargets.value;
+  const data = { prompt: item.prompt, promptModel: promptModelOf(item.prompt) };
+  if (!targets.length) {
+    detailVisible.value = false;
+    // 新节点直接用提示词库的标题命名，生成时不会再被提示词自动改名。
+    return emit("createNode", promptNodeTypes[promptKind.value as "image" | "video"], { ...data, label: item.title || undefined });
+  }
+  for (const node of targets) flow.updateNodeData(node.id, data);
   detailVisible.value = false;
   ElMessage.success(targets.length > 1 ? `已填入 ${targets.length} 个${kindLabel}节点` : "提示词已填入");
 }
@@ -663,7 +685,12 @@ async function copyPrompt(text: string) {
     border-radius: var(--el-border-radius-base);
 
     &:hover { background: var(--el-fill-color-light); }
-    &.selected { background: var(--el-color-primary-light-9); }
+    // 深色主题下 primary-light-9 几乎和面板同色，改用主色混合底色加左侧色条。
+    &.selected,
+    &.selected:hover {
+      background: color-mix(in srgb, var(--el-color-primary) 20%, transparent);
+      box-shadow: inset 3px 0 0 var(--el-color-primary);
+    }
 
     .nodeMain {
       display: flex;

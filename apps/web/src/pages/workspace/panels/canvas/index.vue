@@ -79,7 +79,7 @@
         :availableNodes="availableNodes"
         @create="createEmptyNode" />
       <canvasMenu ref="canvasMenuRef" v-model:canvasId="canvasId" :directory="project?.directory" :initialCanvasId="initialCanvasId" :activateCanvas="activateCanvas" :flushSave="flushCanvases ?? flushCanvasSave">
-        <canvasSidePanel v-if="canvasId" v-model:open="sidePanelOpen" v-model:tab="sidePanelTab" :directory="project?.directory" :nodeOptions="nodeOptions" :disabled="!active || settingsVisible || !project?.directory" @exportSelection="selectionToolbarRef?.exportMedia()" @deleteNodes="deleteSideNodes">
+        <canvasSidePanel v-if="canvasId" v-model:open="sidePanelOpen" v-model:tab="sidePanelTab" :directory="project?.directory" :nodeOptions="nodeOptions" :disabled="!active || settingsVisible || !project?.directory" @exportSelection="selectionToolbarRef?.exportMedia()" @deleteNodes="deleteSideNodes" @createNode="createSideNode">
           <template #assets><assetLibrary ref="assetLibraryRef" v-model="assetsVisible" :directory="project?.directory" :insertAsset="insertAsset" /></template>
         </canvasSidePanel>
         <assetLibrary v-else ref="assetLibraryRef" v-model="assetsVisible" :directory="project?.directory" />
@@ -1176,6 +1176,25 @@ function deleteSideNodes(nodes: GraphNode[]) {
   if (!menu || !props.active || !nodes.some(node => node.deletable !== false)) return;
   void canvasHistory.batch(() => menu.deleteSelection(nodes)).catch(error => {
     ElMessage.error(error instanceof Error ? error.message : "节点删除失败");
+  });
+}
+
+// 提示词库在没有选中同类节点时，于视口中央新建生成节点并选中它，合并为一步撤销。
+function createSideNode(type: string, data: Record<string, unknown>) {
+  const rect = canvasElement.value?.getBoundingClientRect();
+  if (!rect || !props.active || props.settingsVisible || !project.value?.directory || !canvasReady.value) return;
+  const option = availableNodes.value.find(node => node.type === type);
+  if (!option) return void ElMessage.warning("请先安装并启用对应的节点插件");
+  const center = screenToFlowCoordinate({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+  const id = crypto.randomUUID();
+  void canvasHistory.batch(async () => {
+    addNodes({ id, type, position: { x: center.x - 200, y: center.y - 160 }, data: { ...data, label: data.label || option.label } });
+    flow.removeSelectedElements();
+    flow.nodesSelectionActive.value = false;
+    const created = findNode(id);
+    if (created) flow.addSelectedNodes([created]);
+  }).then(() => ElMessage.success(`已新建“${String(data.label || option.label)}”并填入提示词`), error => {
+    ElMessage.error(error instanceof Error ? error.message : "新建节点失败");
   });
 }
 

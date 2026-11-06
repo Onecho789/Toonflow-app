@@ -351,7 +351,7 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 
 ### 我们新增的文件
 
-- `apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue`：侧栏，宽度保存在 localStorage 的 `toonflow.canvasSidePanel`
+- `apps/web/src/pages/workspace/panels/canvas/components/canvasSidePanel.vue`：侧栏，宽度保存在 localStorage 的 `toonflow.canvasSidePanel`；拖宽时按帧只改面板上的 CSS 变量 `--dragWidth`，松手才写回 `width` 并保存，避免每次移动都重渲染整张列表
 - `packages/nodeShared/src/components/mediaPreview.vue`：全屏预览，支持图片缩放拖动、视频播放和多项切换，导出为 `@toonflow/node-shared/mediaPreview`
 - `packages/nodeShared/src/components/copyPrompt.vue`：复制提示词按钮，导出为 `@toonflow/node-shared/copyPrompt`
 
@@ -400,7 +400,7 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 - 日期：2026-10-31
 - 目的：图片 / 视频提示词库由麦麦云后台配置远程 JSON 源（每 6 小时同步），客户端只读，经设备 Key 调 `GET /v1/prompts`
 - 本地接口：`GET /api/cloud/prompts`，进程内缓存 10 分钟，未登录返回 `[]`，失败不缓存
-- 侧栏“提示词库”页分“图片 / 视频 / 画布已用”；云端条目按来源折叠分组，支持搜索、标签筛选、详情、复制、填入选中的同类生成节点（多选时全部填入）
+- 侧栏“提示词库”页分“图片 / 视频 / 画布已用”；云端条目按来源折叠分组，支持搜索、标签筛选、详情、复制、填入选中的同类生成节点（多选时全部填入）；没有选中同类节点时，在视口中央新建对应生成节点，用条目标题命名并填入提示词（一步撤销），按钮文字随之切换。画布元素列表的选中项改为主色 20% 混合底色加左侧 3px 色条，深色主题下也能看清
 - 图片生成、视频生成节点的输入区新增书本按钮，打开对应类型的提示词库弹窗，“使用”后写入 `prompt` 与 `promptModel`
 
 ### 我们新增的文件
