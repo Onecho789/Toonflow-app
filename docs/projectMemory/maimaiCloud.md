@@ -33,7 +33,19 @@ Import-Clixml -LiteralPath 'C:\Users\Administrator\.codex\serverConnections\maim
 
 ## 当前线上版本（2026-11-06）
 
-2026-11-06 12:03（北京时间）已更新到 **2.19.1-20261106**。
+2026-11-06 15:40（北京时间）已更新到 **2.19.2-20261106**。
+镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.19.2-20261106
+摘要：sha256:25e13cf2d8548ba058dbbd718cf89d2790b8fdc62d29766f7329f0bc7bcecb55
+源码提交：65f93c9fe4b06fe0d40464b9c34eaed0dbeb45db（uiRedesign，发布前已推送 origin；二进制与 web dist 均从独立 clone 构建，已删除 clone），vcs.modified=false。
+
+本次后台可清空邮件密码与易支付密钥：settings.Item 新增 Clear，保存请求带 clearPassword / clearKey 且未填新值时写入空串（读取时空串按未设置）；在线充值开启时拒绝清空商户密钥；审计 detail 记 passwordCleared / keyCleared。两处重复的 audit() 合并为 logs.AuditCurrent。无数据库迁移，schema 仍为 66。配套桌面 2.1.21。
+应用 running=true、restarts=0，启动 2026-11-06T07:40:38Z，日志 version=2.19.2-20261106；部署前后活动任务与未结算用量均为 0；limit.* 仍为 0；Redis PONG、Bun 1.4.3；内网及公网首页、/admin、/admin/models、/admin/redemptionCodes、/console、/login、/api/pay/config 200，匿名 /api/admin/models、/api/admin/redemptionCodes/1/code、/v1/models 401；env 600、diff 仅 IMAGE。
+生产接口验收 20/20 通过（docs/history/clearSecretRelease20261106/liveTest.txt；前两次是脚本取 token 字段和金额格式写错，见 liveTestAttempt1-3.txt，每次都已按快照恢复）：留空保留原值、勾选清空后 passwordSet=false 且库中为空串、清空后测试邮件不再用旧密码（502）、同时填新值以新值为准、充值开启时清空被拒、关闭后可清空、空密钥不能开启充值、审计带操作者与清空标记。测试前把 mail.* / pay.* 共 15 行快照到 settings_snapshot_clear_secret_20261106 及 /opt/maimai-cloud/backups/clearSecretRelease20261106/settingsSnapshot.tsv（600），测试后原样恢复，md5 指纹 d44d3b34… 前后一致，接口显示密码、密钥已设置且其余字段不变，快照表已删除。
+备份与回退：/opt/maimai-cloud/backups/clearSecretRelease20261106（databaseBefore.dump 267734494 字节 SHA256 4d9ac245…、releaseRollback.sh SHA256 5bc2c366…），回退到 2.19.1-20261106，只恢复 IMAGE；证据 docs/history/clearSecretRelease20261106/，构建上下文 clouduildelease219220261106。生产回退未执行；未在浏览器里点后台勾选框（前端逻辑经 vue-tsc 与产物检查），测试期间邮件、支付设置约 1 分钟处于测试值。
+
+### 上次发布：2.19.1-20261106
+
+2026-11-06 12:03（北京时间）曾更新到 **2.19.1-20261106**。
 镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.19.1-20261106
 摘要：sha256:1d504416109e28f1cbea4b1efbdacb4ca8a22cbb086c363f487a812ce64aa060
 源码提交：1ee5c58b3ac8b7ace2469dfebf66ef9bce41ede7（uiRedesign，发布前已推送 origin；二进制与 web dist 均从独立 clone 构建，已删除 clone），vcs.modified=false。
