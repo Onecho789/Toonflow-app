@@ -1,6 +1,6 @@
 # 麦麦打包、发布与部署
 
-2026-11-03 从旧对话、旧记忆和实际源码整理，2026-11-04 补充桌面 2.1.3、2.1.4、2.1.5、2.1.6、2.1.7、2.1.8、2.1.9、2.1.10、2.1.11、2.1.12、2.1.13、2.1.14、2.1.15、2.1.16、2.1.17、2.1.18、2.1.19、2.1.20、2.1.21、2.1.22 本地安装包交付记录及云端 2.12.0-20261104、2.13.0-20261105、2.14.0-20261105、2.14.1-20261105、2.15.0-20261105、2.15.1-20261105、2.15.2-20261105、2.16.0-20261105、2.16.1-20261105、2.16.2-20261105、2.16.3-20261105、2.16.4-20261105、2.17.0-20261106、2.18.0-20261106、2.19.0-20261106、2.19.1-20261106、2.19.2-20261106 发布。
+2026-11-03 从旧对话、旧记忆和实际源码整理，2026-11-04 补充桌面 2.1.3、2.1.4、2.1.5、2.1.6、2.1.7、2.1.8、2.1.9、2.1.10、2.1.11、2.1.12、2.1.13、2.1.14、2.1.15、2.1.16、2.1.17、2.1.18、2.1.19、2.1.20、2.1.21、2.1.22、2.1.23 本地安装包交付记录及云端 2.12.0-20261104、2.13.0-20261105、2.14.0-20261105、2.14.1-20261105、2.15.0-20261105、2.15.1-20261105、2.15.2-20261105、2.16.0-20261105、2.16.1-20261105、2.16.2-20261105、2.16.3-20261105、2.16.4-20261105、2.17.0-20261106、2.18.0-20261106、2.19.0-20261106、2.19.1-20261106、2.19.2-20261106 发布。
 
 ## 工作目录与记忆
 
@@ -16,7 +16,7 @@
 
 两个子目录分别管理 Git。根目录继续作为共享记忆维护入口；根级 AGENTS.md 与 docs/ 下的 releaseWorkflow.md、maimaiCloud.md、localEnvNotes.md 同步到两个仓库的 docs/projectMemory/ 并分别提交、推送，单独克隆时可从该目录的 readme.md 查看。每次更新共享记忆后同步两份副本；docs/history/ 中的历史证据与构建日志另作本机备份。
 
-当前桌面本地安装包为 **2.1.22**，源码已提交为 d14a0e7（画布卡顿修复）、945ff24（版本），分支 codex/simplifyMediaModels（未推送 origin）；上次公开发布为 2.1.0。云端版本为 **2.19.2-20261106**，提交 65f93c9fe4b06fe0d40464b9c34eaed0dbeb45db，分支 uiRedesign（2026-11-06 已推送 origin）。两个版本号各自维护，后续先读实际 HEAD、分支和工作区。
+当前桌面本地安装包为 **2.1.23**，源码已提交为 1863bb7（画布切换弹窗）、e5359b3（版本），分支 codex/simplifyMediaModels（1863bb7 已推送 origin，e5359b3 未推送）；上次公开发布为 2.1.0。云端版本为 **2.19.2-20261106**，提交 65f93c9fe4b06fe0d40464b9c34eaed0dbeb45db，分支 uiRedesign（2026-11-06 已推送 origin）。两个版本号各自维护，后续先读实际 HEAD、分支和工作区。
 
 ## Windows 桌面打包
 
@@ -86,11 +86,22 @@ bun run release:desktop <新的桌面版本> --initial
 - 构建日志、原始/修改后版本配置、差异及副本回退证据：`docs/history/canvasDesktop21320261104/`。ROLLBACK.sh 仅在独立配置副本恢复 app.version=2.1.2，SHA256 与原始配置一致；实际源码和产物保持 2.1.3，不更换已安装程序。
 - 旧 2.1.2 安装包保留在其原快照目录；打包前已核对 SHA256 与旧记录一致。共享记忆修改前副本保存在本轮证据目录的 memoryBefore/。
 
+### 本地完整安装包 2.1.23（2026-11-07）
+
+- 源码：提交 1863bb7（画布切换弹窗：大弹窗选画布、Ctrl/⌘+K 唤起、最近画布恢复、首页选择画布进入；服务端修复复制文件夹必报 EEXIST）与 e5359b3（版本），工作区干净。详见 client/docs/forkChanges.md「画布切换弹窗」。
+- 构建命令：`bun run release:desktop 2.1.23 --initial`，去掉代理变量、PATH 前置 System32，一次成功、退出 0；日志 docs/history/canvasPicker20261107/desktopBuild2123.log。
+- 版本快照：D:api-codes\maimai\clientuild\desktopeleases.1.23。
+- 安装包：`MaiMaiStudio-2.1.23-Setup.exe`，66,478,503 字节；SHA256 `8c45335dbb79dbfe071ab676531e7d778a7ce137fbf2a10c87dea6d9b959c1e9`（与 artifacts 一致）。
+- 更新归档：`stable-win-x64-MaiMaiStudio.tar.zst`，69,776,007 字节；SHA256 `15341a9835abfcd71e68ac2ac129dcd8687598ba044dfb69f5bdf33b50adfe9f`。
+- 更新清单：`stable-win-x64-update.json`，210 字节；SHA256 `fafa3fc926e61203a1e8eb28616bb51cfd90756b4a4aee763f1d51c9909b4bf2`；version=2.1.23、stable/win/x64、hash=2l5ynqm9athkh。
+- 验证：web typecheck 与 build 退出 0；开发环境浏览器实测弹窗打开、Ctrl+K、搜索、列表视图、键盘切换、新建文件夹/移动/副本/重命名/删除、首页选画布进入。用 Windows 自带 tar.exe 解包归档（本机无 7-Zip/zstd），确认 version.json 为 2.1.23、11 个节点插件齐全、workspace chunk 含 canvasPicker/switchCanvas/recentCanvases、bun/index.js 含逐项 cp 修复；临时解包目录已删除。未运行安装器。回退：安装 2.1.22 快照中的安装包。
+
 ### 本地完整安装包 2.1.22（2026-11-06）
 
 - 源码：提交 d14a0e7（画布卡顿修复：背景在组件内读取视口，平移缩放不再整体重渲染画布宿主；节点右键菜单与全景图下拉加 persistent=false，未打开时不挂载菜单项）与 945ff24（版本），工作区干净，未推送 origin。详见 client/docs/forkChanges.md「画布卡顿修复」。
 - 构建命令：`bun run release:desktop 2.1.22 --initial`，去掉代理变量、PATH 前置 System32，一次成功、退出 0；日志 docs/history/canvasPerf20261106/desktopBuild2122.log。
-- 版本快照：D:api-codesmaimaiclientuilddesktopeleases.1.22。
+- 版本快照：D:api-codesmaimaiclientuilddesktop
+eleases.1.22。
 - 安装包：`MaiMaiStudio-2.1.22-Setup.exe`，66,465,715 字节；SHA256 `f6d8fe447f50a81ebd8d61659a8b257a2e63e334728cf895cae85b80c6eae580`。
 - 更新归档：`stable-win-x64-MaiMaiStudio.tar.zst`，69,754,256 字节；SHA256 `5831c2f7106d1cff311ecea81cf45bc53b79411ca3c0387e21927c6b9d3c0531`。
 - 更新清单：`stable-win-x64-update.json`，210 字节；SHA256 `1c7d86500d4f3c76d21854f974e24b1ff1cd7a83a66fc80e9c61004d1259612b`；version=2.1.22、stable/win/x64、hash=144qnv4t13fne。
