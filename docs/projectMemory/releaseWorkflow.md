@@ -352,7 +352,7 @@ docker compose -f docker-compose.yml up -d --no-deps --wait --wait-timeout 60 --
 
 本轮检查新目录未发现可直接清理的日志、临时文件或旧构建输出；.env、依赖、.hutch 和代码保留。云端 src/、public/ 仍标注为旧 TS 回滚版本，后续专门确认停止支持后再清理。
 
-旧 Toonflow-app、maimai-cloud 目录含业务数据、安装包、未跟踪内容及关联工作树，不能按重复源码整目录删除。maimaiLinksBackup 是旧目录联接入口，不是当前源码实体。历史证据中的旧路径是当时事实，不表示今后继续在那里开发。
+2026-11-06 经用户确认已删除旧 Toonflow-app、maimai-cloud、.codexWorktrees 与 maimaiLinksBackup：删除前核对两个旧仓库全部分支、远端分支、工作树 HEAD 均已在新仓库中，两份 .env 与新目录一致；未保留的有 2.1.0 安装包、旧 data/backup、2 个 stash 与早期调用协议草稿（用户确认不需要）。保留 D:\2api-codes\maimaiDemo（宣传视频脚本依赖）与 D:\2api-codes\maimaiLogo（Logo 原图）。历史证据中的旧路径是当时事实，已不存在。
 
 宣传视频资产 2026-11-06 从 Toonflow-app\promoVideo 移到 D:\2api-codes\maimai\promoVideo（493 个文件、298,544,724 字节，逐文件 SHA256 核对一致后删除旧位置；成片 maimaiStudioPromo.mp4 SHA256 7574576e1384d1ab4ee05a1009d9cbcd6c26710f0fc787c2f7a2c3b9a8e49cf8）。体积大，不进 Git；在 promoVideo 目录内运行脚本（其余路径为相对路径），capture.py、demoProject.py、gen.py 依赖 D:\2api-codes\maimaiDemo 演示工程，二者一起保留。
 

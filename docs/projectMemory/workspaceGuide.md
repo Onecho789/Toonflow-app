@@ -6,7 +6,7 @@
 - cloud/：麦麦云 Go 服务端与 Vue 管理端，独立 Git 仓库。当前生产构建入口是 cloud/server/Dockerfile。
 - 根目录只承载工作入口与共享记忆，本身不是 Git 仓库。Git 命令分别在 client 或 cloud 执行；不要在根目录重新初始化或合并两个仓库。
 - 根级 AGENTS.md 和 docs/ 下三份当前文档同步保存在两个仓库的 docs/projectMemory/；修改共享记忆后同步副本并分别提交、推送。仅克隆单个仓库时从其中的 readme.md 进入；历史证据保留在本机 docs/history/。
-- 当前源码路径固定为 D:\2api-codes\maimai\client 与 D:\2api-codes\maimai\cloud；旧 Toonflow-app、maimai-cloud 路径只作为历史/保留资产位置。
+- 当前源码路径固定为 D:\2api-codes\maimai\client 与 D:\2api-codes\maimai\cloud；旧 Toonflow-app、maimai-cloud 目录已于 2026-11-06 删除，历史记录中的旧路径不再存在。
 - 本机环境和 Windows 打包注意事项见 docs/localEnvNotes.md。历史发布证据放 docs/history/，不作为当前版本或重新部署指令。
 - 成功发布后同步更新 docs/maimaiCloud.md、docs/releaseWorkflow.md 中的版本、提交、摘要、验证结果、备份和回退位置；后续以这里为主记忆，旧目录中的文件仅留作追溯。
 - 沿用已确认的偏好：不创建 PR；用户要求推送时推送自有 origin，upstream 只拉不推。客户端功能提交时维护 client/docs/forkChanges.md。
