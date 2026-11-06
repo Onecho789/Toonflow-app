@@ -33,7 +33,18 @@ Import-Clixml -LiteralPath 'C:\Users\Administrator\.codex\serverConnections\maim
 
 ## 当前线上版本（2026-11-06）
 
-2026-11-06 04:08（北京时间）已更新到 **2.19.0-20261106**。
+2026-11-06 12:03（北京时间）已更新到 **2.19.1-20261106**。
+镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.19.1-20261106
+摘要：sha256:1d504416109e28f1cbea4b1efbdacb4ca8a22cbb086c363f487a812ce64aa060
+源码提交：1ee5c58b3ac8b7ace2469dfebf66ef9bce41ede7（uiRedesign，发布前已推送 origin；二进制与 web dist 均从独立 clone 构建，已删除 clone），vcs.modified=false。
+
+本次仅冗余代码清理，行为不变：四份重复的 nullable 合并为 db.Nullable，删除未用的 settings.GetInt/GetBool/Clear、web 端 matchPreset/toYuan/WalletLedger、--mmGold、.errorText 与 web/glassIrisDemo.html。无数据库迁移，schema 仍为 66。配套桌面 2.1.18。
+应用 running=true、restarts=0，启动 2026-11-06T04:03:07Z，日志 version=2.19.1-20261106；部署前后活动任务与未结算用量均为 0；limit.gatewayPerMinute=0、limit.pollPerMinute=0（管理员已在后台设为不限制）；Redis PONG、Bun 1.4.3；内网及公网首页、/admin、/admin/models、/admin/redemptionCodes、/console、/login、/api/pay/config 200，匿名 /api/admin/models、/api/admin/redemptionCodes/1/code、/v1/models 401；env 600、diff 仅 IMAGE。
+备份与回退：/opt/maimai-cloud/backups/cleanupRelease20261106（databaseBefore.dump 270704761 字节 SHA256 a646f854…、releaseRollback.sh SHA256 711051a7…），回退到 2.19.0-20261106，只恢复 IMAGE；证据 docs/history/cleanupRelease20261106/，构建上下文 cloud\build\release219120261106。生产回退未执行；未在生产实际出图或登录后台复验。
+
+### 上次发布：2.19.0-20261106
+
+2026-11-06 04:08（北京时间）曾更新到 **2.19.0-20261106**。
 镜像：ccr.ccs.tencentyun.com/echotools/maimai-cloud:2.19.0-20261106
 摘要：sha256:1d455b3fca80a0d143cfb3a69df03f2cfcb4d5b8ba27c23901f547d32476eeeb
 源码提交：010db57a6f3971bfac012c811cc6a4d57767edb6（uiRedesign，2026-11-06 发布后已推送 origin（至 e6c8b44）；二进制与 web dist 均从独立 clone 构建，已删除 clone），vcs.modified=false。
