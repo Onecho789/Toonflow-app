@@ -82,11 +82,16 @@ export function configureAgentRequests(session: AgentSession, limits?: { maxRequ
     let partial: AssistantMessage | undefined;
     const fail = (error: unknown) => {
       const reason = runSignal?.aborted ? runSignal.reason : operationSignal?.aborted ? operationSignal.reason : error;
+      // ACT: partial 是 provider 仍在写入的对象；停止时先拷贝并去掉流式解析用的临时字段，避免落盘内容被迟到的事件改动。
+      const content = structuredClone(partial?.content ?? []).map(block => {
+        const { index, partialJson, partialArgs, customInput, streamIndex, redactedChunks, ...rest } = block as typeof block & Record<string, unknown>;
+        return rest as typeof block;
+      });
       const message: AssistantMessage = {
-        role: "assistant", content: partial?.content ?? [], api: model.api, provider: model.provider, model: model.id,
+        role: "assistant", content, api: model.api, provider: model.provider, model: model.id,
         stopReason: options?.signal?.aborted ? "aborted" : "error",
         errorMessage: reason instanceof Error ? reason.message : String(reason),
-        usage: partial?.usage ?? { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } },
+        usage: partial?.usage ? { ...partial.usage, cost: { ...partial.usage.cost } } : { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } },
         timestamp: Date.now(),
       };
       output.push({ type: "error", reason: message.stopReason as "error" | "aborted", error: message });

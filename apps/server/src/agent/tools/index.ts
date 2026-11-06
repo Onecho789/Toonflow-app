@@ -21,7 +21,9 @@ import { createAssetContext } from "@/agent/assets";
 import { readDocument } from "@/utils/documents";
 import { createMcpAgentTools } from "@/utils/mcp/servers";
 
-export function createAgentToolContext(cwd: string, config: Record<string, unknown> = {}, canvas?: CanvasContext, question?: QuestionContext, workspaceAvailable = true): ToolContext {
+export function createAgentToolContext(cwd: string, config: Record<string, unknown> = {}, canvas?: CanvasContext, question?: QuestionContext, workspaceAvailable = true, runSignal?: AbortSignal): ToolContext {
+  // ACT: 本轮停止后拒绝经由工具上下文的写入；停止超时后仍未退出的工具不会在会话锁释放后改动工作区。
+  const scoped = (signal?: AbortSignal) => runSignal && signal ? AbortSignal.any([runSignal, signal]) : runSignal ?? signal;
   const skillsDirectory = join(dirname(conf.path), "skills");
   const requireWorkspace = () => { if (!workspaceAvailable) throw new Error("此对话未提供工作目录，无法使用文件或媒体操作"); };
   const resolvePath = async (path: string, readOnly = false) => {
@@ -32,6 +34,7 @@ export function createAgentToolContext(cwd: string, config: Record<string, unkno
   };
   const withWritePaths = async (paths: string[], operation: (targets: string[]) => Promise<void>) => {
     const targets = await Promise.all(paths.map(path => resolvePath(path)));
+    runSignal?.throwIfAborted();
     const release = lockWorkspaceFiles(targets);
     try { await operation(targets); }
     finally { release(); }
@@ -71,6 +74,7 @@ export function createAgentToolContext(cwd: string, config: Record<string, unkno
         if (error.code === "ENOENT") return null;
         throw error;
       }))?.isDirectory()) return;
+      runSignal?.throwIfAborted();
       const release = lockWorkspaceFiles([target]);
       try { await mkdir(target, { recursive }); }
       finally { release(); }
@@ -88,10 +92,14 @@ export function createAgentToolContext(cwd: string, config: Record<string, unkno
       await copyFile(source, destination, exclusive ? constants.COPYFILE_EXCL : 0);
     }),
   };
+  const skills = workspaceAvailable ? createSkillContext(cwd) : undefined;
+  const assets = workspaceAvailable ? createAssetContext(cwd) : undefined;
+  const browser = createBrowserContext(cwd);
   return {
     cwd, config, files, resolvePath, writeFile: files.writeFile, canvas, question,
-    skills: workspaceAvailable ? createSkillContext(cwd) : undefined, assets: workspaceAvailable ? createAssetContext(cwd) : undefined,
-    browser: createBrowserContext(cwd),
+    skills: skills && { ...skills, create: (request, signal) => skills.create(request, scoped(signal)), update: (request, signal) => skills.update(request, scoped(signal)) },
+    assets: assets && { execute: (id, params, signal, ...rest) => assets.execute(id, params, scoped(signal), ...rest) },
+    browser: browser && { execute: (sessionId, args, toolConfig, signal, onUpdate) => browser.execute(sessionId, args, toolConfig, scoped(signal), onUpdate) },
     // ACT: OHOS 使用禁用 WASM 的嵌入式 Node，无法启动当前沙盒子进程。
     sandbox: workspaceAvailable && getRuntimePlatform().os !== "ohos" ? createSandboxContext({ files, resolvePath }) : undefined,
     asr: {
@@ -107,13 +115,13 @@ export function createAgentToolContext(cwd: string, config: Record<string, unkno
         return result;
       },
     },
-    ffmpeg: signal => { requireWorkspace(); return createWorkspaceFfmpeg(cwd, signal); },
-    executeFfmpeg: (request, emit, signal) => { requireWorkspace(); return executeWorkspaceFfmpeg(cwd, request, emit, signal); },
+    ffmpeg: signal => { requireWorkspace(); return createWorkspaceFfmpeg(cwd, scoped(signal)); },
+    executeFfmpeg: (request, emit, signal) => { requireWorkspace(); return executeWorkspaceFfmpeg(cwd, request, emit, scoped(signal)); },
     media: workspaceAvailable ? {
       listModels: listMediaModels,
-      generateImage: (request, signal) => generateMedia(cwd, "image", request, signal),
-      generateVideo: (request, signal) => generateMedia(cwd, "video", request, signal),
-      generateAudio: (request, signal) => generateMedia(cwd, "audio", request, signal),
+      generateImage: (request, signal) => generateMedia(cwd, "image", request, scoped(signal)),
+      generateVideo: (request, signal) => generateMedia(cwd, "video", request, scoped(signal)),
+      generateAudio: (request, signal) => generateMedia(cwd, "audio", request, scoped(signal)),
     } : undefined,
     sdk: {
       defineTool, createWriteToolDefinition, createEditToolDefinition, createLsToolDefinition,
@@ -134,10 +142,10 @@ export function createAgentToolContext(cwd: string, config: Record<string, unkno
   };
 }
 
-export async function createAgentTools(cwd: string, canvas?: CanvasContext, question?: QuestionContext, includeMcp = true): Promise<ToolDefinition[]> {
+export async function createAgentTools(cwd: string, canvas?: CanvasContext, question?: QuestionContext, includeMcp = true, runSignal?: AbortSignal): Promise<ToolDefinition[]> {
   const tools: ToolDefinition[] = [];
   const names = new Set<string>();
-  const context = createAgentToolContext(cwd, {}, canvas, question);
+  const context = createAgentToolContext(cwd, {}, canvas, question, true, runSignal);
   for (const item of await listTools()) {
     if (!item.enabled) continue;
     if (item.loadError) throw new Error(`${item.displayName}：${item.loadError}`);

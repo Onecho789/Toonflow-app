@@ -19,7 +19,7 @@
 | --- | --- | --- |
 | 文本、媒体供应商的添加 / 编辑 / 删除，生图协议，供应商开发工具 | 不恢复。模型全部由麦麦云提供，上游对这些界面和接口的修改直接丢弃 | 麦麦云模型 |
 | 启动时自动安装内置媒体供应商（`providersRoot`、`autoInstallProviders`） | 不恢复。上游若修改这段逻辑，整段丢弃。合并后执行 `git grep -n "providersRoot\|autoInstallProviders" -- apps/server/src/app.ts`，应无结果 | 媒体供应商简化接入 |
-| 各端构建打包 `packages/providers/src` → `providers` 目录 | 不打包。上游若在构建脚本的目录列表中新增或保留 `providers`，合并时删掉 | 媒体供应商简化接入 |
+| `packages/providers` 内置供应商包及各端构建打包 `providers` 目录 | 整包已删除（2026-11-06），不再打包。上游修改该包或在构建脚本中保留 `providers` 时，合并时删掉 | 媒体供应商简化接入 |
 | 安装器重置 `data/providers/initialized` | 不重置 | 媒体供应商简化接入 |
 
 ---
@@ -202,7 +202,7 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 - 服务端：删除 `utils/ai/initialize.ts`（启动时刷新 TF-Router 模型），`app.ts`、`utils/ai/index.ts` 去掉对应调用和导出；`routes/settings/save.ts` 保存后不再刷新供应商模型；`utils/media/provider.ts` 去掉 tfRouter 的余额、价格补丁与模型地址兜底；`billing.ts` 去掉 tfRouter 的 Key 归一化；`generation.ts` 参考图顺序去掉 tfRouter；`modelContextLimits.ts` 删 TF-Router 注释
 - i18n：删掉 105 个只在上述代码里用的键，同步来源路径
 - 冲突时：上游改了上述探索、匿名统计、tfRouter 特判或启动刷新逻辑，直接丢弃；同文件的其他通用改动照常合并后再去掉 tfRouter 部分
-- 保留：插件市场（`settings/panels/pluginMarket`、`lib/tf.ts` 的 `getPlugIn` / `toggleCollection` / `getTfApiKey` / `isTfRouterProvider`、`@toonflow/providers/language/tfRouter`）；桌面更新源见下一节；`stores/settings.ts` 仍处理保存接口已不再返回的 `customProviders`、`mediaProvider`、`modelRefreshErrors`
+- 保留：插件市场（`settings/panels/pluginMarket`、`lib/tf.ts` 的 `getPlugIn` / `toggleCollection` / `getTfApiKey` / `isTfRouterProvider`）；`packages/providers` 后来因无引用整包删除；桌面更新源见下一节；`stores/settings.ts` 仍处理保存接口已不再返回的 `customProviders`、`mediaProvider`、`modelRefreshErrors`
 
 ### 去掉内置更新源并关闭自动检查更新（提交 14b8439）
 
@@ -1032,7 +1032,7 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 - 开启后请求并入 `output_format: "gif"`、`frame_count`、`frame_duration_ms`，局部重绘不带。GIF 只支持无参考图的文生图，带参考图时由云端返回明确错误。
 - 预估费用按帧数 × `meta.gifFramePrice` 乘算，与云端一致；结果按 GIF 文件头识别存为 `.gif`（原有逻辑）。
 - 节点工具 `setConfig` 新增 `gif`、`gifFrames`、`gifFrameDuration`。
-- 模型能力及时生效：前端节点模型缓存加 60 秒过期；打开图片设置面板时重读模型；设置页媒体模型「刷新」后派发 `toonflow:provider-config-changed`，通知已挂载节点重读。后台开启 GIF 后无需重启客户端。
+- 模型能力及时生效：前端节点模型缓存加 60 秒过期；打开图片设置面板时仅在缓存过期后重读模型（`isNodeModelsFresh`），重读失败保留现有模型、不弹报错，避免每次打开都重建表单；设置页媒体模型「刷新」后派发 `toonflow:provider-config-changed`，通知已挂载节点重读。后台开启 GIF 后无需重启客户端。
 
 改动的上游文件：`packages/nodes/imageGenerationNode/src/index.vue`、`components/generationSettings.vue`、`packages/nodeScaffold/src/nodeAi.ts`、`apps/server/src/utils/media/{cloud,generation}.ts`、`apps/web/src/components/settings/panels/mediaModel/index.vue`。
 
@@ -1060,12 +1060,13 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 ## Agent 停止按钮在卡住时无效（2026-11-06）
 
 - 现象：对话一直「运行中…」，点停止无反应。原因是 `/api/agent/stop` 会等本轮完全结束才返回，而模型请求（如云端鉴权或响应一直不回）或工具不响应取消时本轮永远不结束，前端 10 秒超时后仍显示运行中，会话锁也不释放。
-- `requests.ts` 的 `streamFunction` 包装在收到停止信号时立即以 `aborted` 结束本次输出，不再等底层请求取消。
+- `requests.ts` 的 `streamFunction` 包装在收到停止信号时立即以 `aborted` 结束本次输出，不再等底层请求取消。落盘的是 partial 的深拷贝，并去掉 provider 流式解析用的临时字段（`index`、`partialJson`、`partialArgs`、`customInput`、`streamIndex`、`redactedChunks`），迟到事件不会再改动已保存的回复。
 - `runtime/index.ts` 新增 `stopDeadline`：停止后给 SDK 5 秒收尾，仍未结束就直接结束本轮，释放会话锁并让停止请求返回。
+- 工具上下文绑定本轮停止信号（`createAgentToolContext` / `createAgentTools` 的 `runSignal`）：停止后经 `files` 的写入、改名、删除、复制、建目录直接拒绝，媒体生成、技能写入、素材、浏览器和 FFmpeg 收到合并后的取消信号。超时后仍在跑的工具不会在会话锁释放后再改工作区。A2A、MCP、团队私有工具不传 `runSignal`，行为不变。
 
-改动的上游文件：`apps/server/src/agent/runtime/requests.ts`、`apps/server/src/agent/runtime/index.ts`。
+改动的上游文件：`apps/server/src/agent/runtime/requests.ts`、`apps/server/src/agent/runtime/index.ts`、`apps/server/src/agent/tools/index.ts`。
 
-冲突时保留：`fail` 与停止监听、`stopDeadline` 与两处 `Promise.race`。
+冲突时保留：`fail` 与停止监听、`stopDeadline` 与两处 `Promise.race`、`runSignal` 与 `scoped`。
 
 ## 麦麦云 429 限流后的冷却与提交重试（2026-11-06）
 

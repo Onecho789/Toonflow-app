@@ -107,7 +107,7 @@ bun run dev:desktop
 | 桌面宿主、原生交互、安装与更新 | `apps/desktop/`；Intel Mac 兼容层在 `compat/macIntel/` |
 | 画布节点 | `packages/nodes/`、[节点脚手架](./packages/nodeScaffold/readme.md) |
 | Agent 工具及其交互组件 | `packages/tools/`、[工具脚手架](./packages/toolScaffold/readme.md) |
-| 模型提供方与技能 | `packages/providers/src/`、`packages/skills/` |
+| 技能 | `packages/skills/` |
 
 修改节点或工具时，编辑 `packages/` 中的源码，再运行 `bun run dev:plugins`。它会写入 `build/nodes/`、`build/tools/`，并**覆盖 `data/nodes/`、`data/tools/` 中的同名开发产物**；不要直接修改这些产物来代替源码改动。该命令不清理旧产物，改名或删除插件后需检查开发目录中的残留文件。
 

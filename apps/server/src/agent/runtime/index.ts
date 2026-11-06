@@ -187,7 +187,7 @@ export async function run(
     };
     unregister = registerAgentSession(history.getSessionFile()!, active);
     if (!runId) unregisterRun = registerAgentRun({ runId: active.runId, directory: Promise.resolve(cwd), abort: active.abort, finished: finished.promise });
-    const tools = await createAgentTools(cwd, canvas, question);
+    const tools = await createAgentTools(cwd, canvas, question, true, signal);
     if (isMemoryEnabled()) {
       const memoryTool = createMemoryTool();
       if (tools.some(tool => tool.name === memoryTool.name)) throw new Error("工具名称 memory 已被内置全局记忆工具占用");

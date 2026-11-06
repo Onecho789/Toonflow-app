@@ -644,13 +644,6 @@
         "vue": "^3.5.42",
       },
     },
-    "packages/providers": {
-      "name": "@toonflow/providers",
-      "version": "2.0.0",
-      "dependencies": {
-        "@toonflow/ffmpeg": "workspace:*",
-      },
-    },
     "packages/startup": {
       "name": "@toonflow/startup",
       "version": "0.0.0",
@@ -1480,8 +1473,6 @@
     "@toonflow/node-video-generation": ["@toonflow/node-video-generation@workspace:packages/nodes/videoGenerationNode"],
 
     "@toonflow/nodes-scaffold": ["@toonflow/nodes-scaffold@workspace:packages/nodeScaffold"],
-
-    "@toonflow/providers": ["@toonflow/providers@workspace:packages/providers"],
 
     "@toonflow/server": ["@toonflow/server@workspace:apps/server"],
 

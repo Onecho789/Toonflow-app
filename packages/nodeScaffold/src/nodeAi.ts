@@ -213,6 +213,12 @@ function createMediaTasks() {
   return { wait, cancel };
 }
 
+// 缓存仍有效（或请求进行中）时返回 true，用于判断是否需要重读模型目录。
+export function isNodeModelsFresh(type: "language" | "media") {
+  const url = type === "language" ? "/api/ai/models" : "/api/ai/media/models";
+  return modelCache.has(url) && Date.now() - (modelCacheAt.get(url) ?? 0) <= modelCacheTtl;
+}
+
 export function invalidateNodeModels(type: "language" | "media") {
   modelCache.delete(type === "language" ? "/api/ai/models" : "/api/ai/media/models");
   if (type === "media") mediaPriceCache.prices.clear();

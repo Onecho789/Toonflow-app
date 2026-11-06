@@ -142,7 +142,7 @@
             :sizes="sizeOptions"
             :ratios="ratioOptions"
             :disabled="generating || deleting || !selectedModel"
-            @open="loadModels().catch((error) => showNodeError(error, '模型读取失败'))" />
+            @open="reloadModelsOnOpen" />
           <promptLibrary v-if="editor?.mode !== 'inpaint'" type="image" :disabled="generating || deleting" @select="setPromptText" />
           <el-button v-if="editor?.mode === 'inpaint'" class="confirmButton" type="primary" :icon="IconCheck" :loading="editor.busy" :disabled="deleting || uploading || !generationPrompt" @click="confirmInpaint().catch(error => showNodeError(error, '重绘节点创建失败'))">确认</el-button>
           <div v-else class="generationActions">
@@ -171,7 +171,7 @@
 import { computed, nextTick, onMounted, onScopeDispose, ref, shallowRef, watch } from "vue";
 import { ElButton, ElCard, ElSelect, ElOption, ElOptionGroup, ElLoading, ElImageViewer, ElDropdownItem } from "element-plus";
 import { IconCheck, IconPhotoAi, IconSparkles, IconArrowUp, IconPlayerStop, IconTransfer, IconLayoutGrid, IconBrush, IconPencil, IconSun, IconCameraRotate, IconPanoramaHorizontal, IconChevronDown, IconChevronRight, IconArrowsSplit2, IconFileZip, IconLoader2 } from "@tabler/icons-vue";
-import { nodeSkeleton, nodeTools, useNode, z, type NodeMediaModel, type NodeImageRequest, type NodeImageResult, type NodeMediaValue, type NodeHandle } from "@toonflow/nodes-scaffold/runtime";
+import { isNodeModelsFresh, nodeSkeleton, nodeTools, useNode, z, type NodeMediaModel, type NodeImageRequest, type NodeImageResult, type NodeMediaValue, type NodeHandle } from "@toonflow/nodes-scaffold/runtime";
 import { groupNodeModels } from "@toonflow/node-shared/groupNodeModels";
 import mediaPreview from "@toonflow/node-shared/mediaPreview";
 import { useCanvasImages } from "@toonflow/node-shared/useCanvasImages";
@@ -426,6 +426,11 @@ function loadModels() {
     modelsRequest = undefined;
   });
   return modelsRequest;
+}
+
+// 打开设置只在模型缓存过期时重读；失败时保留现有模型，不弹报错。
+function reloadModelsOnOpen() {
+  if (!isNodeModelsFresh("media")) loadModels().catch(() => {});
 }
 
 async function confirmInpaint() {
