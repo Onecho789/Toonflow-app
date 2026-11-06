@@ -413,7 +413,6 @@ D:\2api-codes\maimai\docs\history\mailangRelease20261103\releaseRollback.sh
 
 ### 上次发布记录
 
-D:\2api-codes\.codexArtifacts\grokDownloadFallback20261103\releaseDeployment.txt
-D:\2api-codes\.codexArtifacts\grokDownloadFallback20261103\releaseRollback.sh
+原 D:\2api-codes\.codexArtifacts\grokDownloadFallback20261103 下的部署与回退记录已于 2026-11-06 随 .codexArtifacts 一并删除。
 
 上次发布时源码未提交；现已由8d7ab2e保存此前上线协议功能，并由d5be9f858ec2e3c5f596849e238dae79b57bec6d提交本次麦浪功能。

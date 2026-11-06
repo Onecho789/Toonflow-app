@@ -370,9 +370,9 @@ docker compose -f docker-compose.yml up -d --no-deps --wait --wait-timeout 60 --
 
 - D:\2api-codes\ssh-server\maimaiCloud.md
 - C:\Users\Administrator\.claude\projects\D--2api-codes-Toonflow-app\memory
-- D:\2api-codes\.codexArtifacts\mailangRelease20261103
+- D:\2api-codes\.codexArtifacts\mailangRelease20261103（2026-11-06 已删除，精简副本在 docs/history/mailangRelease20261103）
 
-上述原件保留用于追溯。最新操作信息统一维护本目录，旧 deployServer.md 仅保存历史，不复制其过期操作建议到当前流程。
+除已删除项外，上述原件保留用于追溯。最新操作信息统一维护本目录，旧 deployServer.md 仅保存历史，不复制其过期操作建议到当前流程。
 
 后续任务可直接使用：
 
