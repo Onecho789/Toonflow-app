@@ -274,7 +274,16 @@ Grok 当前修订：f8f85bef333fecb4da9ecfdb267a9cbad30472092346ed9a252c15138fda
 上次版本已验证能力400、源码新旧版本读取、默认升级、自定义与恢复版本重启保留。本次发布前无活跃视频任务、无 pending 用量记录，发布中未新发起生成。
 视频编辑/延长等宿主入参及上游特殊计费未扩展，现有失败退款规则保留。
 
-## 当前桌面本地安装包 2.1.25（2026-11-08）
+## 当前桌面本地安装包 2.1.26（2026-11-08）
+
+- 源码2af171843bbbb97069724eda9f14a67ab68a005f，分支codex/simplifyMediaModels；修改前4815113。画布工具栏收紧为36px，选择器操作按钮同排，窄窗口避让。
+- 快照：D:\2api-codes\maimai\client\build\desktop\releases\2.1.26。安装包`MaiMaiStudio-2.1.26-Setup.exe` 66,477,831字节；SHA256 `145007ff3142707160edad6659ab72436477eaa4ca72b6225134d6274a150ee6`；清单version=2.1.26、stable/win/x64、hash=1n1npq1x58sn8。
+- 完整打包退出0，三资产与artifacts一致；归档1743项、11节点插件、版本/hash与实际工作区和picker布局代码核验通过；Web/desktop类型检查通过。已登录预览确认首页和画布内按钮同排、卡片/列表切换和实际封面正常，1168/861/640/390px与520px长名称草稿布局检查通过。
+- 生图422为上游n<=4与渠道填写15不匹配；受影响渠道应填4，已有网关按4+2等拆批，用户总任务上限仍15。本次未修改生产配置、未付费生图、未核验具体退款账本。
+- 旧2.1.25快照保留且原摘要一致；源码回退参考4815113。证据及共享记忆备份位于`docs/history/canvasCompact20261108/`，完整摘要见releaseWorkflow.md。
+- 本地交付，未运行安装器、未发布GitHub Release、未部署云端；云端生产版本保持上方记录，桌面公开版本仍为2.1.0、自动更新源为空。
+
+## 上次桌面本地安装包 2.1.25（2026-11-08）
 
 - 源码 9bd3b688ad45010654a168bd54d9f922a86476e4，分支 codex/simplifyMediaModels。补齐画布图片/视频静态封面、结构预览回退、统一卡片预览高度及真实空目录/其他目录分类。
 - 快照：D:\2api-codes\maimai\client\build\desktop\releases\2.1.25。安装包 `MaiMaiStudio-2.1.25-Setup.exe` 66,483,958 字节；SHA256 `b3f8ce131ba7757d9b18a5f04a379155cb19ff99178b5683de949a4a795d91b7`；清单 version=2.1.25、stable/win/x64、hash=1a356utftajl5。
