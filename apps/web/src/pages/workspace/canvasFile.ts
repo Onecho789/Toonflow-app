@@ -26,6 +26,23 @@ export function getCanvasAssetDirectories(nodes: CanvasAssetNode[], retainedNode
 
 export type CanvasListing = { path: string; name: string; folder: string; mtimeMs: number };
 
+/** 创建未占用编号的空画布；已有同名文件不覆盖。 */
+export async function createEmptyCanvas(files: Pick<ReturnType<typeof useWorkspaceFiles>, "writeJson">, folder = "", signal?: AbortSignal) {
+  const flow = { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } };
+  for (let number = 1; ; number++) {
+    signal?.throwIfAborted();
+    const name = `画布${number}`;
+    const id = `${folder ? `${folder}/` : ""}${name}.json`;
+    try {
+      await files.writeJson(id, { toonflowCanvas: true, ...flow }, true);
+      signal?.throwIfAborted();
+      return { id, name, flow };
+    } catch (err) {
+      if (!axios.isAxiosError<{ data?: { code?: string } }>(err) || err.response?.status !== 409 || err.response.data.data?.code !== "EEXIST") throw err;
+    }
+  }
+}
+
 /** 递归列出工作区里的画布和文件夹（跳过 assets 与 .agent），只读文件头确认画布标记。 */
 export async function listCanvasFiles(files: Pick<ReturnType<typeof useWorkspaceFiles>, "list" | "readText">, signal?: AbortSignal) {
   const folders = [""];

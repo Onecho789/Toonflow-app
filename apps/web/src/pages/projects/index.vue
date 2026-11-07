@@ -19,11 +19,12 @@
               </button>
             </el-card>
             <el-card v-for="project in sortedProjects" :key="project.directory" class="projectCard" shadow="never" :bodyStyle="{ padding: '0', height: '100%' }">
-              <button class="projectEntry" type="button" :disabled="creating || opening" :title="project.directory" :aria-label="`打开项目 ${project.name}`" @click="openProject(project)">
+              <button class="projectEntry" type="button" :disabled="creating || opening" :title="project.directory" :aria-label="`选择项目 ${project.name} 中的画布`" @click="openProject(project)">
                 <projectCover :directory="project.directory" />
                 <span class="projectInfo">
                   <span class="projectName" :title="project.name">{{ project.name }}</span>
                   <span class="projectTime">最近打开 {{ new Date(project.lastOpenedAt).toLocaleString(locale, { hour12: false }) }}</span>
+                  <span class="projectEntryHint"><icon-vector :size="14" aria-hidden="true" />选择画布<icon-chevron-right :size="14" aria-hidden="true" /></span>
                 </span>
               </button>
               <div class="projectActions" :class="{ exporting: exportingDirectory === project.directory || coverMenuDirectory === project.directory || coverSavingDirectory === project.directory }">
@@ -47,6 +48,9 @@
       </el-main>
     </el-scrollbar>
     <workspacePicker ref="relocationPicker" hideTrigger />
+    <canvasPickerDialog v-if="pickingProject" v-model="pickerVisible" :directory="pickingProject.directory" :projectName="pickingProject.name"
+      :recentIds="pickingProject.recentCanvases" :pinnedIds="pickingProject.pinnedCanvases" :busy="creating || opening" entering
+      @select="enterCanvas" @create="createCanvas" @togglePin="workspaceStore.togglePinnedCanvas(pickingProject.directory, $event)" />
     <input ref="coverInput" type="file" accept="image/*" hidden aria-label="选择封面图片" @change="uploadCover" />
     <projectCoverPicker :directory="pickingDirectory" @close="pickingDirectory = undefined" @saved="ElMessage.success('封面已更新')" />
   </div>
@@ -66,12 +70,13 @@ import projectCover from "@/pages/home/projectCover.vue";
 import bg from "@/pages/home/bg.vue";
 import workspacePicker from "@/pages/home/workspacePicker.vue";
 import useProjectEntry from "@/pages/home/projectEntry";
+import canvasPickerDialog from "@/pages/workspace/panels/canvas/components/canvasPickerDialog.vue";
 import { clearProjectCover, setProjectCover } from "@/pages/home/projectCoverFile";
 import projectCoverPicker from "./projectCoverPicker.vue";
 
 const workspaceStore = useWorkspaceStore();
 const { projectList } = storeToRefs(workspaceStore);
-const { pageLifetime, creating, opening, relocationPicker, enterWorkspace, openProject } = useProjectEntry();
+const { pageLifetime, creating, opening, relocationPicker, pickingProject, pickerVisible, enterWorkspace, openProject, enterCanvas, createCanvas } = useProjectEntry();
 const exportingDirectory = ref("");
 const coverMenuDirectory = ref("");
 const coverSavingDirectory = ref("");
@@ -149,11 +154,20 @@ async function createProject() {
   if (!path || creating.value || opening.value || pageLifetime.signal.aborted) return;
   creating.value = true;
   try {
-    const { directory, empty } = await useWorkspaceFiles(path).list();
-    if (empty) await useWorkspaceFiles(directory).writeJson("画布1.json", { toonflowCanvas: true, nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } }, true);
-    await workspaceStore.openProject(directory);
+    const { directory, empty } = await useWorkspaceFiles(path).list("", pageLifetime.signal);
+    if (!empty) {
+      const project = projectList.value.find(item => item.directory === directory)
+        ?? { directory, name: directory.split(/[\/]/).filter(Boolean).at(-1) || directory, lastOpenedAt: Date.now() };
+      creating.value = false;
+      await openProject(project);
+      return;
+    }
+    await useWorkspaceFiles(directory).writeJson("画布1.json", { toonflowCanvas: true, nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } }, true);
+    pageLifetime.signal.throwIfAborted();
+    await workspaceStore.openProject(directory, directory, pageLifetime.signal);
     await enterWorkspace();
   } catch (err) {
+    if (pageLifetime.signal.aborted) return;
     ElMessage.error(axios.isAxiosError<{ message?: string }>(err)
       ? err.response?.data.message || "无法打开或创建项目，请重试"
       : err instanceof Error ? err.message : "无法打开或创建项目，请重试");
@@ -289,6 +303,7 @@ async function createProject() {
                 }
 
                 .projectTime { font-size: 12px; line-height: 1.6; color: var(--el-text-color-secondary); }
+                .projectEntryHint { display: flex; align-items: center; gap: 6px; margin-top: 4px; color: var(--el-color-primary); font-size: 13px; }
               }
             }
 

@@ -1,110 +1,134 @@
 <template>
-  <el-dialog :modelValue="modelValue" class="canvasPickerDialog" width="min(980px, calc(100vw - 48px))" alignCenter appendToBody destroyOnClose :showClose="false"
+  <el-dialog :modelValue="modelValue" class="canvasPickerDialog" width="min(1040px, calc(100vw - 32px))" alignCenter appendToBody destroyOnClose :showClose="false"
+    :title="entering ? '选择要进入的画布' : '切换画布'" :closeOnClickModal="!busy" :closeOnPressEscape="!busy"
     @update:modelValue="emit('update:modelValue', $event)" @openAutoFocus="focusSearch">
-    <div class="canvasPicker" role="group" aria-labelledby="canvasPickerTitle" @keydown="onKeydown">
+    <div ref="pickerRoot" class="canvasPicker" @keydown="onKeydown">
       <div class="pickerHeader">
         <div class="pickerTitle">
-          <span id="canvasPickerTitle" class="titleText">{{ entering ? "选择要进入的画布" : "切换画布" }}</span>
+          <span class="titleText">{{ entering ? "选择要进入的画布" : "切换画布" }}</span>
           <span class="titleProject" :title="directory">{{ projectName }}</span>
         </div>
+        <div class="headerActions">
+          <el-button type="primary" :icon="IconPlus" :disabled="busy || loading || !!loadError" :title="`新建在${currentFolder ? `“${currentFolder}”` : '根目录'}`" @click="emit('create', currentFolder)">新建画布</el-button>
+          <el-dropdown v-if="!entering" trigger="click" :disabled="busy" @command="handleFileCommand">
+            <el-button :icon="IconDots" :disabled="busy" aria-label="画布文件操作">更多</el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="import" :icon="IconFileImport">导入画布</el-dropdown-item>
+                <el-dropdown-item command="export" :icon="IconFileExport" :disabled="!activeId">导出当前画布</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+          <el-button class="closeButton" text :icon="IconX" :disabled="busy" title="关闭" aria-label="关闭画布选择" @click="emit('update:modelValue', false)" />
+        </div>
+      </div>
+      <div class="pickerToolbar">
         <el-input ref="searchInput" v-model="query" class="searchInput" :prefixIcon="IconSearch" placeholder="搜索画布名称或文件夹" aria-label="搜索画布" clearable />
         <el-radio-group v-model="display" class="viewToggle" aria-label="显示方式">
-          <el-radio-button value="grid" title="卡片" aria-label="卡片视图"><icon-layout-grid :size="16" /></el-radio-button>
-          <el-radio-button value="list" title="列表" aria-label="列表视图"><icon-list :size="16" /></el-radio-button>
+          <el-radio-button value="grid"><icon-layout-grid :size="16" aria-hidden="true" /><span>卡片</span></el-radio-button>
+          <el-radio-button value="list"><icon-list :size="16" aria-hidden="true" /><span>列表</span></el-radio-button>
         </el-radio-group>
-        <div v-if="!entering" class="headerActions">
-          <el-button class="iconButton" :icon="IconFileImport" :disabled="busy" title="导入画布 JSON" aria-label="导入画布 JSON" @click="emit('import')" />
-          <el-button class="iconButton" :icon="IconFileExport" :disabled="busy || !activeId" title="导出当前画布 JSON" aria-label="导出当前画布 JSON" @click="emit('export')" />
-          <el-button type="primary" :icon="IconPlus" :disabled="busy" :title="`新建在${currentFolder ? `“${currentFolder}”` : '根目录'}`" @click="emit('create', currentFolder)">新建画布</el-button>
-        </div>
       </div>
       <div class="pickerBody">
         <nav class="sideNav" aria-label="画布分类">
           <div class="navGroup">
             <button class="navItem" :class="{ active: isActiveView('recent') }" type="button" @click="setView('recent')">
-              <icon-clock class="navIcon" :size="16" aria-hidden="true" /><span class="navLabel">最近打开</span>
+              <icon-clock class="navIcon" :size="17" aria-hidden="true" /><span class="navLabel">最近打开</span><span class="navCount">{{ recent.length }}</span>
+            </button>
+            <button class="navItem" :class="{ active: isActiveView('pinned') }" type="button" @click="setView('pinned')">
+              <icon-star class="navIcon" :size="17" aria-hidden="true" /><span class="navLabel">常用画布</span><span class="navCount">{{ pinned.length }}</span>
             </button>
             <button class="navItem" :class="{ active: isActiveView('all') }" type="button" @click="setView('all')">
-              <icon-stack2 class="navIcon" :size="16" aria-hidden="true" /><span class="navLabel">全部画布</span><span class="navCount">{{ canvases.length }}</span>
+              <icon-stack2 class="navIcon" :size="17" aria-hidden="true" /><span class="navLabel">全部画布</span><span class="navCount">{{ canvases.length }}</span>
             </button>
           </div>
-          <div v-if="folders.length || !entering" class="navGroup">
+          <div class="navGroup folderGroup">
             <div class="navTitle">
               <span>文件夹</span>
               <el-button v-if="!entering" class="navAction" text :icon="IconFolderPlus" :disabled="busy" title="新建文件夹" aria-label="新建画布文件夹" @click="emit('action', 'createFolder', '')" />
             </div>
-            <el-scrollbar maxHeight="calc(100% - 26px)">
+            <el-scrollbar maxHeight="280px">
               <button class="navItem" :class="{ active: isActiveView('folder:') }" type="button" @click="setView('folder:')">
-                <icon-folder-open class="navIcon" :size="16" aria-hidden="true" /><span class="navLabel">根目录</span><span class="navCount">{{ folderCount("") }}</span>
+                <icon-folder-open class="navIcon" :size="17" aria-hidden="true" /><span class="navLabel">根目录</span><span class="navCount">{{ folderCount("") }}</span>
               </button>
-              <div v-for="folder in folders" :key="folder" class="navItem folderItem" :class="{ active: isActiveView(`folder:${folder}`) }"
-                :style="{ paddingLeft: `${10 + 12 * (folder.split('/').length - 1)}px` }" role="button" tabindex="0" :title="folder"
-                @click="setView(`folder:${folder}`)" @keydown.enter.self.prevent="setView(`folder:${folder}`)" @contextmenu="!entering && openMenu($event, 'folder', folder)">
-                <icon-folder class="navIcon" :size="16" aria-hidden="true" /><span class="navLabel">{{ folder.split("/").at(-1) }}</span>
-                <span class="navCount">{{ folderCount(folder) }}</span>
-                <el-button v-if="!entering" class="moreButton" text :icon="IconDots" :disabled="busy" title="更多" :aria-label="`更多 ${folder}`" @click.stop="openMenu($event, 'folder', folder)" />
+              <div v-for="folder in visibleFolders" :key="folder" class="folderRow" :style="{ paddingLeft: `${Math.min(folder.split('/').length - 1, 4) * 12}px` }">
+                <button v-if="hasChildFolders(folder)" class="folderExpand" type="button" :aria-expanded="expandedFolders.includes(folder)" :aria-label="`${expandedFolders.includes(folder) ? '收起' : '展开'} ${folder}`" @click="toggleFolder(folder)">
+                  <icon-chevron-down v-if="expandedFolders.includes(folder)" :size="13" /><icon-chevron-right v-else :size="13" />
+                </button>
+                <span v-else class="folderIndent" />
+                <button class="navItem" :class="{ active: isActiveView(`folder:${folder}`) }" type="button" :title="folder"
+                  @click="setView(`folder:${folder}`)" @contextmenu="!entering && openMenu($event, 'folder', folder)">
+                  <icon-folder class="navIcon" :size="16" aria-hidden="true" /><span class="navLabel">{{ folder.split("/").at(-1) }}</span><span class="navCount">{{ folderCount(folder) }}</span>
+                </button>
+                <el-button v-if="!entering" class="folderMore" text :icon="IconDots" :disabled="busy" :aria-label="`管理文件夹 ${folder}`" @click="openMenu($event, 'folder', folder)" />
               </div>
             </el-scrollbar>
+            <button v-if="emptyFolderCount" class="otherFolders" type="button" :aria-expanded="showOtherFolders" @click="showOtherFolders = !showOtherFolders">
+              {{ showOtherFolders ? "收起空文件夹" : `显示空文件夹（${emptyFolderCount}）` }}
+            </button>
           </div>
         </nav>
-        <section class="pickerContent" aria-live="polite">
+        <section class="pickerContent" :aria-busy="loading">
           <div class="contentHeader">
-            <span class="contentTitle">{{ contentTitle }}</span>
-            <span class="contentMeta">{{ visible.length }} 个画布{{ view === "recent" && !searchText ? "" : " · 按修改时间" }}</span>
+            <span class="contentTitle" :title="contentTitle">{{ contentTitle }}</span>
+            <span class="contentMeta" aria-live="polite">{{ visible.length }} 个画布</span>
+            <span class="sortLabel">{{ sortLabel }}</span>
           </div>
-          <el-scrollbar v-loading="loading" class="contentScroll">
+          <el-scrollbar v-loading="loading" class="contentScroll" maxHeight="min(460px, calc(100dvh - 260px))">
             <div class="contentInner">
-              <div v-if="visible.length && display === 'grid'" ref="grid" class="canvasGrid" role="listbox" aria-label="画布">
-                <div v-for="(canvas, index) in visible" :key="canvas.path" class="canvasCard" :class="{ focused: index === focusedIndex }" role="option"
-                  :aria-selected="index === focusedIndex" :title="canvas.path" @click="select(canvas)" @mouseenter="focusedIndex = index" @contextmenu="!entering && openMenu($event, 'canvas', canvas.path)">
-                  <div class="cardThumb">
-                    <svg v-if="canvas.preview?.rects.length" class="thumbSvg" :viewBox="canvas.preview.viewBox" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-                      <rect v-for="(rect, rectIndex) in canvas.preview.rects" :key="rectIndex" :x="rect.x" :y="rect.y" :width="rect.width" :height="rect.height" rx="14"
-                        :fill="rect.color ? `color-mix(in srgb, ${rect.color} 32%, var(--el-bg-color-overlay))` : 'none'"
-                        :stroke="rect.color || 'var(--el-border-color-darker)'" :stroke-width="rect.color ? 3 : 4" :stroke-dasharray="rect.color ? undefined : '16 10'" stroke-opacity="0.7"
-                        vector-effect="non-scaling-stroke" />
-                    </svg>
-                    <div v-else class="thumbEmpty"><icon-vector :size="28" aria-hidden="true" /><span>{{ canvas.preview ? "空画布" : "" }}</span></div>
-                    <el-tag v-if="canvas.path === activeId" class="currentTag" size="small" effect="dark" round>当前</el-tag>
-                    <el-button v-if="!entering" class="moreButton" text :icon="IconDots" :disabled="busy" title="更多" :aria-label="`更多 ${canvas.name}`" @click.stop="openMenu($event, 'canvas', canvas.path)" />
+              <div v-if="visible.length && display === 'grid'" ref="grid" class="canvasGrid" role="list" aria-label="画布">
+                <article v-for="(canvas, index) in visible" :key="canvas.path" class="canvasCard" :class="{ focused: keyboardNavigating && index === focusedIndex }" role="listitem"
+                  @contextmenu="!entering && openMenu($event, 'canvas', canvas.path)">
+                  <button class="openCanvas" type="button" :disabled="busy" :aria-label="`${entering ? '进入' : '打开'}画布 ${canvas.name}`" :aria-current="canvas.path === activeId ? 'true' : undefined" @click="select(canvas)" @focus="focusedIndex = index">
+                    <span class="cardThumb">
+                      <svg v-if="canvas.preview?.rects.length" class="thumbSvg" :viewBox="canvas.preview.viewBox" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                        <rect v-for="(rect, rectIndex) in canvas.preview.rects" :key="rectIndex" :x="rect.x" :y="rect.y" :width="rect.width" :height="rect.height" rx="14"
+                          :fill="rect.color ? `color-mix(in srgb, ${rect.color} 24%, var(--el-bg-color-overlay))` : 'none'"
+                          :stroke="rect.color || 'var(--el-border-color-darker)'" :stroke-width="rect.color ? 2 : 3" :stroke-dasharray="rect.color ? undefined : '16 10'" stroke-opacity="0.8" vector-effect="non-scaling-stroke" />
+                      </svg>
+                      <span v-else class="thumbEmpty"><icon-vector :size="30" aria-hidden="true" /><span>{{ canvas.previewError ? "预览不可用" : canvas.preview ? "空画布" : "加载预览…" }}</span></span>
+                      <span v-if="canvas.path === activeId" class="currentTag">当前画布</span>
+                      <span v-else-if="openIds.includes(canvas.path)" class="openedTag">已打开</span>
+                    </span>
+                    <span class="cardInfo">
+                      <span class="cardName" :title="canvas.name"><template v-for="(part, partIndex) in highlight(canvas.name)" :key="partIndex"><mark v-if="part.match">{{ part.text }}</mark><template v-else>{{ part.text }}</template></template></span>
+                      <span class="cardFolder" :title="canvas.folder || '根目录'"><icon-folder :size="13" aria-hidden="true" />{{ canvas.folder || "根目录" }}</span>
+                      <span class="cardMeta"><span>{{ canvas.preview ? `${canvas.preview.nodeCount} 个节点` : canvas.previewError ? "预览不可用" : "读取中…" }}</span><span :title="absoluteTime(canvas.mtimeMs)">{{ relativeTime(canvas.mtimeMs) }}</span></span>
+                    </span>
+                  </button>
+                  <div class="cardActions">
+                    <button class="pinButton" type="button" :class="{ pinned: pinnedIds.includes(canvas.path) }" :disabled="busy" :aria-pressed="pinnedIds.includes(canvas.path)" :aria-label="`${pinnedIds.includes(canvas.path) ? '取消常用' : '设为常用'} ${canvas.name}`" @click="emit('togglePin', canvas.path)">
+                      <icon-star-filled v-if="pinnedIds.includes(canvas.path)" :size="15" aria-hidden="true" /><icon-star v-else :size="15" aria-hidden="true" />{{ pinnedIds.includes(canvas.path) ? "已设常用" : "设为常用" }}
+                    </button>
+                    <el-button v-if="!entering" class="moreButton" text :icon="IconDots" :disabled="busy" :aria-label="`管理画布 ${canvas.name}`" @click="openMenu($event, 'canvas', canvas.path)">管理</el-button>
                   </div>
-                  <div class="cardInfo">
-                    <div class="cardName">
-                      <icon-check v-if="canvas.path === activeId" class="currentIcon" :size="14" aria-label="当前画布" />
-                      <icon-vector v-else class="canvasIcon" :size="14" aria-hidden="true" />
-                      <span class="nameText"><template v-for="(part, partIndex) in highlight(canvas.name)" :key="partIndex"><mark v-if="part.match">{{ part.text }}</mark><template v-else>{{ part.text }}</template></template></span>
-                      <span v-if="openIds.includes(canvas.path) && canvas.path !== activeId" class="openDot" title="已在后台打开，切换无需重新加载" />
-                    </div>
-                    <div class="cardMeta">{{ canvasMeta(canvas) }}</div>
-                  </div>
+                </article>
+              </div>
+              <div v-else-if="visible.length" class="canvasList" role="list" aria-label="画布">
+                <div v-for="(canvas, index) in visible" :key="canvas.path" class="listRow" :class="{ focused: keyboardNavigating && index === focusedIndex }" role="listitem" @contextmenu="!entering && openMenu($event, 'canvas', canvas.path)">
+                  <button class="listOpen" type="button" :disabled="busy" :aria-current="canvas.path === activeId ? 'true' : undefined" @click="select(canvas)" @focus="focusedIndex = index">
+                    <span class="rowName"><span class="nameText"><template v-for="(part, partIndex) in highlight(canvas.name)" :key="partIndex"><mark v-if="part.match">{{ part.text }}</mark><template v-else>{{ part.text }}</template></template></span><span v-if="canvas.path === activeId" class="rowCurrent">当前画布</span><span v-else-if="openIds.includes(canvas.path)" class="rowMuted">已打开</span></span>
+                    <span class="rowMuted rowFolder" :title="canvas.folder || '根目录'">{{ canvas.folder || "根目录" }}</span>
+                    <span class="rowMuted">{{ canvas.preview ? `${canvas.preview.nodeCount} 个节点` : canvas.previewError ? "预览不可用" : "读取中…" }}</span>
+                    <span class="rowMuted" :title="absoluteTime(canvas.mtimeMs)">{{ relativeTime(canvas.mtimeMs) }}</span>
+                  </button>
+                  <button class="pinButton" type="button" :class="{ pinned: pinnedIds.includes(canvas.path) }" :disabled="busy" :aria-pressed="pinnedIds.includes(canvas.path)" :aria-label="`${pinnedIds.includes(canvas.path) ? '取消常用' : '设为常用'} ${canvas.name}`" @click="emit('togglePin', canvas.path)"><icon-star-filled v-if="pinnedIds.includes(canvas.path)" :size="16" /><icon-star v-else :size="16" /></button>
+                  <el-button v-if="!entering" class="moreButton" text :icon="IconDots" :disabled="busy" :aria-label="`管理画布 ${canvas.name}`" @click="openMenu($event, 'canvas', canvas.path)" />
                 </div>
               </div>
-              <div v-else-if="visible.length" class="canvasList" role="listbox" aria-label="画布">
-                <div class="listRow listHead" aria-hidden="true"><span>名称</span><span>位置</span><span>节点</span><span>修改时间</span><span /></div>
-                <div v-for="(canvas, index) in visible" :key="canvas.path" class="listRow" :class="{ focused: index === focusedIndex }" role="option"
-                  :aria-selected="index === focusedIndex" :title="canvas.path" @click="select(canvas)" @mouseenter="focusedIndex = index" @contextmenu="!entering && openMenu($event, 'canvas', canvas.path)">
-                  <span class="rowName">
-                    <icon-check v-if="canvas.path === activeId" class="currentIcon" :size="14" aria-label="当前画布" />
-                    <icon-vector v-else class="canvasIcon" :size="14" aria-hidden="true" />
-                    <span class="nameText"><template v-for="(part, partIndex) in highlight(canvas.name)" :key="partIndex"><mark v-if="part.match">{{ part.text }}</mark><template v-else>{{ part.text }}</template></template></span>
-                    <span v-if="openIds.includes(canvas.path) && canvas.path !== activeId" class="openDot" title="已在后台打开，切换无需重新加载" />
-                  </span>
-                  <span class="rowMuted">{{ canvas.folder || "根目录" }}</span>
-                  <span class="rowMuted">{{ canvas.preview?.nodeCount ?? "" }}</span>
-                  <span class="rowMuted">{{ relativeTime(canvas.mtimeMs) }}</span>
-                  <el-button v-if="!entering" class="moreButton" text :icon="IconDots" :disabled="busy" title="更多" :aria-label="`更多 ${canvas.name}`" @click.stop="openMenu($event, 'canvas', canvas.path)" />
-                </div>
-              </div>
-              <el-empty v-else-if="!loading" class="emptyResult" :imageSize="72" :description="loadError || (searchText ? '没有匹配的画布' : '这里还没有画布')" />
+              <el-empty v-else-if="!loading" class="emptyResult" :imageSize="60" :description="emptyDescription">
+                <el-button v-if="loadError" @click="load">重新加载</el-button>
+                <el-button v-else-if="view !== 'all' || searchText" @click="setView('all')">查看全部画布</el-button>
+                <el-button v-else type="primary" :icon="IconPlus" :disabled="busy" @click="emit('create', currentFolder)">新建画布</el-button>
+              </el-empty>
             </div>
           </el-scrollbar>
         </section>
       </div>
       <div class="pickerFooter">
-        <span class="footerKey"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd>选择</span>
-        <span class="footerKey"><kbd>Enter</kbd>打开</span>
-        <span class="footerKey"><kbd>Esc</kbd>关闭</span>
-        <span v-if="shortcut" class="footerKey"><kbd>{{ shortcut }}</kbd>随时唤起</span>
+        <span class="footerHint">{{ entering ? "选择一张画布进入项目" : "单击卡片打开画布" }}</span>
+        <span class="footerKey"><kbd>↑ ↓</kbd>选择 <kbd>Enter</kbd>打开 <kbd>Esc</kbd>关闭</span>
+        <span v-if="shortcut" class="footerKey"><kbd>{{ shortcut }}</kbd>唤起</span>
       </div>
     </div>
   </el-dialog>
@@ -132,17 +156,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, shallowRef, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, ref, shallowRef, watch } from "vue";
 import { t } from "@toonflow/i18n/vue";
 import { vLoading, type DropdownInstance, type InputInstance } from "element-plus";
-import { IconCheck, IconClock, IconDots, IconFileExport, IconFileImport, IconFolder, IconFolderOpen, IconFolderPlus, IconLayoutGrid, IconList, IconPlus, IconSearch, IconStack2, IconVector } from "@tabler/icons-vue";
+import { IconChevronDown, IconChevronRight, IconClock, IconDots, IconFileExport, IconFileImport, IconFolder, IconFolderOpen, IconFolderPlus, IconLayoutGrid, IconList, IconPlus, IconSearch, IconStack2, IconStar, IconStarFilled, IconVector, IconX } from "@tabler/icons-vue";
 import useWorkspaceFiles from "@/lib/workspaceFiles";
 import { listCanvasFiles, type CanvasListing } from "@/pages/workspace/canvasFile";
 
 export type CanvasPickerAction = "rename" | "copy" | "delete" | "move" | "createFolder" | "renameFolder" | "deleteFolder";
 type Rect = { x: number; y: number; width: number; height: number; color?: string };
 type Preview = { nodeCount: number; rects: Rect[]; viewBox: string };
-type PickerCanvas = CanvasListing & { preview?: Preview };
+type PickerCanvas = CanvasListing & { preview?: Preview; previewError?: boolean };
 
 const props = withDefaults(defineProps<{
   modelValue: boolean;
@@ -151,14 +175,16 @@ const props = withDefaults(defineProps<{
   activeId?: string;
   openIds?: string[];
   recentIds?: string[];
+  pinnedIds?: string[];
   entering?: boolean;
   busy?: boolean;
   shortcut?: string;
-}>(), { projectName: "", activeId: "", openIds: () => [], recentIds: () => [], entering: false, busy: false, shortcut: "" });
+}>(), { projectName: "", activeId: "", openIds: () => [], recentIds: () => [], pinnedIds: () => [], entering: false, busy: false, shortcut: "" });
 const emit = defineEmits<{
   "update:modelValue": [visible: boolean];
   select: [canvas: { id: string; name: string }];
   create: [folder: string];
+  togglePin: [path: string];
   import: [];
   export: [];
   action: [command: CanvasPickerAction, path: string, target?: string];
@@ -174,6 +200,10 @@ const view = ref("all");
 const display = ref<"grid" | "list">("grid");
 const query = ref("");
 const focusedIndex = ref(0);
+const keyboardNavigating = ref(false);
+const pickerRoot = ref<HTMLElement>();
+const expandedFolders = ref<string[]>([]);
+const showOtherFolders = ref(false);
 const searchInput = ref<InputInstance>();
 const grid = ref<HTMLElement>();
 const itemMenu = ref<DropdownInstance>();
@@ -181,52 +211,79 @@ const menuAnchor = shallowRef({ getBoundingClientRect: () => new DOMRect() });
 const menuEntry = shallowRef<{ type: "canvas" | "folder"; path: string }>();
 const moving = ref(false);
 let controller = new AbortController();
+let loadedDirectory = "";
 
 const searchText = computed(() => query.value.trim().toLocaleLowerCase());
 const byTime = (list: PickerCanvas[]) => [...list].sort((left, right) => right.mtimeMs - left.mtimeMs);
-const recent = computed(() => {
-  const remembered = props.recentIds.map(id => canvases.value.find(canvas => canvas.path === id)).filter(canvas => canvas !== undefined);
-  // 记录不足时按修改时间补齐，避免刚开始使用时“最近打开”只有一两个。
-  const rest = byTime(canvases.value.filter(canvas => !remembered.includes(canvas)));
-  return [...remembered, ...rest].slice(0, 8);
-});
+const recent = computed(() => props.recentIds.map(id => canvases.value.find(canvas => canvas.path === id)).filter(canvas => canvas !== undefined));
+const pinned = computed(() => props.pinnedIds.map(id => canvases.value.find(canvas => canvas.path === id)).filter(canvas => canvas !== undefined));
 const visible = computed(() => {
-  if (searchText.value) return byTime(canvases.value.filter(canvas => canvas.path.toLocaleLowerCase().includes(searchText.value)));
+  if (searchText.value) {
+    const relevance = (canvas: PickerCanvas) => {
+      const name = canvas.name.toLocaleLowerCase();
+      return name === searchText.value ? 0 : name.startsWith(searchText.value) ? 1 : name.includes(searchText.value) ? 2 : 3;
+    };
+    return canvases.value.filter(canvas => canvas.path.toLocaleLowerCase().includes(searchText.value))
+      .sort((left, right) => relevance(left) - relevance(right) || right.mtimeMs - left.mtimeMs);
+  }
   if (view.value === "recent") return recent.value;
+  if (view.value === "pinned") return pinned.value;
   if (view.value === "all") return byTime(canvases.value);
-  return byTime(canvases.value.filter(canvas => canvas.folder === view.value.slice(7)));
+  const folder = view.value.slice(7);
+  return byTime(canvases.value.filter(canvas => canvas.folder === folder || (folder && canvas.path.startsWith(`${folder}/`))));
 });
 const currentFolder = computed(() => !searchText.value && view.value.startsWith("folder:") ? view.value.slice(7) : "");
 const contentTitle = computed(() => {
   if (searchText.value) return t`搜索结果`;
   if (view.value === "recent") return t`最近打开`;
+  if (view.value === "pinned") return t`常用画布`;
   if (view.value === "all") return t`全部画布`;
   return view.value.slice(7) || t`根目录`;
 });
-watch([visible, view], () => { focusedIndex.value = Math.max(0, visible.value.findIndex(canvas => canvas.path === props.activeId)); });
+const sortLabel = computed(() => searchText.value ? t`按匹配程度` : view.value === "recent" ? t`按打开顺序` : view.value === "pinned" ? t`按收藏顺序` : t`按修改时间`);
+const emptyDescription = computed(() => {
+  if (loadError.value) return loadError.value;
+  if (searchText.value) return t`没有匹配的画布`;
+  if (view.value === "recent") return t`还没有打开过画布`;
+  if (view.value === "pinned") return t`点击画布上的星标，添加常用画布`;
+  return t`这里还没有画布`;
+});
+const emptyFolderCount = computed(() => folders.value.filter(folder => !hasCanvases(folder)).length);
+const visibleFolders = computed(() => folders.value.filter(folder => {
+  if (!showOtherFolders.value && !hasCanvases(folder)) return false;
+  const parts = folder.split("/");
+  return parts.slice(0, -1).every((_, index) => expandedFolders.value.includes(parts.slice(0, index + 1).join("/")));
+}));
+watch([visible, view], () => {
+  focusedIndex.value = Math.max(0, visible.value.findIndex(canvas => canvas.path === props.activeId));
+  keyboardNavigating.value = false;
+});
 
 function isActiveView(key: string) { return view.value === key && !searchText.value; }
 function setView(key: string) { view.value = key; query.value = ""; searchInput.value?.focus(); }
-function folderCount(folder: string) { return canvases.value.filter(canvas => canvas.folder === folder).length; }
+function folderCount(folder: string) { return canvases.value.filter(canvas => canvas.folder === folder || (folder && canvas.path.startsWith(`${folder}/`))).length; }
 function hasCanvases(folder: string) { return canvases.value.some(canvas => canvas.path.startsWith(`${folder}/`)); }
+function hasChildFolders(folder: string) { return folders.value.some(child => parentFolder(child) === folder && (showOtherFolders.value || hasCanvases(child))); }
+function toggleFolder(folder: string) {
+  expandedFolders.value = expandedFolders.value.includes(folder) ? expandedFolders.value.filter(path => path !== folder) : [...expandedFolders.value, folder];
+}
 function parentFolder(path: string) { return path.slice(0, Math.max(0, path.lastIndexOf("/"))); }
-function focusSearch() { setTimeout(() => searchInput.value?.focus()); }
-
+function focusSearch() { void nextTick(() => searchInput.value?.focus()); }
+function handleFileCommand(command: string) {
+  if (props.busy) return;
+  if (command === "import") emit("import");
+  else if (command === "export" && props.activeId) emit("export");
+}
+function absoluteTime(time: number) { return time ? new Date(time).toLocaleString() : ""; }
 function relativeTime(time: number) {
   const minutes = Math.floor((Date.now() - time) / 60000);
   if (!time) return "";
-  if (minutes < 1) return t`刚刚`;
+  if (minutes < 1) return t`刚刚修改`;
   if (minutes < 60) return t`${minutes} 分钟前`;
   if (minutes < 24 * 60) return t`${Math.floor(minutes / 60)} 小时前`;
   if (minutes < 30 * 24 * 60) return t`${Math.floor(minutes / 60 / 24)} 天前`;
   return new Date(time).toLocaleDateString();
 }
-
-function canvasMeta(canvas: PickerCanvas) {
-  const nodes = canvas.preview ? canvas.preview.nodeCount ? t`${canvas.preview.nodeCount} 个节点` : t`空画布` : "";
-  return [canvas.folder || t`根目录`, nodes, relativeTime(canvas.mtimeMs)].filter(Boolean).join(" · ");
-}
-
 function highlight(text: string) {
   const index = searchText.value ? text.toLocaleLowerCase().indexOf(searchText.value) : -1;
   if (index < 0) return [{ text, match: false }];
@@ -276,16 +333,39 @@ async function load() {
   controller = new AbortController();
   const signal = controller.signal;
   const directory = props.directory;
+  const refreshing = loadedDirectory === directory;
+  if (!refreshing) {
+    canvases.value = [];
+    folders.value = [];
+    expandedFolders.value = [];
+    showOtherFolders.value = false;
+  }
   const files = useWorkspaceFiles(directory);
   loading.value = true;
   loadError.value = "";
   try {
     const listed = await listCanvasFiles(files, signal);
+    if (signal.aborted) return;
     canvases.value = listed.canvases.map(canvas => ({ ...canvas, preview: previewCache.get(`${directory}|${canvas.path}|${canvas.mtimeMs}`) }));
+    const addedFolders = listed.folders.filter(folder => !folders.value.includes(folder));
+    if (refreshing && addedFolders.some(folder => !listed.canvases.some(canvas => canvas.path.startsWith(`${folder}/`)))) {
+      showOtherFolders.value = true;
+      for (const folder of addedFolders) {
+        const parts = folder.split("/");
+        for (let depth = 1; depth < parts.length; depth++) {
+          const parent = parts.slice(0, depth).join("/");
+          if (!expandedFolders.value.includes(parent)) expandedFolders.value.push(parent);
+        }
+      }
+    }
+    loadedDirectory = directory;
+    if (view.value === "recent" && !recent.value.length) view.value = "all";
     folders.value = listed.folders;
     if (view.value.startsWith("folder:") && view.value !== "folder:" && !listed.folders.includes(view.value.slice(7))) view.value = "all";
   } catch (error) {
     if (signal.aborted) return;
+    canvases.value = [];
+    folders.value = [];
     loadError.value = error instanceof Error ? error.message : t`读取画布失败`;
     return;
   } finally { if (!signal.aborted) loading.value = false; }
@@ -293,10 +373,15 @@ async function load() {
   const readNext = async (): Promise<void> => {
     const canvas = pending.shift();
     if (!canvas || signal.aborted) return;
-    const data = await files.readJson<{ nodes?: unknown }>(canvas.path, signal).catch(() => undefined);
-    if (signal.aborted) return;
-    canvas.preview = createPreview(data?.nodes);
-    previewCache.set(`${directory}|${canvas.path}|${canvas.mtimeMs}`, canvas.preview);
+    try {
+      const data = await files.readJson<{ nodes?: unknown }>(canvas.path, signal);
+      if (signal.aborted) return;
+      canvas.preview = createPreview(data?.nodes);
+      previewCache.set(`${directory}|${canvas.path}|${canvas.mtimeMs}`, canvas.preview);
+    } catch {
+      if (signal.aborted) return;
+      canvas.previewError = true;
+    }
     return readNext();
   };
   await Promise.all(Array.from({ length: 4 }, readNext));
@@ -306,7 +391,7 @@ async function load() {
 watch([() => props.modelValue, () => props.directory], ([opened]) => {
   if (opened) {
     query.value = "";
-    view.value = props.entering || props.recentIds.length ? "recent" : "all";
+    view.value = props.recentIds.length ? "recent" : "all";
     void load();
   } else { controller.abort(); itemMenu.value?.handleClose(); }
 }, { immediate: true });
@@ -321,21 +406,26 @@ function columns() {
 }
 
 function onKeydown(event: KeyboardEvent) {
-  if (event.isComposing) return;
+  if (event.isComposing || props.busy || !(event.target instanceof HTMLElement)) return;
+  const input = event.target instanceof HTMLInputElement && !!event.target.closest(".searchInput");
+  if (!input && !event.target.closest(".openCanvas, .listOpen")) return;
   const count = visible.value.length;
-  const input = event.target instanceof HTMLInputElement;
   const step = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: columns(), ArrowUp: -columns() }[event.key];
   if (step && count) {
     if ((display.value === "list" || input) && (event.key === "ArrowLeft" || event.key === "ArrowRight")) return;
     event.preventDefault();
+    keyboardNavigating.value = true;
     focusedIndex.value = Math.min(count - 1, Math.max(0, focusedIndex.value + step));
-    void nextTick(() => document.querySelector(".canvasPickerDialog .focused")?.scrollIntoView({ block: "nearest" }));
-  } else if (event.key === "Enter" && count && (input || !(event.target instanceof HTMLButtonElement))) {
+    void nextTick(() => {
+      const button = pickerRoot.value?.querySelectorAll<HTMLButtonElement>(".openCanvas, .listOpen")[focusedIndex.value];
+      button?.scrollIntoView({ block: "nearest" });
+      if (!input) button?.focus({ preventScroll: true });
+    });
+  } else if (event.key === "Enter" && count && input) {
     event.preventDefault();
     select(visible.value[focusedIndex.value]!);
   }
 }
-
 function openMenu(event: MouseEvent, type: "canvas" | "folder", path: string) {
   event.preventDefault();
   if (props.busy) return;
@@ -357,6 +447,8 @@ function handleCommand(command: string) {
   else emit("action", command as CanvasPickerAction, entry.path);
 }
 
+onBeforeUnmount(() => controller.abort());
+
 defineExpose({ reload: load });
 </script>
 
@@ -365,262 +457,236 @@ defineExpose({ reload: load });
   --el-dialog-padding-primary: 0;
   display: flex;
   flex-direction: column;
-  height: min(640px, calc(100dvh - 64px));
+  max-height: calc(100dvh - 40px);
   padding: 0;
   overflow: hidden;
 }
-
 :global(.canvasPickerDialog .el-dialog__header) { display: none; }
-:global(.canvasPickerDialog .el-dialog__body) { flex: 1; min-height: 0; padding: 0; }
+:global(.canvasPickerDialog .el-dialog__body) { min-height: 0; padding: 0; }
 :global(.canvasActionMenu .deleteAction) { color: var(--el-color-danger); }
-
-kbd {
-  display: inline-flex;
-  align-items: center;
-  height: 18px;
-  padding: 0 5px;
-  border: 1px solid var(--el-border-color);
-  border-radius: var(--ui-radius-small);
-  color: var(--el-text-color-secondary);
-  font-family: inherit;
-  font-size: 11px;
-  line-height: 1;
-}
 
 .canvasPicker {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  color: var(--el-text-color-primary);
+  max-height: calc(100dvh - 40px);
+
+  .pickerHeader, .pickerToolbar, .pickerFooter { flex-shrink: 0; }
+
+  button:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: -2px; }
+  button:disabled { cursor: not-allowed; }
 
   .pickerHeader {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 14px 16px 12px;
-    border-bottom: 1px solid var(--el-border-color-lighter);
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 20px 20px 14px;
 
     .pickerTitle {
       display: flex;
-      flex-direction: column;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 10px;
       min-width: 0;
-      margin-right: 8px;
-
-      .titleText { font-size: 15px; font-weight: 600; line-height: 1.5; white-space: nowrap; }
-      .titleProject { overflow: hidden; color: var(--el-text-color-secondary); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+      .titleText { font-size: 18px; font-weight: 600; }
+      .titleProject { max-width: 280px; overflow: hidden; color: var(--el-text-color-secondary); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
     }
-
-    .searchInput { flex: 1; min-width: 160px; max-width: 360px; margin-left: auto; }
-
     .headerActions {
       display: flex;
+      align-items: center;
+      flex-shrink: 0;
       gap: 8px;
       .el-button + .el-button { margin-left: 0; }
-      .iconButton { width: 32px; padding: 0; }
+      .closeButton { width: 32px; height: 32px; padding: 0; }
     }
   }
 
-  .pickerBody { display: flex; flex: 1; min-height: 0; }
-
-  .sideNav {
+  .pickerToolbar {
     display: flex;
-    flex-direction: column;
-    flex-shrink: 0;
-    width: 196px;
-    padding: 8px;
+    align-items: center;
+    gap: 12px;
+    padding: 0 20px 16px;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    .searchInput { flex: 1; min-width: 0; }
+    .viewToggle {
+      flex-shrink: 0;
+      :deep(.el-radio-button__inner) { display: flex; align-items: center; gap: 6px; }
+    }
+  }
+
+  .pickerBody { display: grid; grid-template-columns: 188px minmax(0, 1fr); flex: 0 1 auto; min-height: 0; overflow: auto; }
+  .sideNav {
+    min-width: 0;
+    padding: 12px 8px;
     border-right: 1px solid var(--el-border-color-lighter);
-
-    .navGroup + .navGroup { flex: 1; min-height: 0; margin-top: 12px; }
-
+    .navGroup + .navGroup { margin-top: 20px; }
     .navTitle {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      height: 26px;
-      padding: 0 4px 0 10px;
+      height: 28px;
+      padding: 0 8px;
+      margin-bottom: 4px;
       color: var(--el-text-color-secondary);
       font-size: 12px;
-
-      .navAction { width: 22px; height: 22px; padding: 0; }
+      .navAction { width: 26px; height: 26px; padding: 0; }
     }
-
     .navItem {
       display: flex;
       align-items: center;
       gap: 8px;
       width: 100%;
-      height: 34px;
+      min-width: 0;
+      height: 38px;
       padding: 0 10px;
       border: 0;
       border-radius: var(--el-border-radius-base);
-      background: none;
+      background: transparent;
       color: var(--el-text-color-regular);
       font: inherit;
       font-size: 13px;
       text-align: start;
       cursor: pointer;
-
       &:hover { background: var(--el-fill-color-light); }
-      &:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: -2px; }
       &.active { background: var(--el-color-primary-light-9); color: var(--el-color-primary); }
-
       .navIcon { flex-shrink: 0; }
       .navLabel { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .navCount { flex-shrink: 0; color: var(--el-text-color-placeholder); font-size: 12px; }
-      .moreButton { display: none; width: 22px; height: 22px; margin: 0 -4px 0 0; padding: 0; }
+      .navCount { flex-shrink: 0; color: var(--el-text-color-secondary); font-size: 12px; }
     }
-
-    .folderItem {
-      &:hover, &:focus-within {
-        .navCount { display: none; }
-        .moreButton { display: inline-flex; }
-      }
+    .folderRow {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      .folderExpand, .folderIndent { display: flex; align-items: center; justify-content: center; flex: 0 0 16px; width: 16px; }
+      .folderExpand { height: 32px; border: 0; padding: 0; color: var(--el-text-color-secondary); background: transparent; cursor: pointer; }
+      .navItem { flex: 1; padding: 0 4px; gap: 5px; }
+      .folderMore { flex-shrink: 0; width: 24px; height: 28px; padding: 0; margin: 0; }
     }
+    .otherFolders { margin: 8px 0 0; padding: 6px 8px; border: 0; background: transparent; color: var(--el-text-color-secondary); font: inherit; font-size: 12px; text-align: start; cursor: pointer; }
   }
 
   .pickerContent {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
     min-width: 0;
-
     .contentHeader {
       display: flex;
       align-items: center;
+      flex-wrap: wrap;
       gap: 8px;
-      height: 44px;
-      padding: 0 16px;
-
-      .contentTitle { font-size: 13px; font-weight: 600; }
-      .contentMeta { flex: 1; color: var(--el-text-color-secondary); font-size: 12px; }
+      min-height: 52px;
+      padding: 10px 20px;
+      box-sizing: border-box;
+      .contentTitle { min-width: 0; max-width: 70%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 500; }
+      .contentMeta, .sortLabel { color: var(--el-text-color-secondary); font-size: 12px; }
+      .sortLabel { margin-left: auto; }
     }
+    .contentInner { padding: 0 20px 20px; }
+    .emptyResult { padding: 24px 0; }
 
-    .contentScroll { flex: 1; min-height: 0; }
-    .contentInner { padding: 0 16px 16px; }
-    .emptyResult { padding: 72px 0; }
+    .canvasGrid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr));
+      gap: 16px;
+      .canvasCard {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        overflow: hidden;
+        border: 1px solid var(--el-border-color);
+        border-radius: var(--ui-radius-large);
+        background: var(--el-bg-color-overlay);
+        &:hover { border-color: var(--el-color-primary-light-5); }
+        &.focused { outline: 2px solid var(--el-color-primary); outline-offset: -2px; }
+        .openCanvas { display: flex; flex-direction: column; width: 100%; padding: 0; border: 0; color: inherit; background: transparent; font: inherit; text-align: start; cursor: pointer; }
+        .cardThumb {
+          display: block;
+          position: relative;
+          width: 100%;
+          aspect-ratio: 16 / 9;
+          background: var(--el-fill-color-lighter);
+          border-bottom: 1px solid var(--el-border-color-lighter);
+          .thumbSvg { display: block; width: 100%; height: 100%; padding: 16px; box-sizing: border-box; }
+          .thumbEmpty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; height: 100%; color: var(--el-text-color-secondary); font-size: 12px; }
+          .currentTag, .openedTag { position: absolute; top: 10px; left: 10px; padding: 3px 8px; border-radius: 5px; font-size: 12px; line-height: 1.5; }
+          .currentTag { background: var(--el-color-primary); color: var(--el-color-white); }
+          .openedTag { background: var(--el-bg-color-overlay); color: var(--el-text-color-regular); }
+        }
+        .cardInfo {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          width: 100%;
+          box-sizing: border-box;
+          padding: 14px 14px 10px;
+          .cardName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; font-weight: 600; line-height: 1.5; }
+          .cardFolder { display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--el-text-color-secondary); font-size: 12px; svg { flex-shrink: 0; } }
+          .cardMeta { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px 8px; color: var(--el-text-color-secondary); font-size: 12px; line-height: 1.5; }
+        }
+        .cardActions { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 0 10px 8px; }
+      }
+    }
+    .canvasList {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      .listRow {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+        border-radius: var(--el-border-radius-base);
+        &:hover { background: var(--el-fill-color-light); }
+        &.focused { outline: 2px solid var(--el-color-primary); outline-offset: -2px; }
+        .listOpen { display: grid; grid-template-columns: minmax(120px, 1fr) minmax(60px, 110px) 76px 88px; align-items: center; gap: 12px; flex: 1; min-width: 0; padding: 12px 8px; border: 0; background: transparent; color: inherit; font: inherit; text-align: start; cursor: pointer; }
+        .rowName { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; font-size: 14px; }
+        .nameText { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .rowCurrent { flex-shrink: 0; color: var(--el-color-primary); font-size: 12px; }
+        .rowMuted { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--el-text-color-secondary); font-size: 12px; }
+      }
+    }
+    .pinButton { display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; min-height: 30px; padding: 4px; border: 0; border-radius: 4px; color: var(--el-text-color-secondary); background: transparent; font: inherit; font-size: 12px; cursor: pointer; &.pinned { color: var(--el-color-primary); } &:hover { background: var(--el-fill-color-light); } }
+    .moreButton { flex-shrink: 0; height: 30px; padding: 0 6px; margin: 0; font-size: 12px; }
+    mark { border-radius: 2px; background: var(--el-color-primary-light-8); color: var(--el-color-primary); }
   }
 
   .pickerFooter {
     display: flex;
     align-items: center;
-    gap: 14px;
-    height: 36px;
-    padding: 0 16px;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    padding: 10px 20px;
     border-top: 1px solid var(--el-border-color-lighter);
     color: var(--el-text-color-secondary);
     font-size: 12px;
-
-    .footerKey { display: flex; align-items: center; gap: 4px; }
+    .footerHint { margin-right: auto; }
+    .footerKey { display: flex; align-items: center; gap: 5px; }
+    kbd { display: inline-flex; align-items: center; padding: 0 4px; border: 1px solid var(--el-border-color); border-radius: 4px; font: inherit; font-size: 11px; line-height: 18px; }
   }
-}
 
-.canvasGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
-  gap: 12px;
-
-  .canvasCard {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    overflow: hidden;
-    border: 1px solid var(--el-border-color-lighter);
-    border-radius: var(--ui-radius-large);
-    background: var(--el-bg-color-overlay);
-    cursor: pointer;
-    transition: border-color 0.2s;
-
-    &:hover { border-color: var(--el-color-primary-light-5); .moreButton { opacity: 1; } }
-    &.focused { border-color: var(--el-color-primary); box-shadow: 0 0 0 1px var(--el-color-primary); .moreButton { opacity: 1; } }
-
-    .cardThumb {
-      position: relative;
-      aspect-ratio: 16 / 10;
-      border-bottom: 1px solid var(--el-border-color-lighter);
-      background: var(--el-fill-color-lighter);
-
-      .thumbSvg { display: block; width: 100%; height: 100%; padding: 10px; }
-
-      .thumbEmpty {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        height: 100%;
-        color: var(--el-text-color-placeholder);
-        font-size: 12px;
-      }
-
-      .currentTag { position: absolute; top: 8px; left: 8px; }
-
-      .moreButton {
-        position: absolute;
-        top: 6px;
-        right: 6px;
-        width: 26px;
-        height: 26px;
-        padding: 0;
-        opacity: 0;
-        @media (hover: none) { opacity: 1; }
-      }
+  @media (max-width: 720px) {
+    .pickerHeader { padding: 14px 12px 12px; .pickerTitle .titleProject { max-width: 180px; } }
+    .pickerToolbar { padding: 0 12px 12px; gap: 8px; }
+    .pickerBody { grid-template-columns: 150px minmax(0, 1fr); }
+    .sideNav { padding: 8px 4px; }
+    .pickerContent {
+      .contentHeader { padding-inline: 12px; .sortLabel { display: none; } }
+      .contentInner { padding-inline: 12px; }
+      .canvasList .listRow .listOpen { grid-template-columns: 1fr; gap: 4px; }
     }
-
-    .cardInfo {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      padding: 8px 10px 10px;
-
-      .cardName { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 13px; font-weight: 500; line-height: 1.5; }
-      .cardMeta { overflow: hidden; color: var(--el-text-color-secondary); font-size: 12px; line-height: 1.5; text-overflow: ellipsis; white-space: nowrap; }
+    .pickerFooter { padding-inline: 12px; }
+  }
+  @media (max-width: 480px) {
+    .pickerHeader { .pickerTitle { width: 100%; } .headerActions { width: 100%; .closeButton { margin-left: auto; } } }
+    .pickerToolbar { flex-wrap: wrap; .searchInput { flex-basis: 100%; } }
+    .pickerBody { grid-template-columns: 112px minmax(0, 1fr); }
+    .sideNav {
+      .navItem { gap: 4px; padding: 0 4px; font-size: 12px; .navCount { font-size: 11px; } }
+      .folderRow { flex-wrap: wrap; .folderMore { margin-left: auto; } }
     }
-
-    @media (prefers-reduced-motion: reduce) { transition: none; }
+    .pickerContent .canvasGrid .canvasCard .cardInfo { padding: 10px 8px; }
+    .pickerContent .canvasGrid .canvasCard .cardActions { flex-wrap: wrap; padding: 0 4px 6px; }
+    .pickerFooter .footerKey { display: none; }
   }
 }
-
-.canvasList {
-  display: flex;
-  flex-direction: column;
-
-  .listRow {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 140px 72px 96px 32px;
-    align-items: center;
-    gap: 12px;
-    height: 40px;
-    padding: 0 6px 0 10px;
-    border-radius: var(--el-border-radius-base);
-    font-size: 13px;
-    cursor: pointer;
-
-    &:hover { background: var(--el-fill-color-light); .moreButton { opacity: 1; } }
-    &.focused { background: var(--el-color-primary-light-9); .moreButton { opacity: 1; } }
-
-    .rowName { display: flex; align-items: center; gap: 8px; min-width: 0; }
-    .rowMuted { overflow: hidden; color: var(--el-text-color-secondary); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-    .moreButton { width: 26px; height: 26px; padding: 0; opacity: 0; @media (hover: none) { opacity: 1; } }
-  }
-
-  .listHead {
-    height: 30px;
-    color: var(--el-text-color-placeholder);
-    font-size: 12px;
-    cursor: default;
-    &:hover { background: none; }
-  }
-}
-
-.nameText {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-
-  mark { border-radius: 2px; background: var(--el-color-primary-light-8); color: var(--el-color-primary); }
-}
-
-.canvasIcon { flex-shrink: 0; color: var(--el-text-color-secondary); }
-.currentIcon { flex-shrink: 0; color: var(--el-color-primary); }
-.openDot { flex-shrink: 0; width: 6px; height: 6px; border-radius: 50%; background: var(--el-color-success); }
 </style>

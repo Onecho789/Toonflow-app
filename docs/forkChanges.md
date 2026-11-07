@@ -1169,3 +1169,19 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 改动的上游文件：`canvasMenu.vue`、`canvasHost.vue`、`canvas/index.vue`、`lib/canvasShortcuts.ts`、`stores/workspace.ts`、`pages/home/index.vue`、`apps/server/src/utils/workspace/files.ts`。
 
 冲突时保留：`canvasMenu.vue` 的弹窗触发按钮与 `handlePickerAction`、`recentCanvases` 恢复逻辑、`switchCanvas` 快捷键、`copyWorkspaceFile` 的逐项复制。
+
+## 画布卡片浏览与项目进入流程（2026-11-07）
+
+- 修改前基线：`f3f7af4`。基线建立时客户端与云端均无未提交改动；本轮只调整客户端。
+- `canvasPickerDialog.vue`：卡片名称、目录、节点数和修改时间分层显示，增加明确关闭按钮；搜索独立一行，导入/导出合并进“更多”。区分当前画布、后台已打开和键盘焦点；结构缩略图保留，预览读取失败显示“预览不可用”。弹窗高度随内容变化，并在短窗口内滚动。
+- “最近打开”只使用真实访问记录，不再用修改时间补足；搜索按名称精确、前缀、包含、路径匹配排序。“常用画布”由星标切换，随项目保存。目录支持展开/收起，空目录默认归入可展开入口；新建空目录后自动显示，目录筛选与计数包含子目录。
+- `pages/home/projectEntry.ts` 统一首页最近项目、无限画布项目列表及打开已有目录的入口：先显示相同选择器，再进入明确选定的画布；取消留在原页。无画布项目可在选择器中新建，目录失效后重新定位并重新选择。加载过场延后至实际进入项目。
+- `pages/workspace/canvasFile.ts` 的 `createEmptyCanvas` 由项目入口和画布菜单共用，独占新建，只有明确同名冲突时才递增编号，不覆盖已有画布。
+- `workspaceMenu.vue` 明确显示“返回项目 / 设置”，返回目标为无限画布项目列表；`canvasMenu.vue` 分层显示项目、当前画布和“切换画布”，保留快捷键；`canvasSidePanel.vue` 将画布元素数量独立为徽标。按画布区域宽度安排工具栏，避免与中间的画布/文档切换重叠。
+- `Project.pinnedCanvases` 保存常用路径；`syncCanvasPath` 在文件或目录重命名、移动、删除成功后同步最近和常用记录，保留排序及目录前缀边界，项目重新打开时保留常用记录。
+
+改动文件：`apps/web/src/pages/home/{index.vue,projectEntry.ts}`、`pages/projects/index.vue`、`pages/workspace/{index.vue,canvasFile.ts,components/workspaceMenu.vue}`、`pages/workspace/panels/canvas/canvasHost.vue`、`pages/workspace/panels/canvas/components/{canvasMenu.vue,canvasPickerDialog.vue,canvasSidePanel.vue}`、`stores/workspace.ts`；`types/components.d.ts` 由组件插件生成。
+
+验证：`apps/web` 的 `bun run typecheck` 与 `bun run build --outDir ../../build/canvasBrowsePreview` 通过。开发页可以启动，但独立浏览器会话停在登录页，未完成实际交互验收；本轮未打包或发布桌面版本。
+
+冲突时保留：统一的先选画布进入流程、常用记录的持久化与磁盘成功后的路径同步、独占新建、卡片信息层次、工具栏文字与容器宽度适配。

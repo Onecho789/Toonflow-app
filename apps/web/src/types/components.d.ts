@@ -95,6 +95,7 @@ declare module 'vue' {
     IconPlus: typeof import('@tabler/icons-vue')['IconPlus']
     IconSettings: typeof import('@tabler/icons-vue')['IconSettings']
     IconTextSize: typeof import('@tabler/icons-vue')['IconTextSize']
+    IconVector: typeof import('@tabler/icons-vue')['IconVector']
     IconWallpaper: typeof import('@tabler/icons-vue')['IconWallpaper']
     IconX: typeof import('@tabler/icons-vue')['IconX']
     KeyInput: typeof import('./../components/settings/panels/general/keyInput.vue')['default']

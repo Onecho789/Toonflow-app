@@ -388,6 +388,11 @@ function saveDocumentNode(directory: string, canvasPath: string, nodeId: string,
     box-shadow: var(--el-box-shadow-light);
   }
 
+  :deep(.workspaceMenu > .el-card),
+  :deep(.canvasMenu) {
+    background: color-mix(in srgb, var(--el-bg-color-overlay) 94%, transparent);
+  }
+
   .canvasPanel {
     position: absolute;
     inset: 0;
@@ -587,6 +592,14 @@ function saveDocumentNode(directory: string, canvasPath: string, nodeId: string,
         }
       }
     }
+  }
+}
+
+@container workspaceTools (max-width: 700px) {
+  .workspacePage .workspaceTools .panelSwitcher {
+    left: auto;
+    right: 15px;
+    transform: none;
   }
 }
 

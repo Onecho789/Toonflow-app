@@ -1,14 +1,19 @@
 <template>
   <panel class="canvasMenuPanel" position="top-left">
-    <el-card class="canvasMenu" shadow="never" :bodyStyle="{ padding: '2px 4px' }">
+    <el-card class="canvasMenu" shadow="never" :bodyStyle="{ padding: '4px 8px' }">
       <div class="menuContent">
-        <el-input v-model="projectNameDraft" class="workspaceNameInput" :style="{ '--workspaceName': JSON.stringify(projectNameDraft || ' ') }" size="small" :title="directory" :disabled="!workspaceStore.project" aria-label="项目名称"
-          @keydown.stop @keydown.enter="saveProjectName" @keydown.esc.prevent="projectNameDraft = workspaceName" @blur="saveProjectName" />
+        <div class="workspaceNameField">
+          <span class="fieldLabel">项目</span>
+          <el-input v-model="projectNameDraft" class="workspaceNameInput" size="small" :title="`${directory ?? ''} · 点击修改项目名称`" :disabled="!workspaceStore.project" aria-label="项目名称，点击修改"
+            @keydown.stop @keydown.enter="saveProjectName" @keydown.esc.prevent="projectNameDraft = workspaceName" @blur="saveProjectName" />
+        </div>
         <el-divider direction="vertical" />
-        <el-button class="canvasTrigger" text :loading="busy" :disabled="busy || !directory" :title="activeCanvasId" aria-label="切换画布" aria-haspopup="dialog" @click="openPicker">
-          <span class="triggerName">{{ activeCanvasName }}</span>
-          <span v-if="activeFolder" class="triggerFolder">{{ activeFolder }}</span>
-          <icon-chevron-down :size="14" aria-hidden="true" />
+        <el-button class="canvasTrigger" text :loading="busy" :disabled="busy || !directory" :title="`${activeCanvasId || '选择画布'}${switchShortcut ? ` · ${switchShortcut}` : ''}`" aria-label="切换画布" aria-haspopup="dialog" :aria-expanded="pickerVisible" @click="openPicker">
+          <span class="triggerContent">
+            <span class="fieldLabel">当前画布</span>
+            <span class="triggerName">{{ activeCanvasName }}</span>
+          </span>
+          <span class="switchLabel">切换画布<icon-chevron-down :size="14" aria-hidden="true" /></span>
           <kbd v-if="switchShortcut" class="triggerKey">{{ switchShortcut }}</kbd>
         </el-button>
         <input ref="importInput" type="file" accept=".json,application/json" hidden aria-label="选择画布 JSON 文件" @change="handleImportCanvas" />
@@ -24,8 +29,8 @@
     </el-card>
   </panel>
   <canvasPickerDialog ref="picker" v-model="pickerVisible" :directory="directory ?? ''" :projectName="workspaceName" :activeId="activeCanvasId" :openIds="openIds"
-    :recentIds="recentCanvases" :busy="busy" :shortcut="switchShortcut" @select="selectCanvas" @create="handleCreateCanvas" @import="importInput?.click()"
-    @export="handleExportCanvas" @action="handlePickerAction" />
+    :recentIds="recentCanvases" :pinnedIds="pinnedCanvases" :busy="busy" :shortcut="switchShortcut" @select="selectCanvas" @create="handleCreateCanvas" @import="importInput?.click()"
+    @export="handleExportCanvas" @action="handlePickerAction" @togglePin="path => directory && workspaceStore.togglePinnedCanvas(directory, path)" />
 </template>
 
 <script setup lang="ts">
@@ -39,7 +44,7 @@ import { useNodeEvent } from "@toonflow/nodes-scaffold/nodeEvent";
 import saveFile from "@/lib/saveFile";
 import { useWorkspaceStore } from "@/stores/workspace";
 import useWorkspaceFiles from "@/lib/workspaceFiles";
-import { getCanvasAssetDirectories, isCanvasFile } from "@/pages/workspace/canvasFile";
+import { createEmptyCanvas, getCanvasAssetDirectories, isCanvasFile } from "@/pages/workspace/canvasFile";
 import { findRemainingCanvas, remapNodeReferences } from "../canvasFiles";
 import { isGroupInputEdge } from "../groupInputs";
 import { cloudBalance, cloudBalanceText, cloudBalanceError, cloudBalanceLoading, loadCloudBalance } from "@/stores/cloudAccount";
@@ -80,9 +85,9 @@ watch(canvases, () => {
 const pickerVisible = ref(false);
 const picker = ref<InstanceType<typeof canvasPickerDialog>>();
 const activeCanvasName = computed(() => canvases.value.find(canvas => canvas.id === activeCanvasId.value)?.name || translate("选择画布"));
-const activeFolder = computed(() => parentPath(activeCanvasId.value));
 const switchShortcut = computed(() => shortcutLabel(generalSettings.value.canvasShortcuts.switchCanvas).split(" / ")[0] ?? "");
 const recentCanvases = computed(() => workspaceStore.project?.directory === props.directory ? workspaceStore.project?.recentCanvases ?? [] : []);
+const pinnedCanvases = computed(() => workspaceStore.project?.directory === props.directory ? workspaceStore.project?.pinnedCanvases ?? [] : []);
 const openIds = inject<Readonly<Ref<string[]>>>("canvasOpenIds", computed(() => []));
 const busy = ref(false);
 const initialized = ref(false);
@@ -324,6 +329,7 @@ async function removeCanvas(canvas: Canvas) {
       removedNodes = await readNodes(id);
       if (!performFileAction) {
         await files.remove(id);
+        workspaceStore.syncCanvasPath(directory, id);
         checkCanvasDirectory(directory);
         canvases.value = canvases.value.filter(item => item !== canvas);
         await nextTick();
@@ -351,20 +357,14 @@ async function removeCanvas(canvas: Canvas) {
 }
 
 async function createCanvasFile(directory: string, name?: string, signal?: AbortSignal, folder = "") {
-  if (name !== undefined) name = normalizeCanvasName(name);
+  checkCanvasDirectory(directory, signal);
   const files = useWorkspaceFiles(directory);
+  if (name === undefined) return createEmptyCanvas(files, folder, AbortSignal.any([treeController.signal, ...(signal ? [signal] : [])]));
+  const canvasName = normalizeCanvasName(name);
+  const id = `${folder ? `${folder}/` : ""}${canvasName}.json`;
   const flow = { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } };
-  for (let number = 1; ; number++) {
-    checkCanvasDirectory(directory, signal);
-    const canvasName = name ?? `画布${number}`;
-    const id = `${folder ? `${folder}/` : ""}${canvasName}.json`;
-    try {
-      await files.writeJson(id, { toonflowCanvas: true, ...flow }, true);
-      return { id, name: canvasName, flow };
-    } catch (err) {
-      if (name !== undefined || !axios.isAxiosError<{ data?: { code?: string } }>(err) || err.response?.status !== 409 || err.response.data.data?.code !== "EEXIST") throw err;
-    }
-  }
+  await files.writeJson(id, { toonflowCanvas: true, ...flow }, true);
+  return { id, name: canvasName, flow };
 }
 
 async function listCanvasEntries(directory: string, path = "", recursive = false, signal?: AbortSignal) {
@@ -557,6 +557,7 @@ async function renameCanvasFile(id: string, name: string, directory: string, sig
   await props.flushSave(async () => {
     checkCanvasDirectory(directory, signal);
     await useWorkspaceFiles(directory).rename(id, target);
+    workspaceStore.syncCanvasPath(directory, id, target);
     checkCanvasDirectory(directory);
     // 文件已改名时先更新保存路径，再响应取消，避免自动保存重新创建旧文件。
     if (activeCanvasId.value === id) activeCanvasId.value = target;
@@ -740,10 +741,10 @@ defineExpose({ getCanvases, peekCanvases, initialized, addCanvas, switchCanvas, 
 
 <style lang="scss" scoped>
 .canvasMenuPanel.vue-flow__panel {
+  --canvasMenuOffset: 0px;
   left: 0;
   display: flex;
   align-items: center;
-  gap: 12px;
   max-width: calc(50% - 90px);
 }
 
@@ -752,18 +753,11 @@ defineExpose({ getCanvases, peekCanvases, initialized, addCanvas, switchCanvas, 
 
   .balanceCard {
     .balanceTrigger {
-      height: 28px;
-      padding: 0 3px;
+      height: 34px;
+      padding: 0 6px;
       font-size: 13px;
       :deep(> span) { display: flex; align-items: center; gap: 4px; }
     }
-  }
-}
-
-@container canvasWorkspace (max-width: 1040px) {
-  .balanceMenuPanel.vue-flow__panel {
-    top: 50px;
-    max-width: calc(100% - 30px);
   }
 }
 
@@ -774,59 +768,60 @@ defineExpose({ getCanvases, peekCanvases, initialized, addCanvas, switchCanvas, 
 }
 
 .canvasMenu {
-  margin-left: 76px;
+  margin-left: 194px;
   min-width: 0;
+  max-width: 560px;
 
   .menuContent {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: 4px;
 
-    .el-divider { margin: 0 3px; }
+    .fieldLabel { color: var(--el-text-color-secondary); font-size: 11px; line-height: 16px; font-weight: 400; }
+    .el-divider { flex-shrink: 0; height: 28px; margin: 0 5px; }
 
-    .workspaceNameInput {
-      width: auto;
-      height: 28px;
-      min-width: 2em;
-      max-width: 180px;
-      font-size: 13px;
+    .workspaceNameField {
+      display: flex;
+      flex: 0 1 160px;
+      flex-direction: column;
+      min-width: 60px;
+      padding-left: 4px;
 
-      &::after {
-        content: var(--workspaceName);
-        padding: 0 7px;
-        white-space: pre;
-        visibility: hidden;
-      }
+      .fieldLabel { padding-left: 3px; }
+      .workspaceNameInput {
+        width: 100%;
+        height: 24px;
+        font-size: 13px;
 
-      :deep(.el-input__wrapper) {
-        position: absolute;
-        inset: 0;
-        background: transparent;
-        box-shadow: none;
-      }
+        :deep(.el-input__wrapper) {
+          padding: 0 3px;
+          background: transparent;
+          box-shadow: none;
+          &:hover { background: var(--el-fill-color-light); }
+          &.is-focus { box-shadow: 0 0 0 1px var(--el-color-primary) inset; }
+        }
 
-      :deep(.el-input__inner) {
-        font-family: inherit;
-        font-weight: inherit;
-        letter-spacing: inherit;
+        :deep(.el-input__inner) { font-weight: 500; text-overflow: ellipsis; }
       }
     }
 
     .canvasTrigger {
+      flex: 1;
       min-width: 0;
-      height: 28px;
-      padding: 0 3px;
-      font-size: 13px;
-      :deep(> span) { display: flex; align-items: center; gap: 4px; min-width: 0; }
+      height: 42px;
+      margin: 0;
+      padding: 0 5px;
+      font-size: 14px;
+      :deep(> span) { display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; }
 
-      .triggerName { min-width: 0; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .triggerFolder { min-width: 0; max-width: 120px; overflow: hidden; color: var(--el-text-color-secondary); text-overflow: ellipsis; white-space: nowrap; }
-
+      .triggerContent { display: flex; flex: 1; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 30px; }
+      .triggerName { max-width: 180px; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; line-height: 20px; text-align: left; }
+      .switchLabel { display: flex; align-items: center; gap: 3px; flex-shrink: 0; color: var(--el-color-primary); font-size: 12px; }
       .triggerKey {
         display: inline-flex;
+        flex-shrink: 0;
         align-items: center;
-        height: 18px;
-        margin-left: 4px;
+        height: 20px;
         padding: 0 5px;
         border: 1px solid var(--el-border-color);
         border-radius: var(--ui-radius-small);
@@ -836,8 +831,33 @@ defineExpose({ getCanvases, peekCanvases, initialized, addCanvas, switchCanvas, 
         line-height: 1;
       }
     }
-
   }
 }
 
+@container canvasWorkspace (max-width: 1500px) {
+  .canvasMenuPanel.vue-flow__panel {
+    --canvasMenuOffset: 58px;
+    top: 58px;
+    width: min(560px, calc(100% - 30px));
+    max-width: calc(100% - 30px);
+  }
+  .canvasMenu { width: 100%; margin-left: 0; }
+}
+
+@container canvasWorkspace (max-width: 1040px) {
+  .balanceMenuPanel.vue-flow__panel {
+    top: 118px;
+    max-width: calc(100% - 30px);
+  }
+}
+
+@container canvasWorkspace (max-width: 600px) {
+  .canvasMenu .menuContent {
+    .workspaceNameField { flex-basis: 90px; }
+    .canvasTrigger {
+      :deep(> span) { gap: 6px; }
+      .triggerKey { display: none; }
+    }
+  }
+}
 </style>

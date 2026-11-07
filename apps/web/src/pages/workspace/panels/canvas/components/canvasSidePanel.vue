@@ -1,7 +1,7 @@
 <template>
-  <el-card v-if="!open" class="sidePanelTrigger" shadow="never" :bodyStyle="{ padding: '2px 4px' }">
-    <el-button text :icon="IconLayoutSidebarLeftExpand" :disabled="disabled" aria-label="展开画布侧栏" title="展开画布侧栏" @click="open = true">
-      画布元素 {{ items.length }}
+  <el-card v-if="!open" class="sidePanelTrigger" shadow="never" :bodyStyle="{ padding: '4px' }">
+    <el-button text :icon="IconLayoutSidebarLeftExpand" :disabled="disabled" :aria-label="`展开画布元素，共 ${items.length} 个`" :aria-expanded="false" title="展开画布元素、资产与提示词库" @click="open = true">
+      <span>画布元素</span><span class="elementCount">{{ items.length }}</span>
     </el-button>
   </el-card>
   <el-card v-show="open" class="canvasSidePanel" shadow="never" :bodyStyle="{ padding: '0' }" :style="{ width: `var(--dragWidth, ${width}px)` }" role="region" aria-label="画布侧栏" @dblclick.stop>
@@ -577,16 +577,26 @@ async function copyPrompt(text: string) {
   width: max-content;
 
   .el-button {
-    height: 28px;
-    padding: 0 6px;
+    height: 32px;
+    padding: 0 8px;
     font-size: 13px;
+    :deep(> span) { display: flex; align-items: center; gap: 8px; }
+    .elementCount {
+      min-width: 22px;
+      padding: 2px 5px;
+      border-radius: var(--ui-radius-small);
+      background: var(--el-fill-color);
+      color: var(--el-text-color-primary);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+    }
   }
 }
 
 .canvasSidePanel {
   position: relative;
   max-width: calc(100vw - 30px);
-  height: calc(100dvh - 140px);
+  height: calc(100dvh - 140px - var(--canvasMenuOffset, 0px));
 
   :deep(.el-card__body) {
     display: flex;

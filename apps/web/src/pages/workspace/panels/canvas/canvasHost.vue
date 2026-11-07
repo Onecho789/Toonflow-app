@@ -322,6 +322,7 @@ async function performFileAction(directory: string, action: "copy" | "rename" | 
         if (copies.length) canvases.value = [...canvases.value, ...copies];
       } else if (action === "rename" || action === "move") {
         await files.rename(path, target!);
+        workspaceStore.syncCanvasPath(directory, path, target!);
         checkDirectory(directory);
         for (const canvas of affected) {
           const previous = canvas.id;
@@ -339,6 +340,7 @@ async function performFileAction(directory: string, action: "copy" | "rename" | 
           checkDirectory(directory);
         }
         await files.remove(path, true);
+        workspaceStore.syncCanvasPath(directory, path);
         checkDirectory(directory);
         // 共享列表移除会同步取消匹配实例的保存；只删除所选路径，不连带清理画布的素材。
         canvases.value = canvases.value.filter(canvas => !affected.includes(canvas));
