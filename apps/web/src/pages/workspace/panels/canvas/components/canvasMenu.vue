@@ -1,19 +1,15 @@
 <template>
   <panel class="canvasMenuPanel" position="top-left">
-    <el-card class="canvasMenu" shadow="never" :bodyStyle="{ padding: '4px 8px' }">
+    <el-card class="canvasMenu" shadow="never" :bodyStyle="{ padding: '1px 4px' }">
       <div class="menuContent">
-        <div class="workspaceNameField">
-          <span class="fieldLabel">项目</span>
-          <el-input v-model="projectNameDraft" class="workspaceNameInput" size="small" :title="`${directory ?? ''} · 点击修改项目名称`" :disabled="!workspaceStore.project" aria-label="项目名称，点击修改"
-            @keydown.stop @keydown.enter="saveProjectName" @keydown.esc.prevent="projectNameDraft = workspaceName" @blur="saveProjectName" />
-        </div>
-        <el-divider direction="vertical" />
-        <el-button class="canvasTrigger" text :loading="busy" :disabled="busy || !directory" :title="`${activeCanvasId || '选择画布'}${switchShortcut ? ` · ${switchShortcut}` : ''}`" aria-label="切换画布" aria-haspopup="dialog" :aria-expanded="pickerVisible" @click="openPicker">
-          <span class="triggerContent">
-            <span class="fieldLabel">当前画布</span>
-            <span class="triggerName">{{ activeCanvasName }}</span>
-          </span>
-          <span class="switchLabel">切换画布<icon-chevron-down :size="14" aria-hidden="true" /></span>
+        <el-input v-model="projectNameDraft" class="workspaceNameInput" :style="{ '--workspaceName': JSON.stringify(projectNameDraft || ' ') }" size="small"
+          :title="`${workspaceName} · 点击修改项目名称`" :disabled="!workspaceStore.project" aria-label="项目名称，点击修改"
+          @keydown.stop @keydown.enter="saveProjectName" @keydown.esc.prevent="projectNameDraft = workspaceName" @blur="saveProjectName" />
+        <span class="contextDivider" aria-hidden="true">/</span>
+        <el-button class="canvasTrigger" text :loading="busy" :disabled="busy || !directory" :title="`切换画布：${activeCanvasId || '选择画布'}${switchShortcut ? ` · ${switchShortcut}` : ''}`"
+          :aria-label="`切换画布，当前${activeCanvasName}`" aria-haspopup="dialog" :aria-expanded="pickerVisible" @click="openPicker">
+          <span class="triggerName">{{ activeCanvasName }}</span>
+          <icon-chevron-down class="triggerArrow" :size="14" aria-hidden="true" />
           <kbd v-if="switchShortcut" class="triggerKey">{{ switchShortcut }}</kbd>
         </el-button>
         <input ref="importInput" type="file" accept=".json,application/json" hidden aria-label="选择画布 JSON 文件" @change="handleImportCanvas" />
@@ -753,8 +749,8 @@ defineExpose({ getCanvases, peekCanvases, initialized, addCanvas, switchCanvas, 
 
   .balanceCard {
     .balanceTrigger {
-      height: 34px;
-      padding: 0 6px;
+      height: 28px;
+      padding: 0 4px;
       font-size: 13px;
       :deep(> span) { display: flex; align-items: center; gap: 4px; }
     }
@@ -763,66 +759,69 @@ defineExpose({ getCanvases, peekCanvases, initialized, addCanvas, switchCanvas, 
 
 .menuExtension {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + 6px);
   left: 0;
 }
 
 .canvasMenu {
-  margin-left: 194px;
+  margin-left: 128px;
   min-width: 0;
-  max-width: 560px;
+  max-width: 380px;
 
   .menuContent {
     display: flex;
     align-items: center;
-    gap: 4px;
+    min-width: 0;
+    gap: 2px;
 
-    .fieldLabel { color: var(--el-text-color-secondary); font-size: 11px; line-height: 16px; font-weight: 400; }
-    .el-divider { flex-shrink: 0; height: 28px; margin: 0 5px; }
+    .contextDivider { flex-shrink: 0; margin: 0 2px; color: var(--el-text-color-placeholder); font-size: 13px; }
 
-    .workspaceNameField {
-      display: flex;
-      flex: 0 1 160px;
-      flex-direction: column;
-      min-width: 60px;
-      padding-left: 4px;
+    .workspaceNameInput {
+      flex: 0 1 auto;
+      width: auto;
+      min-width: 40px;
+      max-width: 170px;
+      height: 32px;
+      font-size: 13px;
 
-      .fieldLabel { padding-left: 3px; }
-      .workspaceNameInput {
-        width: 100%;
-        height: 24px;
-        font-size: 13px;
-
-        :deep(.el-input__wrapper) {
-          padding: 0 3px;
-          background: transparent;
-          box-shadow: none;
-          &:hover { background: var(--el-fill-color-light); }
-          &.is-focus { box-shadow: 0 0 0 1px var(--el-color-primary) inset; }
-        }
-
-        :deep(.el-input__inner) { font-weight: 500; text-overflow: ellipsis; }
+      &::after {
+        content: var(--workspaceName);
+        padding: 0 5px;
+        white-space: pre;
+        visibility: hidden;
       }
+
+      :deep(.el-input__wrapper) {
+        position: absolute;
+        inset: 0;
+        padding: 0 5px;
+        background: transparent;
+        box-shadow: none;
+        &:hover { background: var(--el-fill-color-light); }
+        &.is-focus { box-shadow: 0 0 0 1px var(--el-color-primary) inset; }
+      }
+
+      :deep(.el-input__inner) { color: var(--el-text-color-secondary); text-overflow: ellipsis; }
     }
 
     .canvasTrigger {
-      flex: 1;
-      min-width: 0;
-      height: 42px;
+      flex: 0 1 auto;
+      min-width: 44px;
+      height: 32px;
       margin: 0;
-      padding: 0 5px;
-      font-size: 14px;
-      :deep(> span) { display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; }
+      padding: 0 4px;
+      font-size: 13px;
+      :deep(> span) { display: flex; align-items: center; gap: 5px; min-width: 0; }
 
-      .triggerContent { display: flex; flex: 1; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 30px; }
-      .triggerName { max-width: 180px; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; line-height: 20px; text-align: left; }
-      .switchLabel { display: flex; align-items: center; gap: 3px; flex-shrink: 0; color: var(--el-color-primary); font-size: 12px; }
+      .triggerName { min-width: 0; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+      .triggerArrow { flex-shrink: 0; color: var(--el-text-color-secondary); }
       .triggerKey {
         display: inline-flex;
         flex-shrink: 0;
         align-items: center;
-        height: 20px;
-        padding: 0 5px;
+        height: 18px;
+        margin-left: 3px;
+        padding: 0 4px;
         border: 1px solid var(--el-border-color);
         border-radius: var(--ui-radius-small);
         color: var(--el-text-color-secondary);
@@ -834,30 +833,28 @@ defineExpose({ getCanvases, peekCanvases, initialized, addCanvas, switchCanvas, 
   }
 }
 
-@container canvasWorkspace (max-width: 1500px) {
-  .canvasMenuPanel.vue-flow__panel {
-    --canvasMenuOffset: 58px;
-    top: 58px;
-    width: min(560px, calc(100% - 30px));
-    max-width: calc(100% - 30px);
-  }
-  .canvasMenu { width: 100%; margin-left: 0; }
-}
-
 @container canvasWorkspace (max-width: 1040px) {
   .balanceMenuPanel.vue-flow__panel {
-    top: 118px;
+    top: 42px;
     max-width: calc(100% - 30px);
+  }
+  .canvasMenu .menuContent {
+    .workspaceNameInput { max-width: 120px; }
+    .canvasTrigger .triggerKey { display: none; }
   }
 }
 
-@container canvasWorkspace (max-width: 600px) {
-  .canvasMenu .menuContent {
-    .workspaceNameField { flex-basis: 90px; }
-    .canvasTrigger {
-      :deep(> span) { gap: 6px; }
-      .triggerKey { display: none; }
-    }
+@container canvasWorkspace (max-width: 760px) {
+  .canvasMenuPanel.vue-flow__panel { max-width: calc(100% - 170px); }
+}
+
+@container canvasWorkspace (max-width: 480px) {
+  .canvasMenuPanel.vue-flow__panel {
+    --canvasMenuOffset: 42px;
+    top: 42px;
+    max-width: calc(100% - 30px);
   }
+  .canvasMenu { margin-left: 0; }
+  .balanceMenuPanel.vue-flow__panel { top: 84px; }
 }
 </style>

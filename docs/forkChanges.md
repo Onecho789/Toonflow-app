@@ -1201,3 +1201,17 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 限制：当前没有服务端缩略图接口，首次生成视频封面仍需读取该本地媒体文件；静态小图只缓存在当前组件内。
 
 冲突时保留：真实媒体输出候选、结构预览回退、可见时加载与资源释放、固定比例预览槽、真实空目录与其他目录的区分。
+
+## 画布顶部工具栏与选择器收紧（2026-11-08）
+
+- 修改前基线：`4815113`；桌面版本 `2.1.26`。
+- 左上返回/设置区从 184px 缩为 120px，设置保留图标、标题与无障碍名称；项目名和当前画布改为单行，去掉重复标签，主行高 36px、操作按钮高 32px。项目名仍可编辑，画布下拉与 Ctrl/⌘+K 保留，长名称允许截断。
+- 按实际画布区域宽度避让画布/文档切换；760px 以下切换靠右，480px 以下项目/画布选择区下移。画布元素入口改为独立 28px 按钮，展开侧栏继续保留。
+- 首页进入与画布内切换共用选择器：搜索、卡片/列表、新建、更多（画布内）、关闭集中在一行。640px 以下搜索独占一行，操作按钮始终同排；480px 以下收起视图与更多文字，保留图标提示及无障碍名称。
+- 生图 422 排查：渠道 `maxImages` 是单次上游请求上限；上游报 `n <= 4` 时应填 4，用户总任务仍可选最多 15 张，现有网关负责拆批。本次未改云端生图逻辑或生产配置，未发起付费生图。
+
+改动文件：`apps/web/src/pages/workspace/components/workspaceMenu.vue`、`pages/workspace/index.vue`、`pages/workspace/panels/canvas/components/{canvasMenu.vue,canvasPickerDialog.vue,canvasSidePanel.vue}`、`electrobun.config.ts`。
+
+验证：Web、desktop 现有 typecheck 通过；已登录本机预览确认首页与画布内按钮同排、真实媒体封面正常，1168px、861px、640px、390px 窗口工具栏布局检查；未新增测试文件。完整安装包结果另见 `docs/projectMemory/releaseWorkflow.md`。
+
+冲突时保留：紧凑单行项目/画布入口、基于画布容器的避让断点、选择器操作按钮同排以及既有文件操作事件。

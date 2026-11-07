@@ -1,9 +1,7 @@
 <template>
-  <el-card v-if="!open" class="sidePanelTrigger" shadow="never" :bodyStyle="{ padding: '4px' }">
-    <el-button text :icon="IconLayoutSidebarLeftExpand" :disabled="disabled" :aria-label="`展开画布元素，共 ${items.length} 个`" :aria-expanded="false" title="展开画布元素、资产与提示词库" @click="open = true">
-      <span>画布元素</span><span class="elementCount">{{ items.length }}</span>
-    </el-button>
-  </el-card>
+  <el-button v-if="!open" class="sidePanelTrigger" :icon="IconLayoutSidebarLeftExpand" :disabled="disabled" :aria-label="`展开画布元素，共 ${items.length} 个`" :aria-expanded="false" title="展开画布元素、资产与提示词库" @click="open = true">
+    <span>画布元素</span><span class="elementCount">{{ items.length }}</span>
+  </el-button>
   <el-card v-show="open" class="canvasSidePanel" shadow="never" :bodyStyle="{ padding: '0' }" :style="{ width: `var(--dragWidth, ${width}px)` }" role="region" aria-label="画布侧栏" @dblclick.stop>
     <div class="panelHeader">
       <el-tabs v-model="tab" class="panelTabs">
@@ -575,28 +573,24 @@ async function copyPrompt(text: string) {
 <style lang="scss" scoped>
 .sidePanelTrigger {
   width: max-content;
+  height: 28px;
+  margin: 0;
+  padding: 0 8px;
+  border-radius: var(--ui-radius-small);
+  background: color-mix(in srgb, var(--el-bg-color-overlay) 94%, transparent);
+  font-size: 12px;
 
-  .el-button {
-    height: 32px;
-    padding: 0 8px;
-    font-size: 13px;
-    :deep(> span) { display: flex; align-items: center; gap: 8px; }
-    .elementCount {
-      min-width: 22px;
-      padding: 2px 5px;
-      border-radius: var(--ui-radius-small);
-      background: var(--el-fill-color);
-      color: var(--el-text-color-primary);
-      font-size: 12px;
-      font-variant-numeric: tabular-nums;
-    }
+  :deep(> span) { display: flex; align-items: center; gap: 6px; }
+  .elementCount {
+    color: var(--el-text-color-secondary);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
   }
 }
-
 .canvasSidePanel {
   position: relative;
   max-width: calc(100vw - 30px);
-  height: calc(100dvh - 140px - var(--canvasMenuOffset, 0px));
+  height: calc(100dvh - 112px - var(--canvasMenuOffset, 0px));
 
   :deep(.el-card__body) {
     display: flex;

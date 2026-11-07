@@ -390,7 +390,9 @@ function saveDocumentNode(directory: string, canvasPath: string, nodeId: string,
 
   :deep(.workspaceMenu > .el-card),
   :deep(.canvasMenu) {
+    border-radius: var(--ui-radius-small);
     background: color-mix(in srgb, var(--el-bg-color-overlay) 94%, transparent);
+    box-shadow: none;
   }
 
   .canvasPanel {
@@ -595,7 +597,7 @@ function saveDocumentNode(directory: string, canvasPath: string, nodeId: string,
   }
 }
 
-@container workspaceTools (max-width: 700px) {
+@container workspaceTools (max-width: 760px) {
   .workspacePage .workspaceTools .panelSwitcher {
     left: auto;
     right: 15px;

@@ -1,16 +1,15 @@
 <template>
   <div class="workspaceMenu">
-    <el-card shadow="never" :bodyStyle="{ padding: '8px 4px' }">
+    <el-card shadow="never" :bodyStyle="{ padding: '1px 3px' }">
       <div class="menuContent" role="navigation" aria-label="项目导航">
         <el-button class="toolButton" text aria-label="返回项目列表" title="返回项目列表" @click="exitVisible = true">
-          <icon-arrow-left :size="18" aria-hidden="true" />
+          <icon-arrow-left :size="16" aria-hidden="true" />
           <span>返回项目</span>
         </el-button>
-        <el-button class="toolButton" text :aria-label="hasDesktopUpdate ? '设置，有新版本可用' : '设置'" title="设置" @click="emit('openSettings')">
+        <el-button class="toolButton settingsButton" text :aria-label="hasDesktopUpdate ? '设置，有新版本可用' : '设置'" title="设置" @click="emit('openSettings')">
           <el-badge isDot :hidden="!hasDesktopUpdate">
-            <icon-settings :size="18" aria-hidden="true" />
+            <icon-settings :size="16" aria-hidden="true" />
           </el-badge>
-          <span>设置</span>
         </el-button>
       </div>
     </el-card>
@@ -48,29 +47,24 @@ async function exitProject() {
 
 <style scoped lang="scss">
 .workspaceMenu {
-  width: 184px;
+  width: 120px;
 
   .menuContent {
     display: flex;
     align-items: center;
-    gap: 2px;
 
     .toolButton {
       flex: 1;
-      height: 34px;
+      height: 32px;
       margin: 0;
-      padding: 0 8px;
-      font-size: 13px;
+      padding: 0 4px;
+      font-size: 12px;
 
-      :deep(> span) { display: flex; align-items: center; gap: 6px; }
+      :deep(> span) { display: flex; align-items: center; gap: 4px; }
       :deep(.el-badge) { display: flex; align-items: center; }
+
+      &.settingsButton { flex: 0 0 30px; padding: 0; }
     }
-  }
-}
-@media (max-width: 420px) {
-  .workspaceMenu {
-    width: 156px;
-    .menuContent .toolButton { padding: 0 4px; font-size: 12px; }
   }
 }
 </style>

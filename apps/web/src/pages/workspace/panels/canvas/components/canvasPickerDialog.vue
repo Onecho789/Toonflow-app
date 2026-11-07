@@ -8,10 +8,17 @@
           <span class="titleText">{{ entering ? "选择要进入的画布" : "切换画布" }}</span>
           <span class="titleProject" :title="directory">{{ projectName }}</span>
         </div>
-        <div class="headerActions">
-          <el-button type="primary" :icon="IconPlus" :disabled="busy || loading || !!loadError" :title="`新建在${currentFolder ? `“${currentFolder}”` : '根目录'}`" @click="emit('create', currentFolder)">新建画布</el-button>
+      </div>
+      <div class="pickerToolbar">
+        <el-input ref="searchInput" v-model="query" class="searchInput" :prefixIcon="IconSearch" placeholder="搜索画布名称或文件夹" aria-label="搜索画布" clearable />
+        <div class="toolbarActions">
+          <el-radio-group v-model="display" class="viewToggle" aria-label="显示方式">
+            <el-radio-button value="grid" title="卡片视图" aria-label="卡片视图"><icon-layout-grid :size="16" aria-hidden="true" /><span class="viewLabel">卡片</span></el-radio-button>
+            <el-radio-button value="list" title="列表视图" aria-label="列表视图"><icon-list :size="16" aria-hidden="true" /><span class="viewLabel">列表</span></el-radio-button>
+          </el-radio-group>
+          <el-button class="createButton" type="primary" :icon="IconPlus" :disabled="busy || loading || !!loadError" :title="`新建在${currentFolder ? `“${currentFolder}”` : '根目录'}`" @click="emit('create', currentFolder)">新建画布</el-button>
           <el-dropdown v-if="!entering" trigger="click" :disabled="busy" @command="handleFileCommand">
-            <el-button :icon="IconDots" :disabled="busy" aria-label="画布文件操作">更多</el-button>
+            <el-button class="moreAction" :icon="IconDots" :disabled="busy" title="画布文件操作" aria-label="画布文件操作">更多</el-button>
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item command="import" :icon="IconFileImport">导入画布</el-dropdown-item>
@@ -21,13 +28,6 @@
           </el-dropdown>
           <el-button class="closeButton" text :icon="IconX" :disabled="busy" title="关闭" aria-label="关闭画布选择" @click="emit('update:modelValue', false)" />
         </div>
-      </div>
-      <div class="pickerToolbar">
-        <el-input ref="searchInput" v-model="query" class="searchInput" :prefixIcon="IconSearch" placeholder="搜索画布名称或文件夹" aria-label="搜索画布" clearable />
-        <el-radio-group v-model="display" class="viewToggle" aria-label="显示方式">
-          <el-radio-button value="grid"><icon-layout-grid :size="16" aria-hidden="true" /><span>卡片</span></el-radio-button>
-          <el-radio-button value="list"><icon-list :size="16" aria-hidden="true" /><span>列表</span></el-radio-button>
-        </el-radio-group>
       </div>
       <div class="pickerBody">
         <nav class="sideNav" aria-label="画布分类">
@@ -495,12 +495,7 @@ defineExpose({ reload: load });
   button:disabled { cursor: not-allowed; }
 
   .pickerHeader {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px;
-    padding: 20px 20px 14px;
+    padding: 18px 20px 12px;
 
     .pickerTitle {
       display: flex;
@@ -509,15 +504,7 @@ defineExpose({ reload: load });
       gap: 10px;
       min-width: 0;
       .titleText { font-size: 18px; font-weight: 600; }
-      .titleProject { max-width: 280px; overflow: hidden; color: var(--el-text-color-secondary); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
-    }
-    .headerActions {
-      display: flex;
-      align-items: center;
-      flex-shrink: 0;
-      gap: 8px;
-      .el-button + .el-button { margin-left: 0; }
-      .closeButton { width: 32px; height: 32px; padding: 0; }
+      .titleProject { max-width: min(280px, 100%); overflow: hidden; color: var(--el-text-color-secondary); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
     }
   }
 
@@ -528,9 +515,18 @@ defineExpose({ reload: load });
     padding: 0 20px 16px;
     border-bottom: 1px solid var(--el-border-color-lighter);
     .searchInput { flex: 1; min-width: 0; }
-    .viewToggle {
+    .toolbarActions {
+      display: flex;
+      align-items: center;
       flex-shrink: 0;
-      :deep(.el-radio-button__inner) { display: flex; align-items: center; gap: 6px; }
+      gap: 8px;
+      .viewToggle {
+        flex-shrink: 0;
+        flex-wrap: nowrap;
+        :deep(.el-radio-button__inner) { display: flex; align-items: center; gap: 6px; }
+      }
+      .el-button { flex-shrink: 0; margin-left: 0; }
+      .closeButton { width: 32px; height: 32px; padding: 0; }
     }
   }
 
@@ -698,9 +694,28 @@ defineExpose({ reload: load });
     }
     .pickerFooter { padding-inline: 12px; }
   }
+  @media (max-width: 640px) {
+    .pickerToolbar {
+      flex-direction: column;
+      align-items: stretch;
+      .searchInput { flex: none; }
+      .toolbarActions { .viewToggle { margin-right: auto; } }
+    }
+  }
   @media (max-width: 480px) {
-    .pickerHeader { .pickerTitle { width: 100%; } .headerActions { width: 100%; .closeButton { margin-left: auto; } } }
-    .pickerToolbar { flex-wrap: wrap; .searchInput { flex-basis: 100%; } }
+    .pickerToolbar .toolbarActions {
+      gap: 6px;
+      .viewToggle {
+        .viewLabel { display: none; }
+        :deep(.el-radio-button__inner) { padding: 8px; }
+      }
+      .createButton { padding-inline: 10px; }
+      .moreAction {
+        width: 32px;
+        padding: 0;
+        :deep(.el-icon + span) { display: none; }
+      }
+    }
     .pickerBody { grid-template-columns: 112px minmax(0, 1fr); }
     .sideNav {
       .navItem { gap: 4px; padding: 0 4px; font-size: 12px; .navCount { font-size: 11px; } }
