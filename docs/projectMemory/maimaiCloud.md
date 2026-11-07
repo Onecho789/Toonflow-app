@@ -274,6 +274,14 @@ Grok 当前修订：f8f85bef333fecb4da9ecfdb267a9cbad30472092346ed9a252c15138fda
 上次版本已验证能力400、源码新旧版本读取、默认升级、自定义与恢复版本重启保留。本次发布前无活跃视频任务、无 pending 用量记录，发布中未新发起生成。
 视频编辑/延长等宿主入参及上游特殊计费未扩展，现有失败退款规则保留。
 
+## 当前桌面本地安装包 2.1.24（2026-11-07）
+
+- 源码：9057638（画布卡片浏览、常用与最近记录、项目选画布入口、工具栏文字布局）、6ea7897（版本），分支 codex/simplifyMediaModels；修改前基线 f3f7af4。
+- 版本快照：D:\2api-codes\maimai\client\build\desktop\releases\2.1.24。安装包 `MaiMaiStudio-2.1.24-Setup.exe` 66,479,440 字节，SHA256 `e8a1feda43b5bf9a04748fb4b64799f207f782896ad94a4fc48eec7429ebe9c1`；清单 version=2.1.24、stable/win/x64、hash=1wdb2krenbiba。
+- `bun run release:desktop 2.1.24 --initial` 退出 0；三资产与 artifacts 的 SHA256 一致。系统 tar 列出 1743 项，包内版本/hash、Web 入口及 11 个节点插件齐全，本轮卡片浏览、常用画布、项目进入弹窗和工具栏代码与样式已打入。
+- 本地交付，未运行安装器或替换客户端，未完成登录后交互验收；卡片使用节点结构缩略图。GitHub 公开版本仍为 2.1.0，自动更新源仍为空；云端生产版本保持上方记录，本次未部署。
+- 旧 2.1.23 快照保留在 D:\2api-codes\maimai\client\build\desktop\releases\2.1.23，可用于安装回退；原三资产大小与 SHA256 已核对。证据与共享记忆备份位于 `docs/history/canvasBrowse20261107/`；三资产完整摘要与验证细节见 releaseWorkflow.md。
+
 ## 桌面本地安装包 2.1.9（2026-11-05）
 
 - 源码提交：970bec1（版本），功能提交 565756f，分支 codex/simplifyMediaModels。内容：图片工具栏（信息、裁剪、放大、反推提示词、删除节点）、多图堆叠展示、图像设置面板重排（质量、自定义宽高、透明背景、张数 1–8）。自定义宽高经 other.pixels 转发，需云端提交 de59556（分支 uiRedesign，未部署）才按面积计费。
