@@ -1196,7 +1196,7 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 
 改动文件：`apps/web/src/pages/workspace/canvasFile.ts`、`pages/workspace/panels/canvas/components/{canvasPickerDialog.vue,canvasCover.vue,canvasCoverMedia.ts}`、`electrobun.config.ts`。
 
-验证：Web 和 desktop 现有 typecheck、Web 构建通过；未新增测试文件。实际图片/视频封面和登录后界面交互需在登录后的预览或安装包中验收，打包结果另见 `docs/projectMemory/releaseWorkflow.md`。
+验证：Web 和 desktop 现有 typecheck、Web 构建通过；未新增测试文件。新版前端连接当前客户端的本机服务，已用真实项目确认图片封面、空画布回退、宽/窄布局、列表切换、名称搜索及关闭留在首页；三卡片预览均为 256×144、标题起点一致。视频首帧及其他目录分类仅完成源码和包内核验。安装包和截图记录见 `docs/projectMemory/releaseWorkflow.md`。
 
 限制：当前没有服务端缩略图接口，首次生成视频封面仍需读取该本地媒体文件；静态小图只缓存在当前组件内。
 

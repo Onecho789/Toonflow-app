@@ -278,7 +278,7 @@ Grok 当前修订：f8f85bef333fecb4da9ecfdb267a9cbad30472092346ed9a252c15138fda
 
 - 源码 9bd3b688ad45010654a168bd54d9f922a86476e4，分支 codex/simplifyMediaModels。补齐画布图片/视频静态封面、结构预览回退、统一卡片预览高度及真实空目录/其他目录分类。
 - 快照：D:\2api-codes\maimai\client\build\desktop\releases\2.1.25。安装包 `MaiMaiStudio-2.1.25-Setup.exe` 66,483,958 字节；SHA256 `b3f8ce131ba7757d9b18a5f04a379155cb19ff99178b5683de949a4a795d91b7`；清单 version=2.1.25、stable/win/x64、hash=1a356utftajl5。
-- 完整打包退出 0；三资产与 artifacts 一致，包内 1743 项、11 个节点插件及本次媒体封面与布局代码齐全。Web/desktop 类型检查与 Web 构建通过；未完成登录后交互验收、未运行安装器。
+- 完整打包退出 0；三资产与 artifacts 一致，包内 1743 项、11 个节点插件及本次媒体封面与布局代码齐全。Web/desktop 类型检查与 Web 构建通过；借助当前客户端既有登录会话，已实际确认两张图片封面、空画布回退、三卡片对齐、列表/搜索/关闭行为。截图见本次证据目录 canvasCoverPreview.jpg；视频首帧及其他目录分类仍仅完成源码/包内核验，未运行安装器。
 - 旧 2.1.24 快照保留并核对原摘要，可用于回退；证据与共享记忆备份位于 `docs/history/canvasCover20261108/`，完整大小与摘要见 releaseWorkflow.md。
 - 本地交付，未发布 GitHub Release、未部署云端；云端生产版本保持上方记录，桌面公开版本仍为 2.1.0、自动更新源为空。
 

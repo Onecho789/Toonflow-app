@@ -95,7 +95,8 @@ bun run release:desktop <新的桌面版本> --initial
 - 更新归档：`stable-win-x64-MaiMaiStudio.tar.zst`，69,805,985 字节；SHA256 `06835b3a4a08e6c082fea23fe015b63bed83998f7786c7d95e529e6f74be90fa`。
 - 更新清单：`stable-win-x64-update.json`，210 字节；SHA256 `c5c5210c4de24daec6b1a622af150801cdae885e8679b18911f8536601a2e933`；version=2.1.25、stable/win/x64、identifier=local.maimaistudio.desktop、构建 hash=1a356utftajl5（不是 SHA256）。
 - 验证：Web、desktop 已有 typecheck 与 Web 构建通过，git diff --check 通过；系统 tar 列出归档 1743 项，包内 version.json 与清单一致，11 个节点插件齐全。实际 picker JS/CSS 含媒体输出候选、视频首帧与 480px 静态封面、超时/结构预览回退、emptyFolders/其他目录及固定 16:9 绝对定位样式，主入口引用正确。
-- 验收边界：本地独立开发预览停在登录页，未完成登录后的图片/视频解码与布局交互验收；开发服务已停止。未运行安装器、未替换当前客户端。首次视频封面仍需读取原始本地媒体，静态小图仅在当前组件内复用。
+- 实际界面验收：新版前端连接当前已登录客户端的本机服务，复用既有会话；xiaomaiPortraitRun 的两张画布显示真实图片封面，空画布正常回退。1168×750 视口下三张预览均为 256×144，标题起点一致、弹窗高 510.5；窄视口为两列。卡片/列表切换、名称搜索及关闭后留在首页通过，截图为本次证据目录的 canvasCoverPreview.jpg。
+- 验收边界：视频首帧与其他目录分类未进行完整运行时场景验收，仅完成源码与包内核验；未运行安装器、未替换当前客户端。首次视频封面仍需读取原始本地媒体，静态小图仅在当前组件内复用。
 - 本地交付，未上传 GitHub Release、未部署云端；公开桌面版本仍为 2.1.0，自动更新源仍为空。
 - 证据：`docs/history/canvasCover20261108/desktopBuild2125.log`、`assets2125.json`、`packageVerification2125.md`；升级前配置与共享记忆备份分别为 `versionBefore.ts`、`memoryBefore/`。
 - 回退：D:\2api-codes\maimai\client\build\desktop\releases\2.1.24 的三个资产保留，大小/SHA256 与上次记录一致；源码参考 b24c6ac。未自动回退。
