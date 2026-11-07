@@ -16,7 +16,7 @@
 
 两个子目录分别管理 Git。根目录继续作为共享记忆维护入口；根级 AGENTS.md 与 docs/ 下的 releaseWorkflow.md、maimaiCloud.md、localEnvNotes.md 同步到两个仓库的 docs/projectMemory/ 并分别提交、推送，单独克隆时可从该目录的 readme.md 查看。每次更新共享记忆后同步两份副本；docs/history/ 中的历史证据与构建日志另作本机备份。
 
-当前桌面本地安装包为 **2.1.26**，源码对应 2af1718（画布工具栏收紧、选择器操作按钮同排，含版本），分支 codex/simplifyMediaModels；旧 2.1.25 快照保留；上次公开发布为 2.1.0。云端版本为 **2.20.0-20261107**，提交 1b7cbab558e032a468aefdc92adb096c89ead240，分支 uiRedesign（2026-11-07 已推送 origin）。两个版本号各自维护，后续先读实际 HEAD、分支和工作区。
+当前桌面本地安装包为 **2.1.27**，源码对应 0141f56（保存窗口结果协议、占用释放与下载按钮等待，含版本），分支 codex/simplifyMediaModels；旧 2.1.26 快照保留；上次公开发布为 2.1.0。云端版本为 **2.20.0-20261107**，提交 1b7cbab558e032a468aefdc92adb096c89ead240，分支 uiRedesign（2026-11-07 已推送 origin）。两个版本号各自维护，后续先读实际 HEAD、分支和工作区。
 
 ## Windows 桌面打包
 
@@ -85,6 +85,19 @@ bun run release:desktop <新的桌面版本> --initial
 - 本次为本地安装包交付；GitHub 公开版本仍为 2.1.0，更新源仍为空。安装器留给用户运行测试，原有 AGENTS.md 修改保留。
 - 构建日志、原始/修改后版本配置、差异及副本回退证据：`docs/history/canvasDesktop21320261104/`。ROLLBACK.sh 仅在独立配置副本恢复 app.version=2.1.2，SHA256 与原始配置一致；实际源码和产物保持 2.1.3，不更换已安装程序。
 - 旧 2.1.2 安装包保留在其原快照目录；打包前已核对 SHA256 与旧记录一致。共享记忆修改前副本保存在本轮证据目录的 memoryBefore/。
+
+### 本地完整安装包 2.1.27（2026-11-08）
+
+- 源码：0141f560c3e8bc804114d9508e7af515cb6e3900，分支 codex/simplifyMediaModels；修改前基线 7a17af2。旧实现的保存锁等待 execFile 的 close（含所有输出管道关闭），缺少结果与请求取消出口；改为 C# / PowerShell 明确发送 JSON 单行路径或 null，完成后有界收尾，真正仍在操作的窗口不限时。请求断开回收 helper，终止失败不提前清锁；图片单张与打包下载等待宿主完成后恢复按钮。
+- 命令：`bun run release:desktop 2.1.27 --initial`，退出 0，Bun 1.4.3；完整重建，无增量 patch，构建锁已释放。当前包内运行时仍为 SDK 自带 Bun 1.4.0，没有擅自升级。
+- 快照：D:\2api-codes\maimai\client\build\desktop\releases\2.1.27；三个交付文件与 artifacts SHA256 均一致。
+- 安装包：`MaiMaiStudio-2.1.27-Setup.exe`，66,483,186 字节；SHA256 `0b709d326bd2dafd45c2149b88b551917793372d2e8aaa0d899d175a13adfaf1`。
+- 更新归档：`stable-win-x64-MaiMaiStudio.tar.zst`，69,827,282 字节；SHA256 `eb4b838182f6077983457db21a69935919657de501e632202f124494280f617b`。
+- 清单：`stable-win-x64-update.json`，210 字节；SHA256 `5632e41972b8faa4880f0094bc4822afc743fc61fc4b25f6c59ee86e0d5f0501`；version=2.1.27、stable/win/x64、hash=1lahcy8n3hrc7。
+- 验证：desktop/server/nodeShared/imageGenerationNode 已有 typecheck、路由生成、diff 检查与完整构建通过。7-Zip 安装包校验 Everything is Ok；归档 1743 项，解包成功，版本一致；原生 helper 与本次编译文件 SHA256 一致，宿主包含完整结果、严格启动失败分类和 PowerShell JSON 协议。
+- 实际验证使用解包副本及独立 data，未访问用户项目或写入选定文件；原生选择路径返回 200 与 token。窗口开启时并发请求仍被保护；HTTP 断开自动回收 helper，同一副本再次选择可用；helper 异常结束后返回明确错误，同一副本再次选择仍可用，均无需重启。未取得手动点击取消/右上角关闭后的 null 返回记录；兜底窗口与按钮全部交互未真机覆盖。完整证据与边界见本轮 findings.md。
+- 证据与共享记忆备份：`docs/history/saveDialog20261108/`。回退可用旧 2.1.26 完整快照，安装包原 SHA256 已复核一致；源码基线 7a17af2。未覆盖旧版本。
+- 本地交付，未运行安装器、未发布 GitHub Release、未部署云端。用户当次卡住的具体平台触发尚未现场复现；本次修复的是代码中确定的无限等待和取消资源回收缺口。
 
 ### 本地完整安装包 2.1.26（2026-11-08）
 

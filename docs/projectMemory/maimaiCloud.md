@@ -274,7 +274,15 @@ Grok 当前修订：f8f85bef333fecb4da9ecfdb267a9cbad30472092346ed9a252c15138fda
 上次版本已验证能力400、源码新旧版本读取、默认升级、自定义与恢复版本重启保留。本次发布前无活跃视频任务、无 pending 用量记录，发布中未新发起生成。
 视频编辑/延长等宿主入参及上游特殊计费未扩展，现有失败退款规则保留。
 
-## 当前桌面本地安装包 2.1.26（2026-11-08）
+## 当前桌面本地安装包 2.1.27（2026-11-08）
+
+- 源码0141f560c3e8bc804114d9508e7af515cb6e3900，分支codex/simplifyMediaModels；基线7a17af2。修复保存操作无限等待输出管道关闭的问题，明确回传路径/取消，完成后有界回收；请求断开取消helper，下载按钮等待宿主完成后才恢复。
+- 快照：D:\2api-codes\maimai\client\build\desktop\releases\2.1.27。安装包`MaiMaiStudio-2.1.27-Setup.exe` 66,483,186字节；SHA256 `0b709d326bd2dafd45c2149b88b551917793372d2e8aaa0d899d175a13adfaf1`；清单version=2.1.27、stable/win/x64、hash=1lahcy8n3hrc7。
+- 现有desktop/server/nodeShared/imageGenerationNode类型检查、完整打包与7-Zip完整性检查通过；三资产与artifacts一致，归档1743项，原生helper与本次构建一致。独立副本实测路径选择、并发保护、HTTP断开回收、helper异常退出报错后再次选择，后两项均无需重启恢复；手动取消及PowerShell兜底的全部交互未覆盖。详见`docs/history/saveDialog20261108/findings.md`。
+- 用户当次平台卡住原因尚未复现；已修复确定的生命周期缺口，不把源码分析表述为已捕获现场。旧2.1.26快照和7a17af2基线保留，详细摘要与验证边界见releaseWorkflow.md。
+- 本地交付，未运行安装器、未发布GitHub Release、未部署云端；证据与记忆备份位于`docs/history/saveDialog20261108/`。
+
+## 上次桌面本地安装包 2.1.26（2026-11-08）
 
 - 源码2af171843bbbb97069724eda9f14a67ab68a005f，分支codex/simplifyMediaModels；修改前4815113。画布工具栏收紧为36px，选择器操作按钮同排，窄窗口避让。
 - 快照：D:\2api-codes\maimai\client\build\desktop\releases\2.1.26。安装包`MaiMaiStudio-2.1.26-Setup.exe` 66,477,831字节；SHA256 `145007ff3142707160edad6659ab72436477eaa4ca72b6225134d6274a150ee6`；清单version=2.1.26、stable/win/x64、hash=1n1npq1x58sn8。
