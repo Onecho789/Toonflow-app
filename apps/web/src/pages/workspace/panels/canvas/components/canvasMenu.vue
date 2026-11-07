@@ -1,6 +1,6 @@
 <template>
   <panel class="canvasMenuPanel" position="top-left">
-    <el-card class="canvasMenu" shadow="never" :bodyStyle="{ padding: '1px 4px' }">
+    <workspaceMenu class="canvasMenu" @openSettings="emit('openSettings')">
       <div class="menuContent">
         <el-input v-model="projectNameDraft" class="workspaceNameInput" :style="{ '--workspaceName': JSON.stringify(projectNameDraft || ' ') }" size="small"
           :title="`${workspaceName} · 点击修改项目名称`" :disabled="!workspaceStore.project" aria-label="项目名称，点击修改"
@@ -10,12 +10,12 @@
           :aria-label="`切换画布，当前${activeCanvasName}`" aria-haspopup="dialog" :aria-expanded="pickerVisible" @click="openPicker">
           <span class="triggerName">{{ activeCanvasName }}</span>
           <icon-chevron-down class="triggerArrow" :size="14" aria-hidden="true" />
-          <kbd v-if="switchShortcut" class="triggerKey">{{ switchShortcut }}</kbd>
         </el-button>
         <input ref="importInput" type="file" accept=".json,application/json" hidden aria-label="选择画布 JSON 文件" @change="handleImportCanvas" />
       </div>
-    </el-card>
-    <div class="menuExtension"><slot /></div>
+      <span v-if="$slots.default" class="menuDivider" aria-hidden="true" />
+      <slot />
+    </workspaceMenu>
   </panel>
   <panel v-if="cloudBalance" class="balanceMenuPanel" position="top-right">
     <el-card class="balanceCard" shadow="never" :bodyStyle="{ padding: '2px 4px' }">
@@ -48,6 +48,7 @@ import mailangBalance from "@/components/mailangBalance.vue";
 import { shortcutLabel } from "@/lib/canvasShortcuts";
 import { generalSettings } from "@/stores/settings";
 import canvasPickerDialog, { type CanvasPickerAction } from "./canvasPickerDialog.vue";
+import workspaceMenu from "../../../components/workspaceMenu.vue";
 
 const props = defineProps<{
   directory?: string;
@@ -55,6 +56,7 @@ const props = defineProps<{
   activateCanvas?: (id: string, signal?: AbortSignal) => Promise<void>;
   flushSave: (action?: () => Promise<void>) => Promise<void>;
 }>();
+const emit = defineEmits<{ openSettings: [] }>();
 const workspaceStore = useWorkspaceStore();
 const workspaceName = computed(() => workspaceStore.project?.name || translate("未命名工作区"));
 const projectNameDraft = ref("");
@@ -737,7 +739,6 @@ defineExpose({ getCanvases, peekCanvases, initialized, addCanvas, switchCanvas, 
 
 <style lang="scss" scoped>
 .canvasMenuPanel.vue-flow__panel {
-  --canvasMenuOffset: 0px;
   left: 0;
   display: flex;
   align-items: center;
@@ -757,19 +758,15 @@ defineExpose({ getCanvases, peekCanvases, initialized, addCanvas, switchCanvas, 
   }
 }
 
-.menuExtension {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-}
-
 .canvasMenu {
-  margin-left: 128px;
   min-width: 0;
-  max-width: 380px;
+  max-width: 100%;
+
+  .menuDivider { flex: 0 0 1px; height: 18px; margin: 0 4px; background: var(--el-border-color-lighter); }
 
   .menuContent {
     display: flex;
+    flex: 0 1 auto;
     align-items: center;
     min-width: 0;
     gap: 2px;
@@ -779,10 +776,10 @@ defineExpose({ getCanvases, peekCanvases, initialized, addCanvas, switchCanvas, 
     .workspaceNameInput {
       flex: 0 1 auto;
       width: auto;
-      min-width: 40px;
-      max-width: 170px;
+      min-width: 32px;
+      max-width: 156px;
       height: 32px;
-      font-size: 13px;
+      font-size: 12px;
 
       &::after {
         content: var(--workspaceName);
@@ -806,7 +803,7 @@ defineExpose({ getCanvases, peekCanvases, initialized, addCanvas, switchCanvas, 
 
     .canvasTrigger {
       flex: 0 1 auto;
-      min-width: 44px;
+      min-width: 68px;
       height: 32px;
       margin: 0;
       padding: 0 4px;
@@ -815,46 +812,26 @@ defineExpose({ getCanvases, peekCanvases, initialized, addCanvas, switchCanvas, 
 
       .triggerName { min-width: 0; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
       .triggerArrow { flex-shrink: 0; color: var(--el-text-color-secondary); }
-      .triggerKey {
-        display: inline-flex;
-        flex-shrink: 0;
-        align-items: center;
-        height: 18px;
-        margin-left: 3px;
-        padding: 0 4px;
-        border: 1px solid var(--el-border-color);
-        border-radius: var(--ui-radius-small);
-        color: var(--el-text-color-secondary);
-        font-family: inherit;
-        font-size: 11px;
-        line-height: 1;
-      }
     }
   }
 }
 
 @container canvasWorkspace (max-width: 1040px) {
+  .canvasMenuPanel.vue-flow__panel { max-width: calc(100% - 170px); }
   .balanceMenuPanel.vue-flow__panel {
-    top: 42px;
+    top: 52px;
     max-width: calc(100% - 30px);
   }
   .canvasMenu .menuContent {
     .workspaceNameInput { max-width: 120px; }
-    .canvasTrigger .triggerKey { display: none; }
   }
 }
 
-@container canvasWorkspace (max-width: 760px) {
-  .canvasMenuPanel.vue-flow__panel { max-width: calc(100% - 170px); }
-}
-
-@container canvasWorkspace (max-width: 480px) {
+@container canvasWorkspace (max-width: 600px) {
   .canvasMenuPanel.vue-flow__panel {
-    --canvasMenuOffset: 42px;
-    top: 42px;
     max-width: calc(100% - 30px);
   }
-  .canvasMenu { margin-left: 0; }
-  .balanceMenuPanel.vue-flow__panel { top: 84px; }
+  .canvasMenu .menuContent .workspaceNameInput { min-width: 0; }
+  .balanceMenuPanel.vue-flow__panel { left: 0; right: auto; max-width: calc(100% - 170px); }
 }
 </style>

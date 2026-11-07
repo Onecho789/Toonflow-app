@@ -15,7 +15,8 @@
       :settingsVisible="settingsVisible"
       :activateCanvas="activateCanvas"
       :resolveCanvasContext="resolveCanvasContext"
-      :flushCanvases="flushSave" />
+      :flushCanvases="flushSave"
+      @openSettings="emit('openSettings')" />
   </div>
 </template>
 
@@ -31,6 +32,7 @@ import type { NodeDocumentState } from "@toonflow/nodes-scaffold/nodeDocument";
 import { copyCanvasFiles, findRemainingCanvas, readCanvasFiles, type DocumentNode, type DocumentNodeOptions } from "./canvasFiles";
 
 const props = withDefaults(defineProps<{ active?: boolean; settingsVisible?: boolean }>(), { active: true, settingsVisible: false });
+const emit = defineEmits<{ openSettings: [] }>();
 const selectedTool = defineModel<"move" | "hand">("selectedTool", { default: "hand" });
 type CanvasInstance = InstanceType<typeof canvasPanel>;
 const entries = shallowRef<{ key: string; fileName?: string }[]>([{ key: crypto.randomUUID() }]);

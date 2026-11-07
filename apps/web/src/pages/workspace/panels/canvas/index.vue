@@ -77,7 +77,7 @@
         v-if="active && !settingsVisible && project?.directory && canvasReady && !flow.getNodes.value.length"
         :availableNodes="availableNodes"
         @create="createEmptyNode" />
-      <canvasMenu ref="canvasMenuRef" v-model:canvasId="canvasId" :directory="project?.directory" :initialCanvasId="initialCanvasId" :activateCanvas="activateCanvas" :flushSave="flushCanvases ?? flushCanvasSave">
+      <canvasMenu ref="canvasMenuRef" v-model:canvasId="canvasId" :directory="project?.directory" :initialCanvasId="initialCanvasId" :activateCanvas="activateCanvas" :flushSave="flushCanvases ?? flushCanvasSave" @openSettings="emit('openSettings')">
         <canvasSidePanel v-if="canvasId" v-model:open="sidePanelOpen" v-model:tab="sidePanelTab" :directory="project?.directory" :nodeOptions="nodeOptions" :disabled="!active || settingsVisible || !project?.directory" @exportSelection="selectionToolbarRef?.exportMedia()" @deleteNodes="deleteSideNodes" @createNode="createSideNode">
           <template #assets><assetLibrary ref="assetLibraryRef" v-model="assetsVisible" :directory="project?.directory" :insertAsset="insertAsset" /></template>
         </canvasSidePanel>
@@ -212,6 +212,7 @@ const props = withDefaults(defineProps<{
   resolveCanvasContext?: (canvasId: string) => CanvasContext | undefined;
   flushCanvases?: (action?: () => Promise<void>) => Promise<void>;
 }>(), { active: true, settingsVisible: false });
+const emit = defineEmits<{ openSettings: [] }>();
 const { project } = storeToRefs(useWorkspaceStore());
 
 const canvasElement = ref<HTMLElement>();

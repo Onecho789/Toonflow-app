@@ -1,6 +1,6 @@
 <template>
-  <el-button v-if="!open" class="sidePanelTrigger" :icon="IconLayoutSidebarLeftExpand" :disabled="disabled" :aria-label="`展开画布元素，共 ${items.length} 个`" :aria-expanded="false" title="展开画布元素、资产与提示词库" @click="open = true">
-    <span>画布元素</span><span class="elementCount">{{ items.length }}</span>
+  <el-button class="sidePanelTrigger" :class="{ isActive: open }" text :icon="IconLayoutSidebarLeftExpand" :disabled="disabled" :aria-label="`${open ? '收起' : '展开'}画布元素，共 ${items.length} 个`" :aria-expanded="open" title="画布元素、资产与提示词库" @click="open = !open">
+    <span><span class="elementLabel">画布</span>元素</span><span v-if="items.length" class="elementCount">{{ items.length }}</span>
   </el-button>
   <el-card v-show="open" class="canvasSidePanel" shadow="never" :bodyStyle="{ padding: '0' }" :style="{ width: `var(--dragWidth, ${width}px)` }" role="region" aria-label="画布侧栏" @dblclick.stop>
     <div class="panelHeader">
@@ -572,13 +572,15 @@ async function copyPrompt(text: string) {
 
 <style lang="scss" scoped>
 .sidePanelTrigger {
+  flex-shrink: 0;
   width: max-content;
-  height: 28px;
+  height: 32px;
   margin: 0;
   padding: 0 8px;
   border-radius: var(--ui-radius-small);
-  background: color-mix(in srgb, var(--el-bg-color-overlay) 94%, transparent);
   font-size: 12px;
+
+  &.isActive { color: var(--el-color-primary); background: var(--el-color-primary-light-9); }
 
   :deep(> span) { display: flex; align-items: center; gap: 6px; }
   .elementCount {
@@ -588,9 +590,11 @@ async function copyPrompt(text: string) {
   }
 }
 .canvasSidePanel {
-  position: relative;
-  max-width: calc(100vw - 30px);
-  height: calc(100dvh - 112px - var(--canvasMenuOffset, 0px));
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  max-width: min(calc(100vw - 30px), calc(100cqw - 30px));
+  height: calc(100dvh - 112px);
 
   :deep(.el-card__body) {
     display: flex;
@@ -919,6 +923,20 @@ async function copyPrompt(text: string) {
       outline: none;
       background: linear-gradient(to right, transparent 3px, var(--el-color-primary) 3px, var(--el-color-primary) 5px, transparent 5px);
     }
+  }
+}
+
+@container canvasWorkspace (max-width: 1040px) {
+  .canvasSidePanel {
+    top: calc(100% + 48px);
+    height: calc(100dvh - 152px);
+  }
+}
+
+@container canvasWorkspace (max-width: 420px) {
+  .sidePanelTrigger {
+    padding: 0 4px;
+    .elementLabel { display: none; }
   }
 }
 

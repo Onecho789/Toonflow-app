@@ -9,7 +9,8 @@
       :inert="activePanel !== 'canvas'"
       :aria-hidden="activePanel !== 'canvas'"
       :active="activePanel === 'canvas'"
-      :settingsVisible="settingsVisible" />
+      :settingsVisible="settingsVisible"
+      @openSettings="settingsVisible = true" />
     <keep-alive :key="workspaceStore.project?.directory" :max="1">
       <documentPanel
         v-if="activePanel === 'document'"
@@ -25,9 +26,9 @@
         :fileAction="performFileAction"
         :saveNode="saveDocumentNode" />
     </keep-alive>
-    <workspaceMenu class="workspaceMenu" @openSettings="settingsVisible = true" />
+    <workspaceMenu v-if="activePanel === 'document'" class="documentMenu" @openSettings="settingsVisible = true" />
     <div class="workspaceTools">
-      <el-segmented :modelValue="activePanel" class="panelSwitcher" :options="panelOptions" size="small" aria-label="切换面板" @change="switchPanel">
+      <el-segmented :modelValue="activePanel" class="panelSwitcher" :class="{ canvasSwitcher: activePanel === 'canvas' }" :options="panelOptions" size="small" aria-label="切换面板" @change="switchPanel">
         <template #default="{ item }">
           <span class="panelOption">
             <component :is="item.icon" :size="15" aria-hidden="true" />
@@ -377,7 +378,6 @@ function saveDocumentNode(directory: string, canvasPath: string, nodeId: string,
   background-color: var(--el-bg-color);
 
   :deep(.workspaceMenu > .el-card),
-  :deep(.canvasMenu),
   :deep(.balanceCard),
   :deep(.canvasControlsCard),
   .panelSwitcher,
@@ -388,8 +388,7 @@ function saveDocumentNode(directory: string, canvasPath: string, nodeId: string,
     box-shadow: var(--el-box-shadow-light);
   }
 
-  :deep(.workspaceMenu > .el-card),
-  :deep(.canvasMenu) {
+  :deep(.workspaceMenu > .el-card) {
     border-radius: var(--ui-radius-small);
     background: color-mix(in srgb, var(--el-bg-color-overlay) 94%, transparent);
     box-shadow: none;
@@ -408,7 +407,7 @@ function saveDocumentNode(directory: string, canvasPath: string, nodeId: string,
     }
   }
 
-  .workspaceMenu {
+  .documentMenu {
     position: absolute;
     top: 15px;
     left: 15px;
@@ -597,12 +596,16 @@ function saveDocumentNode(directory: string, canvasPath: string, nodeId: string,
   }
 }
 
-@container workspaceTools (max-width: 760px) {
+@container workspaceTools (max-width: 1040px) {
   .workspacePage .workspaceTools .panelSwitcher {
     left: auto;
     right: 15px;
     transform: none;
   }
+}
+
+@container workspaceTools (max-width: 600px) {
+  .workspacePage .workspaceTools .panelSwitcher.canvasSwitcher { top: 67px; }
 }
 
 @keyframes agentFlow {
