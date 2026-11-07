@@ -46,11 +46,13 @@ export async function createEmptyCanvas(files: Pick<ReturnType<typeof useWorkspa
 /** 递归列出工作区里的画布和文件夹（跳过 assets 与 .agent），只读文件头确认画布标记。 */
 export async function listCanvasFiles(files: Pick<ReturnType<typeof useWorkspaceFiles>, "list" | "readText">, signal?: AbortSignal) {
   const folders = [""];
+  const emptyFolders = new Set<string>();
   const canvases: CanvasListing[] = [];
   for (let index = 0; index < folders.length; index++) {
     const folder = folders[index]!;
     const { entries } = await files.list(folder, signal);
     signal?.throwIfAborted();
+    if (folder && entries.length === 0) emptyFolders.add(folder);
     await Promise.all(entries.map(async entry => {
       if (entry.type === "directory") {
         if (!["assets", ".agent"].includes(entry.name.toLowerCase())) folders.push(entry.path);
@@ -59,7 +61,8 @@ export async function listCanvasFiles(files: Pick<ReturnType<typeof useWorkspace
       }
     }));
   }
-  return { canvases, folders: folders.slice(1).sort((left, right) => left.localeCompare(right, "zh-CN", { numeric: true })) };
+  const sortedFolders = folders.slice(1).sort((left, right) => left.localeCompare(right, "zh-CN", { numeric: true }));
+  return { canvases, folders: sortedFolders, emptyFolders: sortedFolders.filter(folder => emptyFolders.has(folder)) };
 }
 
 export async function isCanvasFile(files: Pick<ReturnType<typeof useWorkspaceFiles>, "readText">, path: string, signal?: AbortSignal) {

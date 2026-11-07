@@ -1185,3 +1185,19 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 验证：`apps/web` 的 `bun run typecheck` 与 `bun run build --outDir ../../build/canvasBrowsePreview` 通过。开发页可以启动，但独立浏览器会话停在登录页，未完成实际交互验收。桌面安装包交付记录另见 `docs/projectMemory/releaseWorkflow.md`。
 
 冲突时保留：统一的先选画布进入流程、常用记录的持久化与磁盘成功后的路径同步、独占新建、卡片信息层次、工具栏文字与容器宽度适配。
+
+## 画布媒体封面与卡片布局补齐（2026-11-08）
+
+- 修复 2.1.24 遗漏的媒体封面：从画布节点真实 `outputs` 与批量 `results` 中选取已完成的图片或视频，最多保留 4 个去重候选；仅读取工作区相对路径，不扫描项目图片目录或请求外部地址。
+- 新增 `canvasCover.vue`，可见卡片才读取媒体，图片和视频首帧均压为最长边 480px 的静态小图；视频不自动播放。普通读取或解码失败尝试下一候选，超时停止追加读取，全部不可用回退节点结构预览。离屏、关闭和切换项目时清理加载资源，已生成小图在本次组件内复用。
+- `canvasPickerDialog.vue` 的预览槽固定为 16:9，封面、SVG 与空态绝对定位，避免不同节点布局撑高卡片；目录文本独立省略，同行卡片与底部操作对齐。
+- `listCanvasFiles` 在原扫描中标记真实空目录；含画布目录、真实空目录及其祖先默认显示，其余有其他文件但没有画布的目录进入默认收起的“其他目录”，不再统一称为空文件夹。新建空目录与深层折叠保留。
+- 2.1.24 已实现的名称/目录/底部信息分层、当前/悬停/键盘状态、真实最近访问、常用、名称优先搜索、顶部操作与关闭按钮继续保留；本次桌面版本为 2.1.25。
+
+改动文件：`apps/web/src/pages/workspace/canvasFile.ts`、`pages/workspace/panels/canvas/components/{canvasPickerDialog.vue,canvasCover.vue,canvasCoverMedia.ts}`、`electrobun.config.ts`。
+
+验证：Web 和 desktop 现有 typecheck、Web 构建通过；未新增测试文件。实际图片/视频封面和登录后界面交互需在登录后的预览或安装包中验收，打包结果另见 `docs/projectMemory/releaseWorkflow.md`。
+
+限制：当前没有服务端缩略图接口，首次生成视频封面仍需读取该本地媒体文件；静态小图只缓存在当前组件内。
+
+冲突时保留：真实媒体输出候选、结构预览回退、可见时加载与资源释放、固定比例预览槽、真实空目录与其他目录的区分。

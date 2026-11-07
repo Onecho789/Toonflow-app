@@ -63,8 +63,8 @@
                 <el-button v-if="!entering" class="folderMore" text :icon="IconDots" :disabled="busy" :aria-label="`管理文件夹 ${folder}`" @click="openMenu($event, 'folder', folder)" />
               </div>
             </el-scrollbar>
-            <button v-if="emptyFolderCount" class="otherFolders" type="button" :aria-expanded="showOtherFolders" @click="showOtherFolders = !showOtherFolders">
-              {{ showOtherFolders ? "收起空文件夹" : `显示空文件夹（${emptyFolderCount}）` }}
+            <button v-if="otherFolderCount" class="otherFolders" type="button" :aria-expanded="showOtherFolders" @click="showOtherFolders = !showOtherFolders">
+              {{ showOtherFolders ? "收起其他目录" : `其他目录（${otherFolderCount}）` }}
             </button>
           </div>
         </nav>
@@ -81,18 +81,21 @@
                   @contextmenu="!entering && openMenu($event, 'canvas', canvas.path)">
                   <button class="openCanvas" type="button" :disabled="busy" :aria-label="`${entering ? '进入' : '打开'}画布 ${canvas.name}`" :aria-current="canvas.path === activeId ? 'true' : undefined" @click="select(canvas)" @focus="focusedIndex = index">
                     <span class="cardThumb">
-                      <svg v-if="canvas.preview?.rects.length" class="thumbSvg" :viewBox="canvas.preview.viewBox" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-                        <rect v-for="(rect, rectIndex) in canvas.preview.rects" :key="rectIndex" :x="rect.x" :y="rect.y" :width="rect.width" :height="rect.height" rx="14"
-                          :fill="rect.color ? `color-mix(in srgb, ${rect.color} 24%, var(--el-bg-color-overlay))` : 'none'"
-                          :stroke="rect.color || 'var(--el-border-color-darker)'" :stroke-width="rect.color ? 2 : 3" :stroke-dasharray="rect.color ? undefined : '16 10'" stroke-opacity="0.8" vector-effect="non-scaling-stroke" />
-                      </svg>
-                      <span v-else class="thumbEmpty"><icon-vector :size="30" aria-hidden="true" /><span>{{ canvas.previewError ? "预览不可用" : canvas.preview ? "空画布" : "加载预览…" }}</span></span>
+                      <canvasCover v-if="canvas.preview" :directory="directory" :candidates="canvas.preview.media">
+                        <svg v-if="canvas.preview.rects.length" class="thumbSvg" :viewBox="canvas.preview.viewBox" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                          <rect v-for="(rect, rectIndex) in canvas.preview.rects" :key="rectIndex" :x="rect.x" :y="rect.y" :width="rect.width" :height="rect.height" rx="14"
+                            :fill="rect.color ? `color-mix(in srgb, ${rect.color} 24%, var(--el-bg-color-overlay))` : 'none'"
+                            :stroke="rect.color || 'var(--el-border-color-darker)'" :stroke-width="rect.color ? 2 : 3" :stroke-dasharray="rect.color ? undefined : '16 10'" stroke-opacity="0.8" vector-effect="non-scaling-stroke" />
+                        </svg>
+                        <span v-else class="thumbEmpty"><icon-vector :size="30" aria-hidden="true" /><span>空画布</span></span>
+                      </canvasCover>
+                      <span v-else class="thumbEmpty"><icon-vector :size="30" aria-hidden="true" /><span>{{ canvas.previewError ? "预览不可用" : "加载预览…" }}</span></span>
                       <span v-if="canvas.path === activeId" class="currentTag">当前画布</span>
                       <span v-else-if="openIds.includes(canvas.path)" class="openedTag">已打开</span>
                     </span>
                     <span class="cardInfo">
                       <span class="cardName" :title="canvas.name"><template v-for="(part, partIndex) in highlight(canvas.name)" :key="partIndex"><mark v-if="part.match">{{ part.text }}</mark><template v-else>{{ part.text }}</template></template></span>
-                      <span class="cardFolder" :title="canvas.folder || '根目录'"><icon-folder :size="13" aria-hidden="true" />{{ canvas.folder || "根目录" }}</span>
+                      <span class="cardFolder" :title="canvas.folder || '根目录'"><icon-folder :size="13" aria-hidden="true" /><span class="folderText">{{ canvas.folder || "根目录" }}</span></span>
                       <span class="cardMeta"><span>{{ canvas.preview ? `${canvas.preview.nodeCount} 个节点` : canvas.previewError ? "预览不可用" : "读取中…" }}</span><span :title="absoluteTime(canvas.mtimeMs)">{{ relativeTime(canvas.mtimeMs) }}</span></span>
                     </span>
                   </button>
@@ -161,11 +164,13 @@ import { t } from "@toonflow/i18n/vue";
 import { vLoading, type DropdownInstance, type InputInstance } from "element-plus";
 import { IconChevronDown, IconChevronRight, IconClock, IconDots, IconFileExport, IconFileImport, IconFolder, IconFolderOpen, IconFolderPlus, IconLayoutGrid, IconList, IconPlus, IconSearch, IconStack2, IconStar, IconStarFilled, IconVector, IconX } from "@tabler/icons-vue";
 import useWorkspaceFiles from "@/lib/workspaceFiles";
+import canvasCover from "./canvasCover.vue";
+import { canvasCoverCandidates } from "./canvasCoverMedia";
 import { listCanvasFiles, type CanvasListing } from "@/pages/workspace/canvasFile";
 
 export type CanvasPickerAction = "rename" | "copy" | "delete" | "move" | "createFolder" | "renameFolder" | "deleteFolder";
 type Rect = { x: number; y: number; width: number; height: number; color?: string };
-type Preview = { nodeCount: number; rects: Rect[]; viewBox: string };
+type Preview = { nodeCount: number; rects: Rect[]; viewBox: string; media: ReturnType<typeof canvasCoverCandidates> };
 type PickerCanvas = CanvasListing & { preview?: Preview; previewError?: boolean };
 
 const props = withDefaults(defineProps<{
@@ -194,6 +199,7 @@ const emit = defineEmits<{
 const previewCache = new Map<string, Preview>();
 const canvases = ref<PickerCanvas[]>([]);
 const folders = shallowRef<string[]>([]);
+const emptyFolders = shallowRef<string[]>([]);
 const loading = ref(false);
 const loadError = ref("");
 const view = ref("all");
@@ -248,9 +254,17 @@ const emptyDescription = computed(() => {
   if (view.value === "pinned") return t`点击画布上的星标，添加常用画布`;
   return t`这里还没有画布`;
 });
-const emptyFolderCount = computed(() => folders.value.filter(folder => !hasCanvases(folder)).length);
+const primaryFolders = computed(() => {
+  const visible = new Set<string>();
+  for (const path of [...canvases.value.map(canvas => canvas.folder), ...emptyFolders.value]) {
+    const parts = path.split("/").filter(Boolean);
+    for (let depth = 1; depth <= parts.length; depth++) visible.add(parts.slice(0, depth).join("/"));
+  }
+  return visible;
+});
+const otherFolderCount = computed(() => folders.value.filter(folder => !primaryFolders.value.has(folder)).length);
 const visibleFolders = computed(() => folders.value.filter(folder => {
-  if (!showOtherFolders.value && !hasCanvases(folder)) return false;
+  if (!showOtherFolders.value && !primaryFolders.value.has(folder)) return false;
   const parts = folder.split("/");
   return parts.slice(0, -1).every((_, index) => expandedFolders.value.includes(parts.slice(0, index + 1).join("/")));
 }));
@@ -263,7 +277,7 @@ function isActiveView(key: string) { return view.value === key && !searchText.va
 function setView(key: string) { view.value = key; query.value = ""; searchInput.value?.focus(); }
 function folderCount(folder: string) { return canvases.value.filter(canvas => canvas.folder === folder || (folder && canvas.path.startsWith(`${folder}/`))).length; }
 function hasCanvases(folder: string) { return canvases.value.some(canvas => canvas.path.startsWith(`${folder}/`)); }
-function hasChildFolders(folder: string) { return folders.value.some(child => parentFolder(child) === folder && (showOtherFolders.value || hasCanvases(child))); }
+function hasChildFolders(folder: string) { return folders.value.some(child => parentFolder(child) === folder && (showOtherFolders.value || primaryFolders.value.has(child))); }
 function toggleFolder(folder: string) {
   expandedFolders.value = expandedFolders.value.includes(folder) ? expandedFolders.value.filter(path => path !== folder) : [...expandedFolders.value, folder];
 }
@@ -320,12 +334,13 @@ function createPreview(nodes: unknown): Preview {
     const group = node.type === "canvasGroup";
     return { x, y, width: readSize(node.style?.width ?? node.width, group ? 480 : 220), height: readSize(node.style?.height ?? node.height, group ? 320 : 128), color: nodeColor(String(node.type)) };
   });
-  if (!rects.length) return { nodeCount: list.length, rects, viewBox: "0 0 1 1" };
+  const media = canvasCoverCandidates(nodes);
+  if (!rects.length) return { nodeCount: list.length, rects, viewBox: "0 0 1 1", media };
   const minX = Math.min(...rects.map(rect => rect.x)) - 40;
   const minY = Math.min(...rects.map(rect => rect.y)) - 40;
   const maxX = Math.max(...rects.map(rect => rect.x + rect.width)) + 40;
   const maxY = Math.max(...rects.map(rect => rect.y + rect.height)) + 40;
-  return { nodeCount: list.length, rects, viewBox: `${minX} ${minY} ${maxX - minX} ${maxY - minY}` };
+  return { nodeCount: list.length, rects, viewBox: `${minX} ${minY} ${maxX - minX} ${maxY - minY}`, media };
 }
 
 async function load() {
@@ -337,6 +352,7 @@ async function load() {
   if (!refreshing) {
     canvases.value = [];
     folders.value = [];
+    emptyFolders.value = [];
     expandedFolders.value = [];
     showOtherFolders.value = false;
   }
@@ -348,9 +364,9 @@ async function load() {
     if (signal.aborted) return;
     canvases.value = listed.canvases.map(canvas => ({ ...canvas, preview: previewCache.get(`${directory}|${canvas.path}|${canvas.mtimeMs}`) }));
     const addedFolders = listed.folders.filter(folder => !folders.value.includes(folder));
-    if (refreshing && addedFolders.some(folder => !listed.canvases.some(canvas => canvas.path.startsWith(`${folder}/`)))) {
-      showOtherFolders.value = true;
+    if (refreshing) {
       for (const folder of addedFolders) {
+        if (!listed.emptyFolders.includes(folder) && !listed.canvases.some(canvas => canvas.path.startsWith(`${folder}/`))) continue;
         const parts = folder.split("/");
         for (let depth = 1; depth < parts.length; depth++) {
           const parent = parts.slice(0, depth).join("/");
@@ -361,11 +377,13 @@ async function load() {
     loadedDirectory = directory;
     if (view.value === "recent" && !recent.value.length) view.value = "all";
     folders.value = listed.folders;
+    emptyFolders.value = listed.emptyFolders;
     if (view.value.startsWith("folder:") && view.value !== "folder:" && !listed.folders.includes(view.value.slice(7))) view.value = "all";
   } catch (error) {
     if (signal.aborted) return;
     canvases.value = [];
     folders.value = [];
+    emptyFolders.value = [];
     loadError.value = error instanceof Error ? error.message : t`读取画布失败`;
     return;
   } finally { if (!signal.aborted) loading.value = false; }
@@ -604,10 +622,14 @@ defineExpose({ reload: load });
           position: relative;
           width: 100%;
           aspect-ratio: 16 / 9;
+          flex: none;
+          min-height: 0;
+          overflow: hidden;
+          box-sizing: border-box;
           background: var(--el-fill-color-lighter);
           border-bottom: 1px solid var(--el-border-color-lighter);
-          .thumbSvg { display: block; width: 100%; height: 100%; padding: 16px; box-sizing: border-box; }
-          .thumbEmpty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; height: 100%; color: var(--el-text-color-secondary); font-size: 12px; }
+          .thumbSvg { position: absolute; inset: 0; display: block; width: 100%; height: 100%; padding: 16px; box-sizing: border-box; }
+          .thumbEmpty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; height: 100%; color: var(--el-text-color-secondary); font-size: 12px; }
           .currentTag, .openedTag { position: absolute; top: 10px; left: 10px; padding: 3px 8px; border-radius: 5px; font-size: 12px; line-height: 1.5; }
           .currentTag { background: var(--el-color-primary); color: var(--el-color-white); }
           .openedTag { background: var(--el-bg-color-overlay); color: var(--el-text-color-regular); }
@@ -620,10 +642,10 @@ defineExpose({ reload: load });
           box-sizing: border-box;
           padding: 14px 14px 10px;
           .cardName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; font-weight: 600; line-height: 1.5; }
-          .cardFolder { display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--el-text-color-secondary); font-size: 12px; svg { flex-shrink: 0; } }
+          .cardFolder { display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--el-text-color-secondary); font-size: 12px; line-height: 18px; svg { flex-shrink: 0; } .folderText { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
           .cardMeta { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px 8px; color: var(--el-text-color-secondary); font-size: 12px; line-height: 1.5; }
         }
-        .cardActions { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 0 10px 8px; }
+        .cardActions { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: auto; padding: 0 10px 8px; }
       }
     }
     .canvasList {
