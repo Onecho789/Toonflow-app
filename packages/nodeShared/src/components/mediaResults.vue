@@ -4,7 +4,7 @@
     <div v-if="currentIndex >= 0" class="resultCard currentCard nodrag nopan" role="listitem" @dblclick.stop="emit('preview', currentIndex)">
       <span class="resultIndex" aria-hidden="true">{{ currentIndex + 1 }}</span>
       <div class="resultActions">
-        <button type="button" :disabled="disabled" title="下载" :aria-label="`下载第 ${currentIndex + 1} 个结果`" @click.stop="emit('download', items[currentIndex]!, currentIndex)">
+        <button type="button" :disabled="disabled || downloadDisabled" title="下载" :aria-label="`下载第 ${currentIndex + 1} 个结果`" @click.stop="emit('download', items[currentIndex]!, currentIndex)">
           <icon-download :size="16" aria-hidden="true" /><span>下载</span>
         </button>
         <button type="button" :disabled="disabled" title="创建副本：带上提示词和参数，以这张为输出" :aria-label="`以第 ${currentIndex + 1} 个结果创建副本`" @click.stop="emit('duplicate', items[currentIndex]!)">
@@ -27,7 +27,7 @@
       <icon-photo v-else class="placeholder" :size="28" aria-hidden="true" />
       <span class="resultIndex" aria-hidden="true">{{ card.index + 1 }}</span>
       <div class="resultActions">
-        <button type="button" :disabled="disabled" title="下载" :aria-label="`下载第 ${card.index + 1} 个结果`" @click.stop="emit('download', card.item, card.index)">
+        <button type="button" :disabled="disabled || downloadDisabled" title="下载" :aria-label="`下载第 ${card.index + 1} 个结果`" @click.stop="emit('download', card.item, card.index)">
           <icon-download :size="16" aria-hidden="true" /><span>下载</span>
         </button>
         <button type="button" :disabled="disabled" title="创建副本：带上提示词和参数，以这张为输出" :aria-label="`以第 ${card.index + 1} 个结果创建副本`" @click.stop="emit('duplicate', card.item)">
@@ -47,7 +47,7 @@ import { IconCopyPlus, IconDownload, IconPhoto, IconStar, IconStarFilled } from 
 import { useNodeFiles } from "@toonflow/nodes-scaffold/workspaceFiles";
 import type { NodeMediaValue } from "@toonflow/nodes-scaffold/values";
 
-const props = defineProps<{ items: NodeMediaValue[]; mediaType: "image" | "video"; current?: NodeMediaValue; disabled?: boolean }>();
+const props = defineProps<{ items: NodeMediaValue[]; mediaType: "image" | "video"; current?: NodeMediaValue; disabled?: boolean; downloadDisabled?: boolean }>();
 const emit = defineEmits<{ select: [NodeMediaValue]; duplicate: [NodeMediaValue]; preview: [number]; download: [NodeMediaValue, number]; close: [] }>();
 const files = useNodeFiles();
 const urls = ref<string[]>([]);

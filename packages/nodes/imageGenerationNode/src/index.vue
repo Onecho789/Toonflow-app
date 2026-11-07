@@ -64,7 +64,7 @@
         v-if="resultCount > 1 && !editor?.mode"
         type="button"
         class="zipBadge nodrag nopan"
-        :disabled="zipping || deleting"
+        :disabled="zipping || downloading || deleting"
         :aria-busy="zipping"
         :aria-label="`打包下载 ${resultCount} 张图片`"
         title="打包下载全部图片"
@@ -82,6 +82,7 @@
         mediaType="image"
         :current="outputFile"
         :disabled="generating || deleting || uploading"
+        :downloadDisabled="zipping || downloading"
         @select="outputs.image = { dataType: 'IMAGE', value: $event }"
         @duplicate="duplicateResult"
         @preview="previewResult"
@@ -538,8 +539,9 @@ function duplicateResult(item: NodeMediaValue) {
 }
 
 const zipping = ref(false);
+const downloading = ref(false);
 async function downloadAllResults() {
-  if (zipping.value || !data.value.results?.length) return;
+  if (zipping.value || downloading.value || deleting.value || !data.value.results?.length) return;
   zipping.value = true;
   try {
     await downloadResults(files.getWorkspaceFiles(), data.value.results, nodeProps.value.label ?? "图片生成");
@@ -550,8 +552,16 @@ async function downloadAllResults() {
   }
 }
 
-function downloadSingleResult(item: NodeMediaValue, index: number) {
-  downloadResult(files.getWorkspaceFiles(), item, `${nodeProps.value.label ?? "图片生成"}-${index + 1}`).catch(error => showNodeError(error, "图片下载失败"));
+async function downloadSingleResult(item: NodeMediaValue, index: number) {
+  if (downloading.value || zipping.value || generating.value || deleting.value || uploading.value) return;
+  downloading.value = true;
+  try {
+    await downloadResult(files.getWorkspaceFiles(), item, `${nodeProps.value.label ?? "图片生成"}-${index + 1}`);
+  } catch (error) {
+    showNodeError(error, "图片下载失败");
+  } finally {
+    downloading.value = false;
+  }
 }
 
 function previewResult(index: number) {

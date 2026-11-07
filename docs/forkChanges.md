@@ -1215,3 +1215,16 @@ git grep -nP "(?<![-\w])Toonflow(?![-\w])" -- apps/web apps/server apps/desktop/
 验证：Web、desktop 现有 typecheck 通过；已登录本机预览确认首页与画布内按钮同排、真实媒体封面正常，1168px、861px、640px、390px 窗口工具栏布局检查；未新增测试文件。完整安装包结果另见 `docs/projectMemory/releaseWorkflow.md`。
 
 冲突时保留：紧凑单行项目/画布入口、基于画布容器的避让断点、选择器操作按钮同排以及既有文件操作事件。
+
+## 关闭另存为后的占用恢复（2026-11-08）
+
+- 修改前基线：`7a17af2`；桌面版本 `2.1.27`。用户报告关闭保存窗口后仍提示占用、完整退出后恢复。已确认旧实现将全局锁绑定在 `execFile` 的 `close` 回调上；进程退出但输出管道未结束时无法进入 `finally`。用户当次究竟卡在 Shell 清理还是管道关闭，未取得现场证据，不归因于特定 Bun 版本。
+- Windows 原生 helper 与 PowerShell 兜底在对话框返回后，先发送并刷新 JSON 单行结果：字符串代表路径，`null` 代表取消。宿主按完整结果或进程退出收尾，最多给退出清理或尾部读取留 1 秒，不再无限等待管道 EOF；正在选择路径时不限时。
+- 保存请求断开后取消对应 helper，主进程退出时也清理。窗口还在显示时，必须等进程实际退出才释放占用；终止失败保留占用及监听，防止并发遗留窗口。只有真正启动失败才回退 PowerShell，取消和运行错误不再打开第二个窗口。
+- 批量和单张图片下载等待宿主 `downloadstate` 完成后才恢复按钮，两者互斥；普通浏览器仍使用原生下载，保留延迟释放 Blob URL。保存期间仅禁用下载，不影响复制和设为当前结果。
+
+改动文件：`apps/desktop/{src/saveFile.ts,native/saveFileDialog.cs,scripts/build.ts}`、`apps/server/src/{routes/desktop/selectSaveFile.ts,types/desktop.ts}`、`packages/nodeShared/src/{downloadResults.ts,components/mediaResults.vue}`、`packages/nodes/imageGenerationNode/src/index.vue`、`electrobun.config.ts`。
+
+验证：desktop、server、nodeShared、imageGenerationNode 现有 typecheck 通过；路由生成与 `git diff --check` 通过。未新增测试文件；安装包与实际验证结果另见发布记忆。
+
+冲突时保留：明确的保存/取消结果协议、与真实窗口生命周期关联的占用清理、仅启动失败时回退，以及下载按钮等待宿主完成的语义。

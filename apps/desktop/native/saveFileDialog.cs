@@ -3,6 +3,7 @@ using System.Drawing;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Web.Script.Serialization;
 using System.Windows.Forms;
 
 internal static class saveFileDialog
@@ -32,10 +33,12 @@ internal static class saveFileDialog
         dialog.DefaultExt = Path.GetExtension(args[0]).TrimStart('.');
         dialog.OverwritePrompt = true;
         dialog.CheckPathExists = true;
-        if (dialog.ShowDialog(owner) == DialogResult.OK)
+        var selected = dialog.ShowDialog(owner) == DialogResult.OK ? dialog.FileName : null;
+        // 先明确回传保存或取消，宿主不必等待 Shell 清理和输出管道全部关闭。
+        using (var output = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false)))
         {
-          using (var output = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false)))
-            output.Write(dialog.FileName);
+          output.WriteLine(new JavaScriptSerializer().Serialize(selected));
+          output.Flush();
         }
       }
       return 0;
