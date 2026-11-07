@@ -274,7 +274,15 @@ Grok 当前修订：f8f85bef333fecb4da9ecfdb267a9cbad30472092346ed9a252c15138fda
 上次版本已验证能力400、源码新旧版本读取、默认升级、自定义与恢复版本重启保留。本次发布前无活跃视频任务、无 pending 用量记录，发布中未新发起生成。
 视频编辑/延长等宿主入参及上游特殊计费未扩展，现有失败退款规则保留。
 
-## 当前桌面本地安装包 2.1.27（2026-11-08）
+## 当前桌面本地安装包 2.1.28（2026-11-08）
+
+- 源码 38aec42e7def67bb28c411d34b3a7a2075e52d71，分支 codex/simplifyMediaModels；基线 b400c6d。返回箭头、项目 / 画布、元素和设置合为一体式悬浮条；返回仅图标、原设置保留，元素抽屉展开不挤占导航行，并适配窄窗口与文档视图。
+- 快照：D:\2api-codes\maimai\client\build\desktop\releases\2.1.28。安装包 `MaiMaiStudio-2.1.28-Setup.exe` 66,471,731 字节；SHA256 `cf193132016dcd95dc34cb6f33dd40e7a4252c2dab2ffc50121d52b9abba7444`；清单 version=2.1.28、stable/win/x64、hash=2t7dlnq41whgf。
+- Web/desktop 已有类型检查、Web 构建、完整打包与 7-Zip 安装器完整性检查通过；三资产与 artifacts 摘要一致，无增量 patch，构建锁已释放。已登录本机预览确认元素开合、原设置、返回确认 / 取消、选择器与真实画布切换；检查 1280/1040/900/640/390/320px 宽度及窄窗文档模式。未编辑节点或付费生成；后续本机服务停止，未确认切回原画布。
+- 旧 2.1.27 三资产快照保留且原摘要一致；源码回退参考 b400c6d。证据及共享记忆备份位于 `docs/history/canvasFloating20261108/`，详细摘要与验证边界见 releaseWorkflow.md。
+- 本地交付，未运行安装器、未发布 GitHub Release、未部署云端；云端生产版本保持上方记录，桌面公开版本仍为 2.1.0、自动更新源为空。
+
+## 上次桌面本地安装包 2.1.27（2026-11-08）
 
 - 源码0141f560c3e8bc804114d9508e7af515cb6e3900，分支codex/simplifyMediaModels；基线7a17af2。修复保存操作无限等待输出管道关闭的问题，明确回传路径/取消，完成后有界回收；请求断开取消helper，下载按钮等待宿主完成后才恢复。
 - 快照：D:\2api-codes\maimai\client\build\desktop\releases\2.1.27。安装包`MaiMaiStudio-2.1.27-Setup.exe` 66,483,186字节；SHA256 `0b709d326bd2dafd45c2149b88b551917793372d2e8aaa0d899d175a13adfaf1`；清单version=2.1.27、stable/win/x64、hash=1lahcy8n3hrc7。
